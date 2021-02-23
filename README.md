@@ -1,2 +1,2 @@
 # LingTube
-Tools for doing linguistic analysis with YouTube data.
+Tools for scraping and doing linguistic analysis with YouTube data.

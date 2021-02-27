@@ -7,7 +7,7 @@ from os import listdir, makedirs, path
 from pydub import AudioSegment
 import re
 
-def convert_to_wav (filename, name, origpath, wavpath):
+def convert_to_wav (filename, name, origpath, wavpath, mono):
 	""" Takes an mp4 file and converts it to WAV format.
 
 	:param filename: An mp4 file (with ext)
@@ -29,9 +29,11 @@ def convert_to_wav (filename, name, origpath, wavpath):
 			makedirs(wavpath)
 		exportPath = path.join(wavpath, exportname)
 		sound = AudioSegment.from_file(filepath,"mp4")
+		if mono == True:
+	        sound = sound.set_channels(1)
 		sound.export(exportPath, format="wav")
 
-def convert_and_move_file (filename, origpath, wavpath, mp4path):
+def convert_and_move_file (filename, origpath, wavpath, mp4path, mono):
 	""" Wrapper to convert mp4 file and move to separate directory.
 
 	:param filename: An mp4 file
@@ -42,7 +44,7 @@ def convert_and_move_file (filename, origpath, wavpath, mp4path):
 	name, ext = path.splitext(filename)
 	if ext == ".mp4":
 		print(filename)
-		convert_to_wav (filename, name, origpath, wavpath)
+		convert_to_wav (filename, name, origpath, wavpath, mono)
 
 	if not path.exists(mp4path):
 		makedirs(mp4path)
@@ -50,7 +52,7 @@ def convert_and_move_file (filename, origpath, wavpath, mp4path):
 	newlocation = path.join(mp4path, filename)
 	shutil.move(oldlocation, newlocation)
 
-def convert_and_move_dir (dirname, origpath, wavpath, mp4path):
+def convert_and_move_dir (dirname, origpath, wavpath, mp4path, mono):
 	""" Wrapper to convert each mp4 file in a channel folder and
 	move the entire folder to a separate directory.
 
@@ -66,7 +68,7 @@ def convert_and_move_dir (dirname, origpath, wavpath, mp4path):
 		name, ext = path.splitext(filename)
 		if ext == ".mp4":
 			print(filename)
-			convert_to_wav(filename, name, origdirpath, wavdirpath)
+			convert_to_wav(filename, name, origdirpath, wavdirpath, mono)
 
 	if not path.exists(mp4path):
 		makedirs(mp4path)
@@ -80,9 +82,9 @@ def main(args):
 
 	for dir_element in listdir(origpath):
 		if path.splitext(dir_element)[1] == '.mp4':
-			convert_and_move_file(dir_element, origpath, wavpath, mp4path)
+			convert_and_move_file(dir_element, origpath, wavpath, mp4path, args.mono)
 		elif dir_element not in ['mp4', 'wav', '.DS_Store']:
-			convert_and_move_dir (dir_element, origpath, wavpath, mp4path)
+			convert_and_move_dir (dir_element, origpath, wavpath, mp4path, args.mono)
 
 if __name__ == '__main__':
 
@@ -90,6 +92,7 @@ if __name__ == '__main__':
 
 	parser.set_defaults(func=None)
 	parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
+	parser.add_argument('--mono', '-m', action='store_true', default=False, help='convert to mono (single audio channel)')
 
 	args = parser.parse_args()
 

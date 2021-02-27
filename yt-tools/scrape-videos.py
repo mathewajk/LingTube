@@ -315,7 +315,7 @@ def main(args):
         print("Resuming from video {0}".format(args.resume))
 
     if path.isfile(args.urls_in):
-        process_videos(args.urls_in, args.language, args.group, args.audio, args.auto, args.srt, args.titles, args.channels, args.resume, args.limit)
+        process_videos(args.urls_in, False, args.language, args.group, args.audio, args.auto, args.srt, args.titles, args.channels, args.resume, args.limit)
 
     if path.isdir(args.urls_in):
         process_files(args.urls_in, args.language, args.group, args.audio, args.auto, args.srt, args.titles, args.channels, args.resume, args.limit)

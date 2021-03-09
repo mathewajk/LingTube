@@ -195,6 +195,9 @@ def main(args):
             correctdir = path.join(cleansubbase, "corrected")
             if not path.exists(correctdir):
                 makedirs(correctdir)
+            else:
+                shutil.rmtree(correctdir)
+
             for dir_element in listdir(cleansubdir):
                 try:
                     shutil.copy(path.join(cleansubdir,dir_element),

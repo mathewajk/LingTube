@@ -179,6 +179,7 @@ def main(args):
 
             for i, dir_element in enumerate(listdir(indir)):
                 if path.isdir(path.join(indir, dir_element)):
+                    print('\nChannel {0}: {1}'.format(i+1, dir_element))
 
                     indir_ch = path.join(indir, dir_element)
                     cleansubdir_ch = path.join(cleansubdir, dir_element)
@@ -209,6 +210,7 @@ def main(args):
 
             for i, dir_element in enumerate(listdir(indir)):
                 if path.isdir(path.join(indir, dir_element)):
+                    print('\nChannel {0}: {1}'.format(i+1, dir_element))
 
                     indir_ch = path.join(indir, dir_element)
                     cleansubdir_ch = path.join(cleansubdir, dir_element)

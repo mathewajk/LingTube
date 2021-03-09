@@ -148,6 +148,13 @@ def main(args):
 
             indir = rawsubdir
 
+            for dir_element in listdir(indir):
+                if path.isdir(path.join(indir, dir_element)):
+                    indir = path.join(indir, dir_element)
+                    cleansubdir = path.join(cleansubdir, dir_element)
+                    favedir = path.join(favedir, dir_element)
+                    textdir = path.join(textdir, dir_element)
+
             for i, subfilename in enumerate(listdir(indir)):
                 print('Processing transcript {0}: {1}'.format(i+1,subfilename))
 
@@ -181,6 +188,13 @@ def main(args):
             textdir = path.join(textbase, 'corrected')
 
             indir = cleansubdir
+
+            for dir_element in listdir(indir):
+                if path.isdir(path.join(indir, dir_element)):
+                    indir = path.join(indir, dir_element)
+                    cleansubdir = path.join(cleansubdir, dir_element)
+                    favedir = path.join(favedir, dir_element)
+                    textdir = path.join(textdir, dir_element)
 
             for i, subfilename in enumerate(listdir(indir)):
                 print('Processing transcript {0}: {1}'.format(i+1,subfilename))

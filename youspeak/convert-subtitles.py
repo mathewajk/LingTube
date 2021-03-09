@@ -124,37 +124,35 @@ def write_to_output (filetype, outdir, video_id, timed_lines):
     else:
         print('Filetype not valid.')
 
-def process_raw_subs (indir, cleansubdir, favedir, textdir):
-    for i, subfilename in enumerate(listdir(indir)):
-        print('Processing transcript {0}: {1}'.format(i+1,subfilename))
+def process_raw_subs (i, subfilename, indir, cleansubdir, favedir, textdir):
+    print('Processing transcript {0}: {1}'.format(i+1,subfilename))
 
-        name = subfilename.rsplit(' ', 1)[0] # channel_num
-        if not re.match(r".*_\d+$",name):
-            # If filenames do include video titles
-            name = name.rsplit('_',1)[0]
+    name = subfilename.rsplit(' ', 1)[0] # channel_num
+    if not re.match(r".*_\d+$",name):
+        # If filenames do include video titles
+        name = name.rsplit('_',1)[0]
 
-        channel, vid_num = name.rsplit('_', 1)
-        channel = re.sub(r'[^A-Za-z1-9]', '', channel)
-        newname = '_'.join([channel, vid_num])
+    channel, vid_num = name.rsplit('_', 1)
+    channel = re.sub(r'[^A-Za-z1-9]', '', channel)
+    newname = '_'.join([channel, vid_num])
 
-        timed_lines = get_timestamped_lines(indir, subfilename)
+    timed_lines = get_timestamped_lines(indir, subfilename)
 
-        # Write to file
-        write_to_output('cleans', cleansubdir, newname, timed_lines)
-        write_to_output('fave', favedir, newname, timed_lines)
-        write_to_output('text', textdir, newname, timed_lines)
+    # Write to file
+    write_to_output('cleans', cleansubdir, newname, timed_lines)
+    write_to_output('fave', favedir, newname, timed_lines)
+    write_to_output('text', textdir, newname, timed_lines)
 
-def process_corrected_subs (indir, favedir, textdir):
-    for i, subfilename in enumerate(listdir(indir)):
-        print('Processing transcript {0}: {1}'.format(i+1,subfilename))
+def process_corrected_subs (i, subfilename, indir, favedir, textdir):
+    print('Processing transcript {0}: {1}'.format(i+1,subfilename))
 
-        name = path.splitext(subfilename)[0] # channel_num
+    name = path.splitext(subfilename)[0] # channel_num
 
-        timed_lines = read_timestamped_lines(indir, subfilename)
+    timed_lines = read_timestamped_lines(indir, subfilename)
 
-        # Write to file
-        write_to_output('fave', favedir, name, timed_lines)
-        write_to_output('text', textdir, name, timed_lines)
+    # Write to file
+    write_to_output('fave', favedir, name, timed_lines)
+    write_to_output('text', textdir, name, timed_lines)
 
 # TODO: Make routes for (1) -t titles in filenames (2) xml files
 def main(args):
@@ -179,16 +177,18 @@ def main(args):
             favedir = path.join(favebase, "uncorrected")
             textdir = path.join(textbase, 'uncorrected')
 
-            for dir_element in listdir(indir):
+            for i, dir_element in enumerate(listdir(indir)):
                 if path.isdir(path.join(indir, dir_element)):
+
                     indir_ch = path.join(indir, dir_element)
                     cleansubdir_ch = path.join(cleansubdir, dir_element)
                     favedir_ch = path.join(favedir, dir_element)
                     textdir_ch = path.join(textdir, dir_element)
 
-                    process_raw_subs(indir_ch, cleansubdir_ch, favedir_ch, textdir_ch)
+                    for subi, subdir_element in enumerate(listdir(indir_ch)):
+                        process_raw_subs(subi, subdir_element, indir_ch, cleansubdir_ch, favedir_ch, textdir_ch)
                 else:
-                    process_raw_subs(indir, cleansubdir, favedir, textdir)
+                    process_raw_subs(i, dir_element, indir, cleansubdir, favedir, textdir)
 
             # Copy cleans to corrected folder for manual correction
             correctdir = path.join(cleansubbase, "corrected")
@@ -207,15 +207,18 @@ def main(args):
             favedir = path.join(favebase, "corrected")
             textdir = path.join(textbase, 'corrected')
 
-            for dir_element in listdir(indir):
+            for i, dir_element in enumerate(listdir(indir)):
                 if path.isdir(path.join(indir, dir_element)):
+
                     indir_ch = path.join(indir, dir_element)
+                    cleansubdir_ch = path.join(cleansubdir, dir_element)
                     favedir_ch = path.join(favedir, dir_element)
                     textdir_ch = path.join(textdir, dir_element)
 
-                    process_corrected_subs(indir_ch, favedir_ch, textdir_ch)
+                    for subi, subdir_element in enumerate(listdir(indir_ch)):
+                        process_corrected_subs(subi, subdir_element, indir_ch, cleansubdir_ch, favedir_ch, textdir_ch)
                 else:
-                    process_corrected_subs(indir, favedir, textdir)
+                    process_corrected_subs(i, dir_element, indir, cleansubdir, favedir, textdir)
 
 
 if __name__ == '__main__':

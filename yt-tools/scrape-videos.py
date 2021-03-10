@@ -35,13 +35,12 @@ def write_captions(captions, video, position, channel_name="", channel_id="", gr
     else:
         out_path = path.join(out_path, "manual", captions.code)
 
-
+    punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
     if channel_name and channel_id:
-        punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
         safe_channel_name = sub(punc_and_whitespace, "", channel_name)
         safe_author = "{0}_{1}".format(safe_channel_name, channel_id)
     else:
-        safe_author = helpers.safe_filename(video.author)
+        safe_author = sub(punc_and_whitespace, "", video.author)
 
     if(include_channel):
         out_path = path.join(out_path, safe_author)
@@ -80,13 +79,14 @@ def write_audio(audio, video, position, channel_name="", channel_id="", group=No
     if group is not None:
         out_path = path.join(out_path, group)
 
+    punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
     if(include_channel):
         if channel_name and channel_id:
-            punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
             safe_channel_name = sub(punc_and_whitespace, "", channel_name)
             out_path = path.join(out_path, "{0}_{1}".format(safe_channel_name, channel_id))
         else:
-            out_path = path.join(out_path, video.author)
+            safe_author = sub(punc_and_whitespace, "", video.author)
+            out_path = path.join(out_path, safe_author)
 
     if not path.exists(out_path):
         makedirs(out_path)

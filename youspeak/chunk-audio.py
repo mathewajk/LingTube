@@ -100,23 +100,22 @@ def save_chunks(chunk_sound, outputpath, name):
 
 def process_soundfile(filename, audiopath, chunkpath):
 
-    soundpath = path.join(chunkpath, "wav")
-    tgpath = path.join(chunkpath, "tg")
-    logpath = path.join(chunkpath, "log")
-
     name, ext = path.splitext(filename)
 
     if ext == '.wav':
-        if re.match(r".*_\d+$",name):
-            # If filenames do not include video titles
+        if not re.match(r".*_\d+$",name):
+            # If filenames do include video titles
+            name = name.rsplit('_',1)[0]
             channel = name.rsplit('_',1)[0]
         else:
-            # If filenames do include video titles
-            channel = name.rsplit('_',2)[0]
+            channel = name.rsplit('_',1)[0]
 
+        soundpath = path.join(chunkpath, "audio", channel)
+        tgpath = path.join(chunkpath, "textgrids", channel)
+        logpath = path.join(chunkpath, "logs", "chunking", channel)
 
         # Create log file
-        log_file = path.join(logpath, channel+'_chunk_log.csv')
+        log_file = path.join(logpath, name+'_log.csv')
         if not path.exists(logpath):
             makedirs(logpath)
 
@@ -126,9 +125,8 @@ def process_soundfile(filename, audiopath, chunkpath):
 
 
         # Create output directory
-        outputpath = path.join(soundpath, channel)
-        if not path.exists(outputpath):
-            makedirs(outputpath)
+        if not path.exists(soundpath):
+            makedirs(soundpath)
 
 
         # Start audio processing
@@ -150,9 +148,9 @@ def process_soundfile(filename, audiopath, chunkpath):
         print('Intervals containing speech: {0}'.format(n_ints))
 
         # Save first-pass TextGrid now for checking
-        if not path.exists(path.join(tgpath, channel)):
-            makedirs(path.join(tgpath, channel))
-        tg_filename = path.join(tgpath, channel, name+'.TextGrid')
+        if not path.exists(tgpath):
+            makedirs(tgpath)
+        tg_filename = path.join(tgpath, name+'.TextGrid')
         textgrid.save(tg_filename)
 
         print('Extracting intervals...\n')
@@ -169,7 +167,7 @@ def process_soundfile(filename, audiopath, chunkpath):
             print(duration)
 
             if duration <= 11:
-                log_entry = save_chunks(subsound, outputpath, name)
+                log_entry = save_chunks(subsound, soundpath, name)
                 output_df = output_df.append(log_entry, ignore_index=True)
 
             elif duration <= 20:
@@ -200,7 +198,7 @@ def process_soundfile(filename, audiopath, chunkpath):
             print(duration)
 
             if duration <= 11:
-                log_entry = save_chunks(subsound, outputpath, name)
+                log_entry = save_chunks(subsound, soundpath, name)
                 output_df = output_df.append(log_entry, ignore_index=True)
 
             else:
@@ -208,7 +206,7 @@ def process_soundfile(filename, audiopath, chunkpath):
                 sil_threshold = get_silence_threshold(subsound, 0.05)
                 subtextgrid = detect_silences(subsound, sil_threshold, sil_duration)
 
-                tg_filename = path.join(tgpath, channel, name+'current'+'.TextGrid')
+                tg_filename = path.join(tgpath, name+'current'+'.TextGrid')
                 subtextgrid.save(tg_filename)
 
                 n_ints = call(subtextgrid, 'Count intervals where',
@@ -221,12 +219,12 @@ def process_soundfile(filename, audiopath, chunkpath):
                 print(extracted_subsounds)
 
                 if n_ints == 1:
-                    log_entry = save_chunks(subsound, outputpath, name)
+                    log_entry = save_chunks(subsound, soundpath, name)
                     output_df = output_df.append(log_entry, ignore_index=True)
                     print('saved 1')
                 else:
                     for subsound in extracted_subsounds:
-                        log_entry = save_chunks(subsound, outputpath, name)
+                        log_entry = save_chunks(subsound, soundpath, name)
                         output_df = output_df.append(log_entry, ignore_index=True)
                     print('saved multiple')
 

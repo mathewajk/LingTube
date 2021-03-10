@@ -230,6 +230,7 @@ def process_soundfile(filename, audiopath, chunkpath):
                         output_df = output_df.append(log_entry, ignore_index=True)
                     print('saved multiple')
 
+        output_df = output_df.sort_values(by=["start_time"])
         output_df.to_csv(log_file, mode='a', index=False, header=False)
 
 def main(args):

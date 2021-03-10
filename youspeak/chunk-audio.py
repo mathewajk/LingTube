@@ -74,6 +74,29 @@ def extract_intervals(sound, textgrid, adjustment):
 
     return extracted_sounds
 
+def chunk_sound (sound, sil_duration, threshold_quantile, tgpath, name):
+    sil_threshold = get_silence_threshold(sound, threshold_quantile)
+    textgrid = detect_silences(sound, sil_threshold, sil_duration)
+
+    n_ints = call(textgrid, 'Count intervals where',
+                        1, 'is equal to', 'speech')
+    print('Intervals containing speech: {0}'.format(n_ints))
+
+    # Save first-pass TextGrid now for checking
+    # TODO: Add folder for different passes
+    if not path.exists(tgpath):
+        makedirs(tgpath)
+    tg_filename = path.join(tgpath, name+'.TextGrid')
+    textgrid.save(tg_filename)
+
+    print('Extracting intervals...\n')
+    # extracted_sounds_1 = extract_intervals(sound, textgrid, 0.25)
+    extracted_sounds = call([sound, textgrid],
+                            'Extract intervals where',
+                            1, True, 'is equal to', 'speech')
+
+    return extracted_sounds, n_ints
+
 def save_chunks(chunk_sound, outputpath, name):
     """ Saves chunked speech intervals as WAV file.
 
@@ -138,95 +161,62 @@ def process_soundfile(filename, audiopath, chunkpath):
 
         print('First pass chunking in progress...\n')
         # Use a more conservative 0.5 sec silence to get larger chunks
-        sil_duration = 0.5
-        sil_threshold = get_silence_threshold(sound, 0.15)
-        textgrid = detect_silences(sound, sil_threshold, sil_duration)
 
-        n_ints = call(textgrid,
-                            'Count intervals where',
-                            1, 'is equal to', 'speech')
-        print('Intervals containing speech: {0}'.format(n_ints))
+        sil_duration = 0.25
+        quantile = 0.05
+        (extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile, tgpath, name)
 
-        # Save first-pass TextGrid now for checking
-        if not path.exists(tgpath):
-            makedirs(tgpath)
-        tg_filename = path.join(tgpath, name+'.TextGrid')
-        textgrid.save(tg_filename)
-
-        print('Extracting intervals...\n')
-        # extracted_sounds_1 = extract_intervals(sound, textgrid, 0.25)
-        extracted_sounds_1 = call([sound, textgrid],
-                                'Extract intervals where',
-                                1, True, 'is equal to', 'speech')
+        while n_ints <= 1:
+            # sil_duration -= 0.025
+            quantile += 0.025
+            extracted_sounds_1 = chunk_sound(sound, sil_duration, quantile, tgpath, name)
+            # input()
 
         print('Second pass chunking in progress...\n')
-        # Use a more precise 0.25 s silence to get breath breaks
-        extracted_sounds_2 = []
-        for subsound in extracted_sounds_1:
-            duration = subsound.get_total_duration()
-            print(duration)
+        counter = -1
+        sil_duration = 0.1
+        quantile = 0.025
+        while len(extracted_sounds_1) > 0:
+            counter += 1
+            print('Counter: {0}'.format(counter))
+            print(len(extracted_sounds_1))
 
-            if duration <= 11:
-                log_entry = save_chunks(subsound, soundpath, name)
-                output_df = output_df.append(log_entry, ignore_index=True)
-
-            elif duration <= 20:
-                extracted_sounds_2.append(subsound)
-
-            else:
-                sil_duration = 0.25
-                sil_threshold = get_silence_threshold(subsound, 0.15)
-                subtextgrid = detect_silences(subsound, sil_threshold, sil_duration)
-
-                n_ints = call(subtextgrid, 'Count intervals where',
-                              1, 'is equal to', 'speech')
-                # extracted_subsounds = extract_intervals(subsound, subtextgrid, 0.25)
-                extracted_subsounds = call([subsound, subtextgrid],
-                                        'Extract intervals where',
-                                        1, True, 'is equal to', 'speech')
-
-                if n_ints > 1:
-                    extracted_sounds_2 = extracted_sounds_2 + extracted_subsounds
-                else:
-                    extracted_sounds_2.append(extracted_subsounds)
-
-
-        print('Third pass chunking in progress...\n')
-        # Use a more precise 0.1 s silence + 0.05 threshold
-        for subsound in extracted_sounds_2:
-            duration = subsound.get_total_duration()
-            print(duration)
-
-            if duration <= 11:
-                log_entry = save_chunks(subsound, soundpath, name)
-                output_df = output_df.append(log_entry, ignore_index=True)
-
-            else:
+            if counter > 0 and counter % 1 == 0:
+                if not counter % 5 == 0:
+                    sil_duration += 0.05
+                    print('Duration: {0}'.format(sil_duration))
+                    # input()
+            if counter > 0 and counter % 5 == 0:
                 sil_duration = 0.1
-                sil_threshold = get_silence_threshold(subsound, 0.05)
-                subtextgrid = detect_silences(subsound, sil_threshold, sil_duration)
+                print('Duration: {0}'.format(sil_duration))
+                # quantile += 0.025
+                # print('Quantile: {0}'.format(quantile))
+                # input()
 
-                tg_filename = path.join(tgpath, name+'current'+'.TextGrid')
-                subtextgrid.save(tg_filename)
-
-                n_ints = call(subtextgrid, 'Count intervals where',
-                              1, 'is equal to', 'speech')
-
-                # extracted_subsounds = extract_intervals(subsound, subtextgrid, 0.1)
-                extracted_subsounds = call([subsound, subtextgrid],
-                                        'Extract intervals where',
-                                        1, True, 'is equal to', 'speech')
-                print(extracted_subsounds)
-
-                if n_ints == 1:
+            for subsound in extracted_sounds_1:
+                duration = subsound.get_total_duration()
+                print(counter, duration)
+                if duration <= 10:
                     log_entry = save_chunks(subsound, soundpath, name)
                     output_df = output_df.append(log_entry, ignore_index=True)
-                    print('saved 1')
+                    extracted_sounds_1.remove(subsound)
+                    # input()
                 else:
-                    for subsound in extracted_subsounds:
-                        log_entry = save_chunks(subsound, soundpath, name)
-                        output_df = output_df.append(log_entry, ignore_index=True)
-                    print('saved multiple')
+                    n_ints = -1
+                    sub_quantile = 0.025
+                    while n_ints <= 1:
+                        (extracted_subsounds, n_ints) = chunk_sound (subsound, sil_duration, sub_quantile, tgpath, name)
+
+                        if n_ints > 1:
+                            extracted_sounds_1.remove(subsound)
+                            for s in extracted_subsounds:
+                                duration = s.get_total_duration()
+                                print(counter, duration)
+                            extracted_sounds_1 = extracted_sounds_1 + extracted_subsounds
+                            # input()
+                            break
+                        else:
+                            sub_quantile += 0.025
 
         output_df = output_df.sort_values(by=["start_time"])
         output_df.to_csv(log_file, mode='a', index=False, header=False)

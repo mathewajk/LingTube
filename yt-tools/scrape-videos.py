@@ -40,7 +40,8 @@ def write_captions(captions, video, position, channel_name="", channel_id="", gr
         safe_channel_name = sub(punc_and_whitespace, "", channel_name)
         safe_author = "{0}_{1}".format(safe_channel_name, channel_id)
     else:
-        safe_author = sub(punc_and_whitespace, "", video.author)
+        safe_author = sub(r"[^A-Za-z1-9]", "", video.author)
+
 
     if(include_channel):
         out_path = path.join(out_path, safe_author)
@@ -85,7 +86,7 @@ def write_audio(audio, video, position, channel_name="", channel_id="", group=No
             safe_channel_name = sub(punc_and_whitespace, "", channel_name)
             out_path = path.join(out_path, "{0}_{1}".format(safe_channel_name, channel_id))
         else:
-            safe_author = sub(punc_and_whitespace, "", video.author)
+            safe_author = sub(r"[^A-Za-z1-9]", "", video.author)
             out_path = path.join(out_path, safe_author)
 
     if not path.exists(out_path):

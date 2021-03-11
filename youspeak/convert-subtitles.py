@@ -26,6 +26,7 @@ def convert_to_seconds (timestamp) :
 def clean_text (text):
     """ Automated cleaning of text.
     """
+    text = re.sub(r'1\.5', 'one point five', text)
     text = re.sub(r'[\.,"!?:;()]', '', text)
     text = re.sub(r'&', 'and', text)
     # text = re.sub(r'%', 'percent', text)

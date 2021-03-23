@@ -187,18 +187,19 @@ def main(args):
                     textdir = path.join(textbase, 'uncorrected')
 
                     for i, dir_element in enumerate(listdir(indir)):
-                        if path.isdir(path.join(indir, dir_element)):
-                            print('\nChannel {0}: {1}'.format(i+1, dir_element))
+                        if not dir_element == '.DS_Store':
+                            if path.isdir(path.join(indir, dir_element)):
+                                print('\nChannel {0}: {1}'.format(i+1, dir_element))
 
-                            indir_ch = path.join(indir, dir_element)
-                            cleansubdir_ch = path.join(cleansubdir, dir_element)
-                            favedir_ch = path.join(favedir, dir_element)
-                            textdir_ch = path.join(textdir, dir_element)
+                                indir_ch = path.join(indir, dir_element)
+                                cleansubdir_ch = path.join(cleansubdir, dir_element)
+                                favedir_ch = path.join(favedir, dir_element)
+                                textdir_ch = path.join(textdir, dir_element)
 
-                            for subi, subdir_element in enumerate(listdir(indir_ch)):
-                                process_raw_subs(subi, subdir_element, indir_ch, cleansubdir_ch, favedir_ch, textdir_ch)
-                        else:
-                            process_raw_subs(i, dir_element, indir, cleansubdir, favedir, textdir)
+                                for subi, subdir_element in enumerate(listdir(indir_ch)):
+                                    process_raw_subs(subi, subdir_element, indir_ch, cleansubdir_ch, favedir_ch, textdir_ch)
+                            else:
+                                process_raw_subs(i, dir_element, indir, cleansubdir, favedir, textdir)
 
                     # Copy cleans to corrected folder for manual correction
                     correctdir = path.join(cleansubbase, "corrected")
@@ -221,18 +222,19 @@ def main(args):
                     textdir = path.join(textbase, 'corrected')
 
                     for i, dir_element in enumerate(listdir(indir)):
-                        if path.isdir(path.join(indir, dir_element)):
-                            print('\nChannel {0}: {1}'.format(i+1, dir_element))
+                        if not dir_element == '.DS_Store':
+                            if path.isdir(path.join(indir, dir_element)):
+                                print('\nChannel {0}: {1}'.format(i+1, dir_element))
 
-                            indir_ch = path.join(indir, dir_element)
-                            cleansubdir_ch = path.join(cleansubdir, dir_element)
-                            favedir_ch = path.join(favedir, dir_element)
-                            textdir_ch = path.join(textdir, dir_element)
+                                indir_ch = path.join(indir, dir_element)
+                                cleansubdir_ch = path.join(cleansubdir, dir_element)
+                                favedir_ch = path.join(favedir, dir_element)
+                                textdir_ch = path.join(textdir, dir_element)
 
-                            for subi, subdir_element in enumerate(listdir(indir_ch)):
-                                process_corrected_subs(subi, subdir_element, indir_ch, cleansubdir_ch, favedir_ch, textdir_ch)
-                        else:
-                            process_corrected_subs(i, dir_element, indir, cleansubdir, favedir, textdir)
+                                for subi, subdir_element in enumerate(listdir(indir_ch)):
+                                    process_corrected_subs(subi, subdir_element, indir_ch, cleansubdir_ch, favedir_ch, textdir_ch)
+                            else:
+                                process_corrected_subs(i, dir_element, indir, cleansubdir, favedir, textdir)
 
 
 if __name__ == '__main__':

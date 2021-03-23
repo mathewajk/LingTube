@@ -50,14 +50,15 @@ def annotatorinfo():
     fname = askopenfilename()
     basename = os.path.basename(fname)
 
-    video_id = basename.rsplit('_', 1)[0]
-    channel = basename.rsplit('_', 2)[0]
+    video_id = basename.rsplit('_', 2)[0]
+    channel = basename.rsplit('_', 3)[0]
     group = args.group
 
+    print(video_id)
 
     basedir = os.path.join("corpus", "chunked_audio", group)
 
-    audiodir = os.path.join(basedir, 'audio', channel)
+    audiodir = os.path.join(basedir, 'audio', 'chunking', channel, video_id)
     logdir = os.path.join(basedir, 'log', 'chunking', channel)
     outdir = os.path.join(basedir, 'logs', 'coding', channel)
     if not os.path.exists(outdir):
@@ -107,21 +108,23 @@ def get_subtitles(args):
     subtitledir = os.path.join("corpus", "cleaned_subtitles", group)
     try:
         subfile = os.path.join(subtitledir, "manual", args.language, "faves", "corrected", channel, video_id+".txt")
+
         if not os.path.isfile(subfile):
             subfile = os.path.join(subtitledir, "manual", args.language, "faves", "uncorrected", channel, video_id+".txt")
+
         subtitles = pd.read_table(subfile, names=["sp_code", "speaker", "start_time", "end_time", "transcription"])
     except:
         try:
-            # TODO: Make indexing by video id, not channel (though dir by channel)
             subfile = os.path.join(subtitledir, "auto", args.language, "faves", "corrected", channel, video_id+".txt")
+
             if not os.path.isfile(subfile):
                 subfile = os.path.join(subtitledir, "auto", args.language, "faves", "uncorrected", channel, video_id+".txt")
+
             subtitles = pd.read_table(subfile, names=["sp_code", "speaker", "start_time", "end_time", "transcription"])
-            # subs_found = 1
         except:
-            # subs_found = 0
             subtitles = pd.DataFrame()
             print('No transcript file found for this audio file.')
+
     if not subtitles.empty:
         subtitles['start_time'] = (subtitles['start_time'])*1000
         subtitles['end_time'] = (subtitles['end_time'])*1000

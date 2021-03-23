@@ -152,7 +152,7 @@ def insert_transcript(subtitles):
                               (subtitles["end_time"].isin(row_timerange))]
     subtitle_text = ' '.join([line for line in subtitle_match["transcription"]])
 
-    # TODO: See if can slice out overlapping parts of the previous transcript from the next line (plus maybe remaining sections of the previous line)
+    # TODO: See if can add remaining sections of the previous line to the next line if not there
 
     if idx > 0:
         matched_words = []
@@ -168,22 +168,22 @@ def insert_transcript(subtitles):
                     preline_words = previous_line.strip().split()
                     preline_words.reverse()
                     preline_max = len(preline_words)-1
-                    print(preline_words)
-                    print(preline_max)
+                    # print(preline_words)
+                    # print(preline_max)
 
                     for preword_i, word in enumerate(preline_words):
                         if word in current_words:
                             word_i = current_words.index(word)
                             if word_i >= 0:
                                 matched_words.append(word)
-                                print(word, word_i, preword_i)
+                                # print(word, word_i, preword_i)
                                 if word_i == 0:
                                     matched_words.reverse()
                                     if len(matched_words) > 1:
                                         matched_string = ' '.join(matched_words)+' '
                                     else:
                                         matched_string = matched_words[0]+' '
-                                    print(matched_string)
+                                    # print(matched_string)
                                     break
                                 elif preword_i == preline_max:
                                     break
@@ -194,11 +194,11 @@ def insert_transcript(subtitles):
         try:
             subtitle_text = subtitle_text.split(matched_string, 1)[1]
         except IndexError:
-            print('No splitting available.')
+            print('No splitting available.\n')
         except UnboundLocalError:
-            print('No words in current line or previous line.')
+            print('No words in current line or previous line.\n')
         except:
-            print('Error, no trimming.')
+            print('Error, no trimming.\n')
 
     print(subtitle_text+'\n')
     transcript.insert("1.0", subtitle_text)
@@ -213,7 +213,7 @@ def play_audio():
 
     row = df.iloc[idx]
     audiofile = os.path.join(audiodir, row['filename'])
-    print(idx, row['filename']) # keep us updated about progress in terminal
+    print('\nFile number {0}: {1}\n'.format(idx, row['filename'])) # keep us updated about progress in terminal
 
     if not subtitles.empty:
         insert_transcript(subtitles)
@@ -231,7 +231,7 @@ def save_coding():
     # media = mediacat.get() # 0=absent, 1=present
     transcription = transcript.get("1.0", "end-1c") # get the transcription
     annotate_date_YYYYMMDD = datetime.datetime.now() # get current annotation time
-    print(quality, unusable_type, transcription, annotate_date_YYYYMMDD) #, content)
+    print('\n{0} + {1}\n{2}\n{3}\n'.format(quality, unusable_type, transcription, annotate_date_YYYYMMDD)) #, content)
 
     global row
     global resp_df

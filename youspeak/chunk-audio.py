@@ -128,17 +128,18 @@ def process_soundfile(filename, audiopath, chunkpath):
     if ext == '.wav':
         if not re.match(r".*_\d+$",name):
             # If filenames do include video titles
-            name = name.rsplit('_',1)[0]
-            channel = name.rsplit('_',1)[0]
+            video_id = name.rsplit('_',1)[0]
+            channel = video_id.rsplit('_',1)[0]
         else:
-            channel = name.rsplit('_',1)[0]
+            video_id = name
+            channel = video_id.rsplit('_',1)[0]
 
-        soundpath = path.join(chunkpath, "audio", channel)
-        tgpath = path.join(chunkpath, "textgrids", channel)
+        soundpath = path.join(chunkpath, "audio", "chunking", channel, video_id)
+        tgpath = path.join(chunkpath, "textgrids", "chunking", channel, video_id)
         logpath = path.join(chunkpath, "logs", "chunking", channel)
 
         # Create log file
-        log_file = path.join(logpath, name+'_log.csv')
+        log_file = path.join(logpath, video_id+'_chunking_log.csv')
         if not path.exists(logpath):
             makedirs(logpath)
 
@@ -164,12 +165,12 @@ def process_soundfile(filename, audiopath, chunkpath):
 
         sil_duration = 0.25
         quantile = 0.05
-        (extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile, tgpath, name)
+        (extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile, tgpath, video_id)
 
         while n_ints <= 1:
             # sil_duration -= 0.025
             quantile += 0.025
-            extracted_sounds_1 = chunk_sound(sound, sil_duration, quantile, tgpath, name)
+            extracted_sounds_1 = chunk_sound(sound, sil_duration, quantile, tgpath, video_id)
             # input()
 
         print('Second pass chunking in progress...\n')
@@ -178,17 +179,17 @@ def process_soundfile(filename, audiopath, chunkpath):
         quantile = 0.025
         while len(extracted_sounds_1) > 0:
             counter += 1
-            print('Counter: {0}'.format(counter))
-            print(len(extracted_sounds_1))
+            # print('Counter: {0}'.format(counter))
+            # print(len(extracted_sounds_1))
 
             if counter > 0 and counter % 1 == 0:
                 if not counter % 5 == 0:
                     sil_duration += 0.05
-                    print('Duration: {0}'.format(sil_duration))
+                    # print('Duration: {0}'.format(sil_duration))
                     # input()
             if counter > 0 and counter % 5 == 0:
                 sil_duration = 0.1
-                print('Duration: {0}'.format(sil_duration))
+                # print('Duration: {0}'.format(sil_duration))
                 # quantile += 0.025
                 # print('Quantile: {0}'.format(quantile))
                 # input()
@@ -197,7 +198,7 @@ def process_soundfile(filename, audiopath, chunkpath):
                 duration = subsound.get_total_duration()
                 print(counter, duration)
                 if duration <= 10:
-                    log_entry = save_chunks(subsound, soundpath, name)
+                    log_entry = save_chunks(subsound, soundpath, video_id)
                     output_df = output_df.append(log_entry, ignore_index=True)
                     extracted_sounds_1.remove(subsound)
                     # input()
@@ -205,7 +206,7 @@ def process_soundfile(filename, audiopath, chunkpath):
                     n_ints = -1
                     sub_quantile = 0.025
                     while n_ints <= 1:
-                        (extracted_subsounds, n_ints) = chunk_sound (subsound, sil_duration, sub_quantile, tgpath, name)
+                        (extracted_subsounds, n_ints) = chunk_sound (subsound, sil_duration, sub_quantile, tgpath, video_id)
 
                         if n_ints > 1:
                             extracted_sounds_1.remove(subsound)

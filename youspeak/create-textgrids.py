@@ -23,7 +23,7 @@ def main(args):
         channel = args.channel
         channel_list = [channel]
     else:
-        channel_list = [channel for channel in listdir(path.join(chunked_audio_base, "logs", "coding"))]
+        channel_list = [channel for channel in listdir(path.join(chunked_audio_base, "logs", "coding")) if not channel.startswith('.')]
 
     for channel in channel_list:
         logpath = path.join(chunked_audio_base, "logs", "coding", channel)
@@ -33,7 +33,7 @@ def main(args):
             video_list = [video_id]
             # print(video_list)
         else:
-            video_list = [fname.split('_coding')[0] for fname in listdir(logpath)]
+            video_list = [fname.split('_coding')[0] for fname in listdir(logpath) if not fname.startswith('.')]
             # print(video_list)
 
         for video_id in video_list:

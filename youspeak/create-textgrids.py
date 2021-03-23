@@ -11,8 +11,12 @@ from parselmouth.praat import call, run_file
 def main(args):
 
     # base paths
-    chunked_audio_base = path.join("corpus", "chunked_audio", args.group)
-    aligned_audio_base = path.join("corpus", "aligned_audio", args.group)
+    chunked_audio_base = path.join("corpus", "chunked_audio")
+    aligned_audio_base = path.join("corpus", "aligned_audio")
+
+    if not args.group == None:
+        chunked_audio_base = path.join(chunked_audio_base, args.group)
+        aligned_audio_base = path.join(aligned_audio_base, args.group)
 
     # Get file info
     if not args.channel == None:

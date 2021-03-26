@@ -20,8 +20,7 @@ def main(args):
 
     # Get file info
     if not args.channel == None:
-        channel = args.channel
-        channel_list = [channel]
+        channel_list = [args.channel]
     else:
         channel_list = [channel for channel in listdir(path.join(chunked_audio_base, "logs", "coding")) if not channel.startswith('.')]
 
@@ -41,8 +40,6 @@ def main(args):
             fname = path.join(logpath, video_id+'_coding_responses.csv')
 
             df = pd.read_csv(fname)
-            # video_id = path.basename(fname).rsplit('_', 2)[0]
-            # channel = video_id.rsplit('_', 1)[0]
             print('Processing audio chunks from: {0}'.format(video_id))
 
             # output dirs

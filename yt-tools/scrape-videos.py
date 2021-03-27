@@ -135,7 +135,7 @@ def write_captions_by_language(video, position, channel_name="", channel_id="", 
     return caption_list
 
 
-def write_metadata(video, position, caption_list, log_writer, channel_name="", channel_id=""):
+def write_metadata(video, position, caption_list, log_writer, url, channel_name="", channel_id=""):
     """Write video metadata to log file.
 
     :param video: The YouTube object to log
@@ -151,6 +151,7 @@ def write_metadata(video, position, caption_list, log_writer, channel_name="", c
         "author": video.author,
         "name": channel_name,
         "ID": channel_id,
+        "url": url,
         "title": video.title,
         "description": video.description.replace('\n', ' '),
         "keywords": video.keywords,
@@ -164,12 +165,13 @@ def write_metadata(video, position, caption_list, log_writer, channel_name="", c
     log_writer.writerow(metadata)
 
 
-def process_video(video, channel_dict, log_writer, channel_name=None, channel_id=None, language=None, group=None, include_audio=False, include_auto=False, convert_srt=False, include_title=False, include_channels=False):
+def process_video(video, channel_dict, log_writer, channel_name=None, channel_id=None, url=None, language=None, group=None, include_audio=False, include_auto=False, convert_srt=False, include_title=False, include_channels=False):
     """Download captions, audio (optional), and metadata for a given video.
 
     :param video: The YouTube object to process
     :param channel_name: The name of the channel as given on its main page (default None)
     :param channel_id: The name of the channel as it appears in the channel's URL (default None)
+    :param channel_id: The url of the video
     :param position: Channel-wise position of the video in the url list
     :param language: The language to download caption tracks for (default None)
     :param group: The folder to output the caption track to (default None)
@@ -192,7 +194,7 @@ def process_video(video, channel_dict, log_writer, channel_name=None, channel_id
         write_audio(audio, video, position, channel_name, channel_id, group, include_title, include_channels)
 
     if len(caption_list):
-        write_metadata(video, position, caption_list, log_writer, channel_name, channel_id)
+        write_metadata(video, position, caption_list, log_writer, url, channel_name, channel_id)
 
     return channel_dict
 
@@ -229,7 +231,7 @@ def process_videos(urls_path, batch=False, language=None, group=None, include_au
     with open(urls_path, "r") as urls_in, open(path.join("corpus", "logs", log_fn), write_type) as log_out:
 
         # Prepare writer for writing video data
-        log_writer = DictWriter(log_out, fieldnames=["position", "author", "name", "ID", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions"])
+        log_writer = DictWriter(log_out, fieldnames=["position", "author", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions"])
         if not group:
             log_writer.writeheader()
 
@@ -265,7 +267,7 @@ def process_videos(urls_path, batch=False, language=None, group=None, include_au
             #     logging.critical("Video {0}: An unexpected error occured ({1})".format(video_count, url))
             #     continue
 
-            process_video(video, channel_dict, log_writer, channel_name, channel_id, language, group, include_audio, include_auto, convert_srt, include_titles, include_channels)
+            process_video(video, channel_dict, log_writer, channel_name, channel_id, url, language, group, include_audio, include_auto, convert_srt, include_titles, include_channels)
 
             if limit_to != -1 and video_count == resume_from + limit_to:
                 print("{0}: Limit reached".format(urls_path))
@@ -294,7 +296,7 @@ def process_files(urls_path, language=None, group=None, include_audio=False, inc
     if group:
         log_fn = "{0}_log.csv".format(group)
         with open(path.join("corpus", "logs", log_fn), 'w') as log_out: # Overwrite file in a hacky way
-            log_writer = DictWriter(log_out, fieldnames=["position", "author", "name", "ID", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions"])
+            log_writer = DictWriter(log_out, fieldnames=["position", "author", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions"])
             log_writer.writeheader()
 
     all_fns = URL_fns_txt + URL_fns_csv

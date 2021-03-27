@@ -232,7 +232,7 @@ def process_videos(urls_path, batch=False, language=None, group=None, include_au
 
         # Prepare writer for writing video data
         log_writer = DictWriter(log_out, fieldnames=["position", "author", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions"])
-        if not group:
+        if not (batch and group):
             log_writer.writeheader()
 
         for url_data in urls_in:

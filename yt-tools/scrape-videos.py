@@ -81,10 +81,11 @@ def write_audio(audio, video, position, channel_name="", channel_id="", group=No
     # non_alphanumeric = r"[^A-Za-z1-9]"
     if channel_name and channel_id:
         safe_channel_name = sub(punc_and_whitespace, "", channel_name)
-        out_path = path.join(out_path, "{0}_{1}".format(safe_channel_name, channel_id))
+        safe_author = "{0}_{1}".format(safe_channel_name, channel_id)
     else:
         safe_author = sub(punc_and_whitespace, "", video.author)
-        out_path = path.join(out_path, safe_author)
+        
+    out_path = path.join(out_path, safe_author)
 
     if not path.exists(out_path):
         makedirs(out_path)

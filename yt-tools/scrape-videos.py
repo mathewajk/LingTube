@@ -2,7 +2,7 @@ import argparse, logging
 from glob import glob
 from csv import DictWriter
 from pytube import YouTube, exceptions, helpers
-from os import makedirs, path
+from os import makedirs, path, walk, rename
 from re import sub
 from time import sleep
 from sys import argv
@@ -319,6 +319,14 @@ def main(args):
 
     if path.isdir(args.urls_in):
         process_files(args.urls_in, args.language, args.group, args.audio, args.auto, args.srt, args.titles, args.resume, args.limit)
+
+    for dirpath, dirnames, files in walk(path.join('corpus', 'raw_subtitles')):
+         for filename in files:
+             name, ext = path.splitext(filename)
+             if ext == '.srt':
+                 clean_filename = name.rsplit(' ',1)[0]+ext
+                 rename(path.join(dirpath, filename),
+                           path.join(dirpath, clean_filename))
 
 
 if __name__ == '__main__':

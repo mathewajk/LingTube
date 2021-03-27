@@ -32,7 +32,7 @@ def write_captions(captions, video, position, channel_name="", channel_id="", gr
     if "a." in captions.code:
         out_path = path.join(out_path, "auto", captions.code.split(".")[1])
     else:
-        out_path = path.join(out_path, "manual", captions.code)
+        out_path = path.join(out_path, "manual", captions.code.split(".")[0])
 
     punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
     if channel_name and channel_id:

@@ -82,11 +82,13 @@ def main(args):
     mp4path = path.join(origpath, "mp4")
     wavpath = path.join(origpath, "wav")
 
+    mono = True # Convert files to mono
+
     for dir_element in listdir(origpath):
         if path.splitext(dir_element)[1] == '.mp4':
-            convert_and_move_file(dir_element, origpath, wavpath, mp4path, args.mono)
+            convert_and_move_file(dir_element, origpath, wavpath, mp4path, mono)
         elif dir_element not in ['mp4', 'wav', '.DS_Store']:
-            convert_and_move_dir (dir_element, origpath, wavpath, mp4path, args.mono)
+            convert_and_move_dir (dir_element, origpath, wavpath, mp4path, mono)
 
 if __name__ == '__main__':
 
@@ -94,7 +96,6 @@ if __name__ == '__main__':
 
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
-    parser.add_argument('--mono', '-m', action='store_true', default=False, help='convert to mono (single audio channel)')
 
     args = parser.parse_args()
 

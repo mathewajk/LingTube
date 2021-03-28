@@ -78,7 +78,9 @@ def convert_and_move_dir (dirname, origpath, wavpath, mp4path, mono):
 
 def main(args):
 
-    origpath = path.join('corpus','raw_audio', args.group)
+    origpath = path.join('corpus','raw_audio')
+    if args.group:
+        origpath = path.join(origpath, args.group)
     mp4path = path.join(origpath, "mp4")
     wavpath = path.join(origpath, "wav")
 

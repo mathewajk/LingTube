@@ -37,32 +37,32 @@ def detect_silences(sound, sil_threshold, sil_duration):
 def extract_intervals(sound, textgrid, adjustment):
     sound_start = sound.get_start_time()
     sound_end = sound.get_end_time()
-    print(sound_start, sound_end)
+    # print(sound_start, sound_end)
 
     total_ints = call(textgrid, 'Get number of intervals', 1)
     first_label = call(textgrid,'Get label of interval', 1, 1)
-    print(total_ints)
-    print(first_label)
+    # print(total_ints)
+    # print(first_label)
 
     if first_label == 'speech':
         speech_ints = range(1, total_ints, 2)
     else:
         speech_ints = range(2, total_ints, 2)
-    print(speech_ints)
+    # print(speech_ints)
 
     extracted_sounds = []
     for int_num in speech_ints:
-        print(int_num)
+        # print(int_num)
         int_start = call(textgrid,'Get start time of interval', 1, int_num)
         int_end = call(textgrid,'Get end time of interval', 1, int_num)
-        print(int_start, int_end)
+        # print(int_start, int_end)
 
         # Adjust extraction segment
         int_start = int_start - adjustment
         if int_start < sound_start: int_start = sound_start
         int_end = int_end + adjustment
         if int_end > sound_end: int_end = sound_end
-        print(int_start, int_end)
+        # print(int_start, int_end)
 
         ext_sound = call(sound, 'Extract part', int_start, int_end,
                         'rectangular', 1.0, True)
@@ -70,7 +70,7 @@ def extract_intervals(sound, textgrid, adjustment):
 
         chunk_start_ms = call(ext_sound, 'Get start time')
         chunk_end_ms = call(ext_sound, 'Get end time')
-        print(chunk_start_ms, chunk_end_ms)
+        # print(chunk_start_ms, chunk_end_ms)
 
     return extracted_sounds
 
@@ -240,10 +240,6 @@ def main(args):
                 process_soundfile(filename, channel_audiopath, chunkpath)
         else:
             process_soundfile(dir_element, audiopath, chunkpath)
-
-
-
-
 
 
 if __name__ == '__main__':

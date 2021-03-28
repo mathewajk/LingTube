@@ -224,8 +224,13 @@ def process_soundfile(filename, audiopath, chunkpath):
 
 def main(args):
 
-    audiopath = path.join('corpus','raw_audio', args.group, "wav")
-    chunkpath = path.join('corpus','chunked_audio', args.group)
+    chunkpath = path.join('corpus','chunked_audio')
+
+    if args.group:
+        chunkpath = path.join('corpus','chunked_audio', args.group)
+        audiopath = path.join('corpus','raw_audio', args.group, "wav")
+    else:
+        audiopath = path.join('corpus','raw_audio', "wav")
 
     for dir_element in listdir(audiopath):
 

@@ -107,18 +107,15 @@ def get_subtitles(args):
 
     subtitledir = os.path.join("corpus", "cleaned_subtitles", group)
     try:
-        subfile = os.path.join(subtitledir, "manual", args.language, "faves", "corrected", channel, video_id+".txt")
-
-        if not os.path.isfile(subfile):
-            subfile = os.path.join(subtitledir, "manual", args.language, "faves", "uncorrected", channel, video_id+".txt")
+        subfile = os.path.join(subtitledir, "corrected", args.language, "faves", channel, video_id+".txt")
 
         subtitles = pd.read_table(subfile, names=["sp_code", "speaker", "start_time", "end_time", "transcription"])
     except:
         try:
-            subfile = os.path.join(subtitledir, "auto", args.language, "faves", "corrected", channel, video_id+".txt")
+            subfile = os.path.join(subtitledir, "manual", args.language, "faves", channel, video_id+".txt")
 
             if not os.path.isfile(subfile):
-                subfile = os.path.join(subtitledir, "auto", args.language, "faves", "uncorrected", channel, video_id+".txt")
+                subfile = os.path.join(subtitledir, "auto", args.language, "faves", channel, video_id+".txt")
 
             subtitles = pd.read_table(subfile, names=["sp_code", "speaker", "start_time", "end_time", "transcription"])
         except:

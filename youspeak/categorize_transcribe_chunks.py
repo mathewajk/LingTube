@@ -73,7 +73,7 @@ def codinginfo():
     except: # if not, create one
         resp_df = pd.DataFrame(columns=['filename','video_id',
                               'start_time','end_time', 'duration',
-                              'id', 'quality', 'unusable_type', 'transcription', 'annotate_date_YYYYMMDD']) # add addtl columns, file_name=None,
+                              'id', 'transcription', 'usability', 'bg_music', 'bg_noise', 'other_voice', 'only_music', 'only_noise', 'other_sounds', 'annotator', 'annotate_date_YYYYMMDD']) # add addtl columns, file_name=None,
         resp_df.to_csv(os.path.join(outdir, outfilename), index=False)
 
     if len(resp_df['id']) > 0:
@@ -130,10 +130,13 @@ def combine_funcs(*funcs):
 
 # clear _category and media selection
 def clear():
-    # mediacat.set(0)
-    quality_category.set("0 none")
-    unusable_category.set("0 none")
-    # topic_category.set("Categorize topic")
+    usable.set(0)
+    bg_music.set(0)
+    bg_music.set(0)
+    other_voice.set(0)
+    only_music.set(0)
+    only_noise.set(0)
+    other_sounds.set(0)
     transcript.delete("1.0", "end-1c")
 
 def insert_transcript(subtitles):
@@ -216,19 +219,22 @@ def play_audio():
 
 def save_coding():
 
-    quality = quality_category.get() # get the quality classification
-    unusable_type = unusable_category.get() # get the unusable classification
-    # topic = topic_category.get() # get the topic classification
-    # media = mediacat.get() # 0=absent, 1=present
+    usability = usable.get() # 0=absent, 1=present
+    issue_bg_music = bg_music.get()
+    issue_bg_noise = bg_noise.get()
+    issue_other_voice = other_voice.get()
+    issue_only_music = only_music.get()
+    issue_only_noise = only_noise.get()
+    issue_other_sounds = other_sounds.get()
     transcription = transcript.get("1.0", "end-1c") # get the transcription
-    annotate_date_YYYYMMDD = datetime.datetime.now() # get current annotation time
-    print('\n{0} + {1}\n{2}\n{3}\n'.format(quality, unusable_type, transcription, annotate_date_YYYYMMDD)) #, content)
+    annotate_date_YYYYMMDD = datetime.datetime.now() # get annotation time
+    print('\n{0} + {1}\n{2}\n{3}\n'.format(usability, transcription, annotate_date_YYYYMMDD, annotator)) #, content)
 
     global row
     global resp_df
     global idx
 
-    annotated_row = pd.DataFrame([row]).assign(id=idx, quality=quality, unusable_type=unusable_type, transcription=transcription, annotate_date_YYYYMMDD=annotate_date_YYYYMMDD) #, annotator=content)
+    annotated_row = pd.DataFrame([row]).assign(id=idx, transcription=transcription, usability=usability, bg_music=issue_bg_music, bg_noise=issue_bg_noise, other_voice=issue_other_voice, only_music=issue_only_music, only_noise=issue_only_noise, other_sounds=issue_other_sounds, annotator=annotator, annotate_date_YYYYMMDD=annotate_date_YYYYMMDD)
     resp_df = resp_df.append(annotated_row, sort=False)
     resp_df.to_csv(os.path.join(outdir, outfilename), index=False)
 
@@ -256,10 +262,14 @@ def repeat():
 
 
 def main(args):
-    global quality_category
-    global unusable_category
-    # global topic_category
-    # global mediacat
+    global usable
+    global bg_music
+    global bg_noise
+    global other_voice
+    global only_music
+    global only_noise
+    global other_sounds
+    global mainissue
     global transcript
 
     root = tk.Tk() # refers to annotation window
@@ -272,17 +282,16 @@ def main(args):
     frame.grid(row=8, column=8, padx=10, pady=10)
 
     # Row 1
-    # tk.Button(frame, text="   Clear   ", command=clear, bg="grey").grid(row=1, column=0)
+    tk.Button(frame, text="   Play   ", command=combine_funcs(clear, play_audio), bg="grey").grid(row=1, column=1, sticky='E')
 
-    tk.Button(frame, text="   Play   ", command=combine_funcs(clear, play_audio), bg="grey").grid(row=1, column=0)
+    tk.Button(frame, background="grey", text="   Repeat   ", command=repeat).grid(row=1, column=3)
 
-    tk.Button(frame, background="grey", text="   Repeat   ", command=repeat).grid(row=1, column=1)
+    tk.Button(frame, text="   Next   ", command=next_audio, bg="grey").grid(row=1, column=4)
 
-    tk.Button(frame, text="   Next   ", command=next_audio, bg="grey").grid(row=1, column=2)
-
-    tk.Button(frame, text= "Save & Quit", command=save_and_quit, bg="grey").grid(row=1, column=3)
+    tk.Button(frame, text= "   Save & Quit   ", command=save_and_quit, bg="grey").grid(row=1, column=5)
 
     # Row 2: Place holder whitespace
+    tk.Label(frame, text=" ").grid(row = 2, column = 0)
     tk.Label(frame, text=" ").grid(row = 2, column = 1)
     tk.Label(frame, text=" ").grid(row = 2, column = 2)
     tk.Label(frame, text=" ").grid(row = 2, column = 3)
@@ -290,43 +299,34 @@ def main(args):
     tk.Label(frame, text=" ").grid(row = 2, column = 5)
 
     # Row 3-4
-    quality_category = tk.StringVar()
-    unusable_category = tk.StringVar()
-    # topic_category = tk.StringVar()
 
-    quality_choices = ("0 none","1 usable (speech only)", "2 unusable (other stuff, see below)", "3 partial (some unusable parts)")
-    unusable_choices = ("0 none","1 music only", "2 music in background", "3 noise in background", "4 sound effects", "5 other speakers or altered voices (e.g., pitch, speed)", "6 other human vocal sounds (e.g., breaths, laughs, coughs, cut-off word)", "7 other non-human sounds (e.g., memes, city noises)", "8 multiple")
-    # topic_choices = ("1 neutral", "2 personal", "3 ethnicity", "4 location/region")
+    tk.Label(frame, text="Usable?").grid(row=3, column=1, sticky='E')
+    usable = tk.IntVar()
+    tk.Checkbutton(frame, text='Yes', variable=usable).grid(row=3, column=3, sticky='W')
 
-    popupMenu = tk.OptionMenu(frame, quality_category, *quality_choices)
-    popupMenu2 = tk.OptionMenu(frame, unusable_category, *unusable_choices)
-    # popupMenu2 = tk.OptionMenu(frame, topic_category, *topic_choices)
+    tk.Label(frame, text="Main Issue(s)").grid(row=4, column=1, sticky='E')
 
-    popupMenu.grid(row=3, column=1, columnspan=2)
-    popupMenu2.grid(row=4, column=1, columnspan=2)
+    bg_music = tk.IntVar()
+    tk.Checkbutton(frame, text='Speech + music', variable=bg_music).grid(row=4, column=3, sticky='W')
+    bg_noise = tk.IntVar()
+    tk.Checkbutton(frame, text='Speech + noise', variable=bg_noise).grid(row=4, column=4, sticky='W')
+    other_voice = tk.IntVar()
+    tk.Checkbutton(frame, text='Other / altered voice', variable=other_voice).grid(row=4, column=5, sticky='W')
 
-    tk.Label(frame, text="Quality: ").grid(row = 3, column = 0)
-    tk.Label(frame, text="Unusable Type: ").grid(row = 4, column = 0)
-    # tk.Label(frame, text="Topic: ").grid(row = 4, column = 0)
+    only_music = tk.IntVar()
+    tk.Checkbutton(frame, text='Music only', variable=only_music).grid(row=5, column=3, sticky='W')
+    only_noise = tk.IntVar()
+    tk.Checkbutton(frame, text='Noise only', variable=only_noise).grid(row=5, column=4, sticky='W')
+    other_sounds = tk.IntVar()
+    tk.Checkbutton(frame, text='Other sounds', variable=other_sounds).grid(row=5, column=5, sticky='W')
 
     # Row 6
     # Comments, testing
-    # tk.Label(frame, font=fontStyle, text="Comments about clip?").grid(row=25, column=0)
+    # tk.Label(frame, text="Comments about clip?").grid(row=25, column=0)
 
-    transcript = tk.Text(frame,height=5, wrap="word")
-    transcript.grid(row=6, column=1, columnspan=3)
-
-    tk.Label(frame, text="Transcribe: ").grid(row = 6, column = 0)
-    # testing
-
-    # Placeholder greyspace border
-    # tk.Label(root, text=" ").grid(row=8, column=8)
-
-    # Row 8
-    # Media checkbox
-    # tk.Label(root, text="Media?").grid(row=8, column=4)
-    # mediacat = tk.IntVar()
-    # tk.Checkbutton(root, text='Yes', variable=mediacat).grid(row=12, column=9)
+    tk.Label(frame, text="Transcribe: ").grid(row = 8, column = 1)
+    transcript = tk.Text(frame,height=7, wrap="word")
+    transcript.grid(row=8, column=2, columnspan=4)
 
     clear()
 

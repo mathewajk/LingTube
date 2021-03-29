@@ -63,7 +63,7 @@ def main(args):
 
             for i in df['id']:
                 row = df.iloc[i]
-                if row['quality'][0] == '1':
+                if row['usability'] == 1:
                     if not pd.isnull(row['transcription']):
 
                         name, ext = path.splitext(row['filename'])

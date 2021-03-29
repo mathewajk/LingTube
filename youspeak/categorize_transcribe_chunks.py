@@ -33,8 +33,8 @@ row = None
 resp_df = None
 
 
-# get initial info about annotator
-def annotatorinfo():
+# Get coding log info
+def codinginfo():
     global idx
     global df
     global group
@@ -45,7 +45,7 @@ def annotatorinfo():
     global outfilename
     global resp_df
 
-    showinfo('Window', "Select a metadata file")
+    showinfo('Window', "Select a chunking log file")
 
     fname = askopenfilename()
     basename = os.path.basename(fname)
@@ -79,27 +79,21 @@ def annotatorinfo():
     if len(resp_df['id']) > 0:
         idx = resp_df['id'].max() + 1
 
-    # Annotator name/info
-    # TODO: Combine with the original pop-up Window
+# Get annotator name/info
+def annotatorinfo():
+    annotate = tk.Toplevel()
+    annotate.title("Annotator information")
+    annotateSize = 220
 
-    # annotate = tk.Toplevel()
-    # annotate.title("Annotator information")
-    # annotateSize = 220
-    #
-    # def close_window(annotate):
-    #     annotate.destroy()
-    #
-    # tk.Label(annotate, text="What is your name?").grid(row=0)
-    # name = tk.Entry(annotate)
-    # def return_name():
-    #     global content
-    #     content = name.get()
-    # name.grid(row=0, column=1)
-    #
-    #
-    # tk.Button(annotate, text="Enter", command=combine_funcs(return_name, partial(close_window, annotate))).grid(row=7,column=1,columnspan=2)
+    tk.Label(annotate, text="Enter your name/initials:").grid(row=0)
+    name = tk.Entry(annotate)
+    def return_name_and_close(annotate):
+        global annotator
+        annotator = name.get()
+        annotate.destroy()
+    name.grid(row=0, column=1)
 
-
+    tk.Button(annotate, text="Enter", command=partial(return_name_and_close, annotate)).grid(row=7,column=1,columnspan=2)
 
 def get_subtitles(args):
 
@@ -336,7 +330,9 @@ def main(args):
 
     clear()
 
-    app = annotatorinfo()
+    codinginfo()
+
+    annotatorinfo()
 
     get_subtitles(args)
 

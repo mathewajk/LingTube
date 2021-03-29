@@ -1,4 +1,4 @@
-# Chunks WAV file into short segments based on silence/breath breaks
+#!/usr/bin/env python3
 
 import argparse
 from os import path, listdir, makedirs

@@ -1,5 +1,4 @@
-# Converts raw YouTube mp4 audio files to analyzable WAV files
-
+#!/usr/bin/env python3
 import argparse
 import sys
 import shutil

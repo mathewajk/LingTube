@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import argparse, logging
 from glob import glob
 from csv import DictWriter
@@ -84,7 +86,7 @@ def write_audio(audio, video, position, channel_name="", channel_id="", group=No
         safe_author = "{0}_{1}".format(safe_channel_name, channel_id)
     else:
         safe_author = sub(punc_and_whitespace, "", video.author)
-        
+
     out_path = path.join(out_path, safe_author)
 
     if not path.exists(out_path):

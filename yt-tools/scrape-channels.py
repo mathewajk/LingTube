@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from sys import argv
 from time import sleep
 from os import path, makedirs

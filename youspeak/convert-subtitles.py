@@ -30,7 +30,7 @@ def clean_text (text):
     """
     text = re.sub(r'1\.5', 'one point five', text)
     text = re.sub(r'[\.,"!?:;()]', '', text)
-    text = re.sub(r'&', 'and', text)
+    # text = re.sub(r'&', 'and', text)
     # text = re.sub(r'%', 'percent', text)
     numbers = {'1': 'one',
                 '2': 'two',
@@ -44,7 +44,19 @@ def clean_text (text):
                 '10': 'ten',
                 '11': 'eleven',
                 '12': 'twelve',
-                '13': 'thirteen'}
+                '13': 'thirteen',
+                '14': 'fourteen',
+                '15': 'fifteen',
+                '16': 'sixteen',
+                '17': 'seventeen',
+                '18': 'eighteen',
+                '19': 'nineteen',
+                '20': 'twenty',
+                '21': 'twenty-one',
+                '22': 'twenty-two',
+                '23': 'twenty-three',
+                '24': 'twenty-four',
+                '25': 'twenty-five'}
 
     for numeral, word in numbers.items():
         numeral_string = ' '+ numeral +' '

@@ -155,7 +155,7 @@ def main(args):
         if args.corrected and subtype != 'corrected':
                 continue
 
-        print('\nSubtitle type: {0}'.format(subtype))
+        print('\nSUBTITLE TYPE: {0}'.format(subtype))
 
         indir = path.join('corpus','raw_subtitles', args.group, subtype,
                                 args.language)

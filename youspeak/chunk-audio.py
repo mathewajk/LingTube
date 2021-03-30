@@ -80,7 +80,7 @@ def chunk_sound (sound, sil_duration, threshold_quantile, tgpath, name):
 
     n_ints = call(textgrid, 'Count intervals where',
                         1, 'is equal to', 'speech')
-    print('Intervals containing speech: {0}'.format(n_ints))
+    # print('Intervals containing speech: {0}'.format(n_ints))
 
     # Save first-pass TextGrid now for checking
     # TODO: Add folder for different passes
@@ -89,7 +89,7 @@ def chunk_sound (sound, sil_duration, threshold_quantile, tgpath, name):
     tg_filename = path.join(tgpath, name+'.TextGrid')
     textgrid.save(tg_filename)
 
-    print('Extracting intervals...\n')
+    # print('Extracting intervals...\n')
     # extracted_sounds_1 = extract_intervals(sound, textgrid, 0.25)
     extracted_sounds = call([sound, textgrid],
                             'Extract intervals where',
@@ -114,7 +114,7 @@ def save_chunks(chunk_sound, outputpath, name):
     chunk_name = '{0}_{1}_{2}.wav'.format(name, chunk_start_ms, chunk_end_ms)
     chunk_filename = path.join(outputpath, chunk_name)
     chunk_sound.save(chunk_filename, 'WAV')
-    print('Saved {0}!'.format(chunk_name))
+    # print('Saved {0}!'.format(chunk_name))
 
     return {'filename': chunk_name, 'video_id': name, 'start_time': chunk_start_ms, 'end_time': chunk_end_ms, 'duration': chunk_duration}
     # return '{0}\t{1}\t{2}\t{3}\n'.format(chunk_name, name, chunk_start_ms, chunk_end_ms)
@@ -160,7 +160,7 @@ def process_soundfile(filename, audiopath, chunkpath):
         sound = parselmouth.Sound(wav_filename).convert_to_mono()
 
 
-        print('First pass chunking in progress...\n')
+        print('First pass chunking in progress...')
         # Use a more conservative 0.5 sec silence to get larger chunks
 
         sil_duration = 0.25
@@ -173,7 +173,7 @@ def process_soundfile(filename, audiopath, chunkpath):
             extracted_sounds_1 = chunk_sound(sound, sil_duration, quantile, tgpath, video_id)
             # input()
 
-        print('Second pass chunking in progress...\n')
+        print('Second pass chunking in progress...')
         counter = -1
         sil_duration = 0.1
         quantile = 0.025
@@ -196,7 +196,7 @@ def process_soundfile(filename, audiopath, chunkpath):
 
             for subsound in extracted_sounds_1:
                 duration = subsound.get_total_duration()
-                print(counter, duration)
+                # print(counter, duration)
                 if duration <= 10:
                     log_entry = save_chunks(subsound, soundpath, video_id)
                     output_df = output_df.append(log_entry, ignore_index=True)
@@ -212,7 +212,7 @@ def process_soundfile(filename, audiopath, chunkpath):
                             extracted_sounds_1.remove(subsound)
                             for s in extracted_subsounds:
                                 duration = s.get_total_duration()
-                                print(counter, duration)
+                                # print(counter, duration)
                             extracted_sounds_1 = extracted_sounds_1 + extracted_subsounds
                             # input()
                             break

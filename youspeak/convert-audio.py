@@ -44,7 +44,6 @@ def convert_and_move_file (filename, origpath, wavpath, mp4path, mono):
     """
     name, ext = path.splitext(filename)
     if ext == ".mp4":
-        print(filename)
         convert_to_wav (filename, name, origpath, wavpath, mono)
 
     if not path.exists(mp4path):
@@ -62,13 +61,12 @@ def convert_and_move_dir (dirname, origpath, wavpath, mp4path, mono):
     :param wavpath: The output path of the wav sub-directory
     :param mp4path: The output path of the mp4 sub-directory
     """
-    print(dirname)
+    print('\nCURRENT CHANNEL: {0}'.format(dirname))
     origdirpath = path.join(origpath, dirname)
     wavdirpath = path.join(wavpath, dirname)
     for filename in listdir(origdirpath):
         name, ext = path.splitext(filename)
         if ext == ".mp4":
-            print(filename)
             convert_to_wav(filename, name, origdirpath, wavdirpath, mono)
 
     if not path.exists(mp4path):

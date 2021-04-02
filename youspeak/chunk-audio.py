@@ -107,8 +107,8 @@ def save_chunks(chunk_sound, outputpath, name):
 
     :return logfile_entry: Row with chunk metadata to be written to log
     """
-    chunk_start_ms = int(call(chunk_sound, 'Get start time')*1000)
-    chunk_end_ms = int(call(chunk_sound, 'Get end time')*1000)
+    chunk_start_ms = int(chunk_sound.get_start_time()*1000)
+    chunk_end_ms = int(chunk_sound.get_end_time()*1000)
     chunk_duration = chunk_end_ms - chunk_start_ms
 
     chunk_name = '{0}_{1}_{2}.wav'.format(name, chunk_start_ms, chunk_end_ms)

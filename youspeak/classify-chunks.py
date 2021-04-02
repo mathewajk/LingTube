@@ -52,14 +52,16 @@ def codinginfo():
 
     video_id = basename.rsplit('_', 2)[0]
     channel = basename.rsplit('_', 3)[0]
-    group = args.group
 
     print(video_id)
 
-    basedir = os.path.join("corpus", "chunked_audio", group)
+    basedir = os.path.join("corpus", "chunked_audio")
+    if args.group:
+        basedir = os.path.join(basedir, args.group)
+    print(basedir)
 
     audiodir = os.path.join(basedir, 'audio', 'chunking', channel, video_id)
-    logdir = os.path.join(basedir, 'log', 'chunking', channel)
+    logdir = os.path.join(basedir, 'logs', 'chunking', channel)
     outdir = os.path.join(basedir, 'logs', 'coding', channel)
     if not os.path.exists(outdir):
         os.makedirs(outdir)
@@ -99,17 +101,35 @@ def get_subtitles(args):
 
     global subtitles
 
-    subtitledir = os.path.join("corpus", "cleaned_subtitles", group)
+    subtitledir = os.path.join("corpus", "cleaned_subtitles")
+    if args.group:
+        subtitledir = os.path.join(subtitledir, args.group)
+    correct_dir = os.path.join(subtitledir, "corrected")
+    manual_dir = os.path.join(subtitledir, "manual")
+    auto_dir = os.path.join(subtitledir, "auto")
+
+    if args.language:
+        language = args.language
+    elif os.path.isdir(correct_dir):
+        language_list = os.listdir(correct_dir)
+        language = language_list[0]
+    elif os.path.isdir(manual_dir):
+        language_list = os.listdir(manual_dir)
+        language = language_list[0]
+    elif os.path.isdir(auto_dir):
+        language_list = os.listdir(auto_dir)
+        language = language_list[0]
+
     try:
-        subfile = os.path.join(subtitledir, "corrected", args.language, "faves", channel, video_id+".txt")
+        subfile = os.path.join(correct_dir, language, "faves", channel, video_id+".txt")
 
         subtitles = pd.read_table(subfile, names=["sp_code", "speaker", "start_time", "end_time", "transcription"])
     except:
         try:
-            subfile = os.path.join(subtitledir, "manual", args.language, "faves", channel, video_id+".txt")
+            subfile = os.path.join(manual_dir, language, "faves", channel, video_id+".txt")
 
             if not os.path.isfile(subfile):
-                subfile = os.path.join(subtitledir, "auto", args.language, "faves", channel, video_id+".txt")
+                subfile = os.path.join(auto_dir, language, "faves", channel, video_id+".txt")
 
             subtitles = pd.read_table(subfile, names=["sp_code", "speaker", "start_time", "end_time", "transcription"])
         except:

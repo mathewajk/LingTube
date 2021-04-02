@@ -161,7 +161,13 @@ def process_raw_subs (i, subfilename, indir, cleansubdir, favedir, textdir):
 
 # TODO: Make routes for (1) -t titles in filenames (2) xml files
 def main(args):
-    # Get paths from args
+
+    raw_sub_base = path.join('corpus','raw_subtitles')
+    clean_sub_base = path.join('corpus','cleaned_subtitles')
+
+    if args.group:
+        raw_sub_base = path.join(raw_sub_base, args.group)
+        clean_sub_base = path.join(clean_sub_base, args.group)
 
     for subtype in ['auto', 'manual', 'corrected']:
         if args.corrected and subtype != 'corrected':
@@ -169,33 +175,40 @@ def main(args):
 
         print('\nSUBTITLE TYPE: {0}'.format(subtype))
 
-        indir = path.join('corpus','raw_subtitles', args.group, subtype,
-                                args.language)
+        raw_sub_dir = path.join(raw_sub_base, subtype)
+        clean_sub_dir = path.join(clean_sub_base, subtype)
 
-        cleansubdir = path.join('corpus','cleaned_subtitles', args.group,
-                                 subtype, args.language, "cleans")
-        favedir = path.join("corpus", "cleaned_subtitles", args.group,
-                             subtype, args.language, "faves")
-        textdir = path.join('corpus','cleaned_subtitles', args.group, subtype, args.language, "texts")
+        if args.language:
+            language_list = [args.language]
+        elif path.isdir(raw_sub_dir):
+            language_list = [lang for lang in listdir(raw_sub_dir)if not lang.startswith('.')]
+        else:
+            language_list = []
 
-        if path.isdir(indir):
-            dir_list = [e for e in listdir(indir)]
-            if '.DS_Store' in dir_list:
-                dir_list.remove('.DS_Store')
-            for i, dir_element in enumerate(dir_list):
-                if not dir_element == '.DS_Store':
-                    if path.isdir(path.join(indir, dir_element)):
-                        print('\nChannel {0}: {1}'.format(i+1, dir_element))
+        for language in language_list:
+            indir = path.join(raw_sub_dir, language)
+            cleansubdir = path.join(clean_sub_dir, language, "cleans")
+            favedir = path.join(clean_sub_dir, language, "faves")
+            textdir = path.join(clean_sub_dir, language, "texts")
 
-                        indir_ch = path.join(indir, dir_element)
-                        cleansubdir_ch = path.join(cleansubdir, dir_element)
-                        favedir_ch = path.join(favedir, dir_element)
-                        textdir_ch = path.join(textdir, dir_element)
+            if path.isdir(indir):
+                dir_list = [e for e in listdir(indir)]
+                if '.DS_Store' in dir_list:
+                    dir_list.remove('.DS_Store')
+                for i, dir_element in enumerate(dir_list):
+                    if not dir_element == '.DS_Store':
+                        if path.isdir(path.join(indir, dir_element)):
+                            print('\nChannel {0}: {1}'.format(i+1, dir_element))
 
-                        for subi, subdir_element in enumerate(listdir(indir_ch)):
-                            process_raw_subs(subi, subdir_element, indir_ch, cleansubdir_ch, favedir_ch, textdir_ch)
-                    else:
-                        process_raw_subs(i, dir_element, indir, cleansubdir, favedir, textdir)
+                            indir_ch = path.join(indir, dir_element)
+                            cleansubdir_ch = path.join(cleansubdir, dir_element)
+                            favedir_ch = path.join(favedir, dir_element)
+                            textdir_ch = path.join(textdir, dir_element)
+
+                            for subi, subdir_element in enumerate(listdir(indir_ch)):
+                                process_raw_subs(subi, subdir_element, indir_ch, cleansubdir_ch, favedir_ch, textdir_ch)
+                        else:
+                            process_raw_subs(i, dir_element, indir, cleansubdir, favedir, textdir)
 
 
 if __name__ == '__main__':

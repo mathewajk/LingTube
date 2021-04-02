@@ -159,24 +159,31 @@ def clear():
     other_sounds.set(0)
     transcript.delete("1.0", "end-1c")
 
-def insert_transcript(subtitles):
-    row_timerange = range(row['start_time']-1000, row['end_time']+1000)
 
+def get_transcription (subtitles, row):
+    row_timerange = range(row['start_time']-1000, row['end_time']+1000)
     subtitle_match = subtitles[(subtitles["start_time"].isin(row_timerange)) |
                               (subtitles["end_time"].isin(row_timerange))]
     subtitle_text = ' '.join([line for line in subtitle_match["transcription"]])
+    return subtitle_text
+
+def insert_transcript (subtitles):
+    row = df.iloc[idx]
+    pre_row = df.iloc[idx-1]
+    subtitle_text = get_transcription(subtitles, row)
+    pre_subtitle_text = get_transcription(subtitles, pre_row)
 
     # TODO: See if can add remaining sections of the previous line to the next line if not there
 
     if idx > 0:
         matched_words = []
-        for pre_i in range(1, 4):
+        for pre_i in range(1, 6):
             if not idx-pre_i < 0:
                 current_words = subtitle_text.strip().split()
-                if len(current_words) == 0:
-                    break
-
                 previous_line = resp_df.iloc[idx-pre_i]['transcription']
+                if len(current_words) == 0:
+                    subtitle_text = pre_subtitle_text.split(previous_line)[-1].strip()
+                    break
 
                 try:
                     preline_words = previous_line.strip().split()

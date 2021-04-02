@@ -148,7 +148,7 @@ def process_raw_subs (i, subfilename, indir, cleansubdir, favedir, textdir):
         name = name.rsplit('_',1)[0]
 
     channel, vid_num = name.rsplit('_', 1)
-    channel = re.sub(r'[^A-Za-z1-9]', '', channel)
+    # channel = re.sub(r'[^A-Za-z1-9]', '', channel)
     newname = '_'.join([channel, vid_num])
 
     timed_lines = get_timestamped_lines(indir, subfilename)

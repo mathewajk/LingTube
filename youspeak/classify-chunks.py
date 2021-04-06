@@ -20,7 +20,6 @@ from tkinter.messagebox import showinfo
 from functools import partial
 import sys
 import os
-import threading
 import subprocess
 import datetime
 import argparse
@@ -239,10 +238,7 @@ def play_audio():
     if not subtitles.empty:
         insert_transcript(subtitles)
 
-    # t1 = threading.Thread(subprocess.call(["play", audiofile]))
-    # t1.start()
-
-    subprocess.call(["play", audiofile])
+    subprocess.call(["afplay", audiofile])
 
 def save_coding():
 
@@ -285,7 +281,7 @@ def save_and_quit():
     sys.exit('Safely saved progress!')
 
 def repeat():
-    subprocess.call(["play", audiofile])
+    subprocess.call(["afplay", audiofile])
 
 
 def main(args):

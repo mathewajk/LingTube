@@ -179,7 +179,6 @@ def main(args):
 
                         int_word = call(textgrid, 'Get label of interval', 1,
                                     call(textgrid, 'Get interval at time', 1, int_start))
-                        # print(int_word)
 
                         if int_vowel in diph:
                             int_diph = 1
@@ -218,8 +217,6 @@ def main(args):
                                 f1, f2, f3 = get_formants(sound, int_start, int_dur, prop_step, 3)
                                 data_row.update({'F1_{0}'.format(round(prop_step*100)): f1, 'F2_{0}'.format(round(prop_step*100)): f2, 'F3_{0}'.format(round(prop_step*100)): f3})
 
-                        # print(data_row)
-
                         # write to DataFrame
                         out_df = out_df.append(data_row, ignore_index=True, sort=False)
 
@@ -228,18 +225,18 @@ def main(args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Get formants from aligned audio chunks and textgrids.')
+    parser = argparse.ArgumentParser(description='Get duration and formants from aligned audio chunks and textgrids (default=only duration).')
 
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='channel folder')
     parser.add_argument('--video', '-v', default=None, type=str, help='video number')
-    parser.add_argument('--formants', '-f', default=3, type=int, help='maximum number of formants to extract (default=3)')
     parser.add_argument('--vowels', '-vw', help='list of vowels to target, comma-separated', type=str)
     parser.add_argument('--stress', '-st', help='list of stress values to target, comma-separated', type=str)
     parser.add_argument('--nucleus', '-n', action='store_true', default=False, help='extract nucleus midpoint formants')
     parser.add_argument('--onoff', '-o', action='store_true', default=False, help='extract onset and offset formants')
     parser.add_argument('--steps', '-s', action='store_true', default=False, help='extract formants at 30 steps')
+    parser.add_argument('--formants', '-f', default=3, type=int, help='maximum number of formants to extract (default=3)')
 
     args = parser.parse_args()
 

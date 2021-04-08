@@ -128,7 +128,6 @@ def main(args):
 
             # Create output data frame (overwriting existing)
             out_df = pd.DataFrame(columns=['channel', 'video_id', 'filename', 'label', 'start_time', 'end_time', 'duration', 'pre_phone', 'post_phone', 'word', 'vowel', 'stress', 'diph'])
-            out_df.to_csv(os.path.join(out_datapath, video_id+"_vowels.csv"), index=False)
 
             for file_i, filename in enumerate(listdir(tgpath)):
                 print('Processing file {0} of {1}: {2} ...'.format(file_i+1, len(listdir(tgpath)), filename))
@@ -220,8 +219,18 @@ def main(args):
                         # write to DataFrame
                         out_df = out_df.append(data_row, ignore_index=True, sort=False)
 
-                        # save dataframe
-                        out_df.to_csv(os.path.join(out_datapath, video_id+"_vowels.csv"), index=False)
+                        if args.nucleus:
+                            outfilename = '{0}_{1}_{2}.csv'.format(video_id, "vowel","nucleus")
+                        if args.onoff:
+                            outfilename = '{0}_{1}_{2}.csv'.format(video_id, "vowel","onoff")
+                        if args.steps:
+                            outfilename = '{0}_{1}_{2}.csv'.format(video_id, "vowel","steps")
+                        if args.nucleus or args.onoff or args.steps:
+                            '{0}_{1}_{2}.csv'.format(video_id, "vowel","formants")
+                        else:
+                            outfilename = '{0}_{1}_{2}.csv'.format(video_id, "vowel","duration")
+
+                        out_df.to_csv(os.path.join(out_datapath, outfilename), index=False)
 
 if __name__ == '__main__':
 

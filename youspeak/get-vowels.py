@@ -128,7 +128,6 @@ def main(args):
 
             # Create output data frame (overwriting existing)
             out_df = pd.DataFrame(columns=['channel', 'video_id', 'filename', 'label', 'start_time', 'end_time', 'duration', 'pre_phone', 'post_phone', 'word', 'vowel', 'stress', 'diph'])
-            out_df.to_csv(os.path.join(out_datapath, video_id+"_vowels.csv"), index=False)
 
             for file_i, filename in enumerate(listdir(tgpath)):
                 print('Processing file {0} of {1}: {2} ...'.format(file_i+1, len(listdir(tgpath)), filename))
@@ -167,10 +166,18 @@ def main(args):
 
                         # Get label word/sound info
                         int_vowel = int_lab[:2]
+                        if args.vowels:
+                            vowel_list = [v for v in args.vowels.split(',')]
+                            if int_vowel not in vowel_list:
+                                continue
                         int_stress = int_lab[-1]
+                        if args.stress:
+                            stress_list = [s for s in args.stress.split(',')]
+                            if int_stress not in int_stress:
+                                continue
+
                         int_word = call(textgrid, 'Get label of interval', 1,
                                     call(textgrid, 'Get interval at time', 1, int_start))
-                        # print(int_word)
 
                         if int_vowel in diph:
                             int_diph = 1
@@ -209,26 +216,36 @@ def main(args):
                                 f1, f2, f3 = get_formants(sound, int_start, int_dur, prop_step, 3)
                                 data_row.update({'F1_{0}'.format(round(prop_step*100)): f1, 'F2_{0}'.format(round(prop_step*100)): f2, 'F3_{0}'.format(round(prop_step*100)): f3})
 
-                        # print(data_row)
-
                         # write to DataFrame
                         out_df = out_df.append(data_row, ignore_index=True, sort=False)
 
-                        # save dataframe
-                        out_df.to_csv(os.path.join(out_datapath, video_id+"_vowels.csv"), index=False)
+                        if args.nucleus:
+                            outfilename = '{0}_{1}_{2}.csv'.format(video_id, "vowel","nucleus")
+                        if args.onoff:
+                            outfilename = '{0}_{1}_{2}.csv'.format(video_id, "vowel","onoff")
+                        if args.steps:
+                            outfilename = '{0}_{1}_{2}.csv'.format(video_id, "vowel","steps")
+                        if args.nucleus or args.onoff or args.steps:
+                            '{0}_{1}_{2}.csv'.format(video_id, "vowel","formants")
+                        else:
+                            outfilename = '{0}_{1}_{2}.csv'.format(video_id, "vowel","duration")
+
+                        out_df.to_csv(os.path.join(out_datapath, outfilename), index=False)
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Get formants from aligned audio chunks and textgrids.')
+    parser = argparse.ArgumentParser(description='Get duration and formants from aligned audio chunks and textgrids (default=only duration).')
 
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='channel folder')
     parser.add_argument('--video', '-v', default=None, type=str, help='video number')
-    parser.add_argument('--formants', '-f', default=3, type=int, help='maximum number of formants to extract (default=3)')
+    parser.add_argument('--vowels', '-vw', help='list of vowels to target, comma-separated', type=str)
+    parser.add_argument('--stress', '-st', help='list of stress values to target, comma-separated', type=str)
     parser.add_argument('--nucleus', '-n', action='store_true', default=False, help='extract nucleus midpoint formants')
     parser.add_argument('--onoff', '-o', action='store_true', default=False, help='extract onset and offset formants')
     parser.add_argument('--steps', '-s', action='store_true', default=False, help='extract formants at 30 steps')
+    parser.add_argument('--formants', '-f', default=3, type=int, help='maximum number of formants to extract (default=3)')
 
     args = parser.parse_args()
 

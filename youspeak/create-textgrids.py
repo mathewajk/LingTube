@@ -16,12 +16,12 @@ def main(args):
     chunked_audio_base = path.join("corpus", "chunked_audio")
     aligned_audio_base = path.join("corpus", "aligned_audio")
 
-    if not args.group == None:
+    if args.group:
         chunked_audio_base = path.join(chunked_audio_base, args.group)
         aligned_audio_base = path.join(aligned_audio_base, args.group)
 
     # Get file info
-    if not args.channel == None:
+    if args.channel:
         channel_list = [args.channel]
     else:
         channel_list = [channel for channel in listdir(path.join(chunked_audio_base, "logs", "coding")) if not channel.startswith('.')]
@@ -29,7 +29,7 @@ def main(args):
     for channel in channel_list:
         logpath = path.join(chunked_audio_base, "logs", "coding", channel)
 
-        if not args.video == None:
+        if args.video:
             video_id = '{0}_{1}'.format(channel, args.video)
             video_list = [video_id]
             # print(video_list)
@@ -52,8 +52,10 @@ def main(args):
             prealignpath = path.join(aligned_audio_base, "original_corpus", channel, video_id)
             postalignpath = path.join(aligned_audio_base, "aligned_corpus", channel, video_id)
             alignerpath = path.join(aligned_audio_base, "mfa_aligner")
+            adjusted_audpath = path.join(aligned_audio_base, "adjusted_corpus", channel, video_id, "audio")
+            adjusted_tgpath = path.join(aligned_audio_base, "adjusted_corpus", channel, video_id, "textgrids")
 
-            for dir in [out_audpath, out_tgpath, prealignpath, postalignpath, alignerpath]:
+            for dir in [out_audpath, out_tgpath, prealignpath, postalignpath, alignerpath, adjusted_audpath, adjusted_tgpath]:
                 if not path.exists(dir):
                     makedirs(dir)
 

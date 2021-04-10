@@ -20,7 +20,6 @@ from tkinter.messagebox import showinfo
 from functools import partial
 import sys
 import os
-import threading
 import subprocess
 import datetime
 import argparse
@@ -80,6 +79,9 @@ def codinginfo():
 
     if len(resp_df['id']) > 0:
         idx = resp_df['id'].max() + 1
+
+        if idx > df.index[-1]:
+            sys.exit("\nAll audio chunks are validated!")
 
 # Get annotator name/info
 def annotatorinfo():
@@ -239,10 +241,7 @@ def play_audio():
     if not subtitles.empty:
         insert_transcript(subtitles)
 
-    # t1 = threading.Thread(subprocess.call(["play", audiofile]))
-    # t1.start()
-
-    subprocess.call(["play", audiofile])
+    subprocess.call(["afplay", audiofile])
 
 def save_coding():
 
@@ -274,7 +273,14 @@ def next_audio():
 
     global idx
     idx += 1 # update the global idx
-    # print('File #: '.format(idx))
+
+    if idx > df.index[-1]:
+
+        total_min = round((df['duration'].sum()/1000)/60, 2)
+        validated_min = round((resp_df['duration'].sum()/1000)/60, 2)
+        print('\nValidated {0} min out of {1} min.'.format(validated_min, total_min))
+
+        sys.exit("\nAll audio chunks are validated!")
 
     play_audio()
 
@@ -282,10 +288,14 @@ def save_and_quit():
 
     save_coding()
 
-    sys.exit('Safely saved progress!')
+    total_min = ((df['duration'].sum()/1000)/60)
+    validated_min = ((resp_df['duration'].sum()/1000)/60)
+    print('Validated {0} min out of {1} min'.format(validated_min, total_min))
+
+    sys.exit('\nSafely saved progress!')
 
 def repeat():
-    subprocess.call(["play", audiofile])
+    subprocess.call(["afplay", audiofile])
 
 
 def main(args):

@@ -13,8 +13,11 @@ def scrape_channel_info(channel, channel_set, depth, max_depth):
     if depth == max_depth:
           return channel_set
 
-    channels_page = get("https://www.youtube.com/c/" + channel + "/channels")
+    channels_page = get("https://www.youtube.com/user/" + channel + "/channels")
     channels_html = BeautifulSoup(channels_page.content, "html.parser")
+    if channels_html.get_text() == '404 Not Found':
+        channels_page = get("https://www.youtube.com/c/"+ channel +"/channels")
+        channels_html = BeautifulSoup(channels_page.content, "html.parser")
 
     listed_channels = set(re.findall('\"/user/([a-zA-Z0-9]+)\"', str(channels_html)))
 

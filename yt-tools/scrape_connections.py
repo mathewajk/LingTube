@@ -17,19 +17,18 @@ def scrape_channel_info(channel, channel_set, depth, max_depth):
     channels_html = BeautifulSoup(channels_page.content, "html.parser")
 
     listed_channels = set(re.findall('\"/user/([a-zA-Z0-9]+)\"', str(channels_html)))
-    print("Listed channels: {0}".format(listed_channels))
 
     if not listed_channels:
         return channel_set
 
+    channel_set_prev = channel_set
+    channel_set.update(listed_channels)
+
     for new_channel in listed_channels:
-        #if new_channel in channel_set:
-        #        continue
+        #if new_channel not in channel_set_prev:
+        channel_set.update(scrape_channel_info(new_channel, channel_set, depth + 1, max_depth))
 
-        channel_set.update(scrape_channel_info(new_channel, listed_channels, depth + 1, max_depth))
-        print("Channel set: {0}".format(channel_set))
-        print("Listed channels: {0}".format(listed_channels))
-
+    print("Channel set: {0}".format(channel_set))
     return channel_set
 
 def main():

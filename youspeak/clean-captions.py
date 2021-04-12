@@ -143,7 +143,7 @@ def process_raw_subs (i, subfilename, indir, cleansubdir, favedir, textdir):
     print('Processing transcript {0}: {1}'.format(i+1,subfilename))
 
     name = path.splitext(subfilename)[0] # channel_num
-    if not re.match(r".*_\d+$",name):
+    if not re.match(r".*_[\d\w]+$",name):
         # If filenames do include video titles
         name = name.rsplit('_',1)[0]
 

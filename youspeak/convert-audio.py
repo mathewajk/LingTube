@@ -15,7 +15,7 @@ def convert_to_wav (filename, name, origpath, wavpath, mono):
     :param wavpath: The output path of the wav file
     """
     print("Converting {0} to .wav...".format(filename))
-    if not re.match(r".*_\d+$",name):
+    if not re.match(r".*_[\d\w]+$",name):
         # If filenames do include video titles
         name = name.rsplit('_',1)[0]
 

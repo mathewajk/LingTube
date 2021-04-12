@@ -126,7 +126,7 @@ def process_soundfile(filename, audiopath, chunkpath):
     name, ext = path.splitext(filename)
 
     if ext == '.wav':
-        if not re.match(r".*_\d+$",name):
+        if not re.match(r".*_[\d\w]+$",name):
             # If filenames do include video titles
             video_id = name.rsplit('_',1)[0]
             channel = video_id.rsplit('_',1)[0]

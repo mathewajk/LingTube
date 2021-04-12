@@ -308,21 +308,25 @@ def process_files(urls_path, language=None, group=None, screen=None, include_aud
 
 def main(args):
 
-    if not path.isfile(args.urls_in) and not path.isdir(args.urls_in):
-        logging.error("url_list must be a file or directory")
-        exit(2)
+    if not args.clean:
+        if not path.isfile(args.urls_in) and not path.isdir(args.urls_in):
+            logging.error("url_list must be a file or directory")
+            exit(2)
 
-    if not path.exists(path.join("corpus", "logs")):
-        makedirs(path.join("corpus", "logs"))
+        if not path.exists(path.join("corpus", "logs")):
+            makedirs(path.join("corpus", "logs"))
+        if args.screen:
+            if not path.exists(path.join("corpus", "screening", "logs")):
+                makedirs(path.join("corpus", "screening", "logs"))
 
-    if(args.resume):
-        print("Resuming from video {0}".format(args.resume))
+        if(args.resume):
+            print("Resuming from video {0}".format(args.resume))
 
-    if path.isfile(args.urls_in):
-        process_videos(args.urls_in, False, args.language, args.group, args.audio, args.auto, args.srt, args.titles, args.resume, args.limit)
+        if path.isfile(args.urls_in):
+            process_videos(args.urls_in, False, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.titles, args.resume, args.limit)
 
-    if path.isdir(args.urls_in):
-        process_files(args.urls_in, args.language, args.group, args.audio, args.auto, args.srt, args.titles, args.resume, args.limit)
+        if path.isdir(args.urls_in):
+            process_files(args.urls_in, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.titles, args.resume, args.limit)
 
     for dirpath, dirnames, files in walk(path.join('corpus', 'raw_subtitles')):
          for filename in files:

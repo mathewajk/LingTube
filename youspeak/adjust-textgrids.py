@@ -19,6 +19,10 @@ def main(args):
         shutil.copyfile(scriptfile,
                         path.join("scripts", scriptfilename))
 
+    base_script = path.join("scripts", "adjust-alignment.praat")
+    if not path.exists(base_script):
+        sys.exit('Script has not yet been initialized. Please run again once with the flag --initialize or -i.')
+
     # base paths
     aligned_audio_base = path.join("corpus", "aligned_audio")
 
@@ -56,7 +60,7 @@ def main(args):
             path_to_out_tgdir = '../{0}/'.format(out_tgdir)
 
             if not path.exists(scriptname):
-                with open(path.join("scripts", "adjust-alignment.praat"), "rb") as f:
+                with open(base_script), "rb") as f:
                     contents = str(f.read(), 'UTF-8')
                     contents = re.sub("replace_me_with_audpath", path_to_auddir, contents)
                     contents = re.sub("replace_me_with_tgpath", path_to_tgdir, contents)

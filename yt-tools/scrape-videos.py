@@ -27,9 +27,14 @@ def write_captions(captions, video, yt_id, channel_name="", channel_id="", group
     safe_title = helpers.safe_filename(video.title)
     out_path = ""
 
-    out_path = path.join("corpus", "raw_subtitles")
-    if group is not None:
-        out_path = path.join(out_path, group)
+    if screen:
+        out_path = path.join("corpus", "screening", "subtitles")
+        if group:
+            out_path = path.join("corpus", "screening", group, "subtitles")
+    else:
+        out_path = path.join("corpus", "raw_subtitles")
+        if group:
+            out_path = path.join(out_path, group)
 
     if "a." in captions.code:
         out_path = path.join(out_path, "auto", captions.code.split(".")[1])
@@ -75,9 +80,14 @@ def write_audio(audio, video, yt_id, channel_name="", channel_id="", group=None,
     safe_title = helpers.safe_filename(video.title)
     safe_author = helpers.safe_filename(video.author)
 
-    out_path = path.join("corpus", "raw_audio")
-    if group is not None:
-        out_path = path.join(out_path, group)
+    if screen:
+        out_path = path.join("corpus", "screening", "audio")
+        if group:
+            out_path = path.join("corpus", "screening", group, "audio")
+    else:
+        out_path = path.join("corpus", "raw_audio")
+        if group:
+            out_path = path.join(out_path, group)
 
     punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
     # non_alphanumeric = r"[^A-Za-z1-9]"
@@ -188,7 +198,16 @@ def process_video(video, channel_dict, log_writer, channel_name=None, channel_id
     yt_id = sub(punc_and_whitespace, '',
                     findall(r".+watch\?v=(.+)\b", url)[0])
 
-    caption_list = write_captions_by_language(video, position, channel_name, channel_id, language, group, include_auto, convert_srt, include_title)
+    if screen:
+        out_path = path.join("corpus", "screening", "subtitles")
+        if group:
+            out_path = path.join("corpus", "screening", group, "subtitles")
+    else:
+        out_path = path.join("corpus", "raw_subtitles")
+        if group:
+            out_path = path.join(out_path, group)
+
+    caption_list = write_captions_by_language(video, yt_id, channel_name, channel_id, language, group, screen, include_auto, convert_srt, include_title)
 
     if include_audio:
         audio = video.streams.filter(mime_type="audio/mp4").first()
@@ -224,6 +243,11 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
         log_fn = "{0}_log.csv".format(path.splitext(path.split(urls_path)[1])[0])
     else:
         log_fn = "{0}_log.csv".format(group)
+
+    log_file = path.join("corpus", "logs", log_fn)
+    if screen:
+        log_fn = "{0}_log_{1}.csv".format(path.splitext(log_fn)[0], strftime("%Y%m%d%H%M%S"))
+        log_file = path.join("corpus", "screening", "logs", log_fn)
 
     write_type = 'w'
     if batch and group:
@@ -300,14 +324,19 @@ def process_files(urls_path, language=None, group=None, screen=None, include_aud
 
     if group:
         log_fn = "{0}_log.csv".format(group)
-        with open(path.join("corpus", "logs", log_fn), 'w') as log_out: # Overwrite file in a hacky way
-            log_writer = DictWriter(log_out, fieldnames=["position", "author", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions"])
+        log_file = path.join("corpus", "logs", log_fn)
+        if screen:
+            log_fn = "{0}_log_{1}.csv".format(path.splitext(log_fn)[0], strftime("%Y%m%d%H%M%S"))
+            log_file = path.join("corpus", "screening", "logs", log_fn)
+
+        with open(log_file, 'w') as log_out: # Overwrite file in a hacky way
+            log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions"])
             log_writer.writeheader()
 
     all_fns = URL_fns_txt + URL_fns_csv
 
     for fn in all_fns:
-        process_videos(fn, True, language, group, include_audio, include_auto, convert_srt, include_titles, resume_from, limit_to)
+        process_videos(fn, True, language, group, screen, include_audio, include_auto, convert_srt, include_titles, resume_from, limit_to)
 
 
 def main(args):
@@ -332,7 +361,12 @@ def main(args):
         if path.isdir(args.urls_in):
             process_files(args.urls_in, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.titles, args.resume, args.limit)
 
-    for dirpath, dirnames, files in walk(path.join('corpus', 'raw_subtitles')):
+    if args.screen:
+        out_path = path.join('corpus', 'screening')
+    else:
+        out_path = path.join('corpus', 'raw_subtitles')
+
+    for dirpath, dirnames, files in walk(out_path):
          for filename in files:
              name, ext = path.splitext(filename)
              if ext in ['.srt', '.xml']:
@@ -357,6 +391,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--resume', '-res', type=int, metavar='N', default=0,  help='resume downloading from Nth video or file')
     parser.add_argument('--limit',  '-lim', type=int, metavar='N', default=-1, help='limit processing to N videos or files')
+    parser.add_argument('--screen',            action='store_true', default=False, help='downloading files for screening purposes')
+    parser.add_argument('--clean',            action='store_true', default=False, help='skip scraping and only clean dowloaded caption filenames of langcode')
 
     args = parser.parse_args()
 

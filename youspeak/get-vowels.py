@@ -128,7 +128,7 @@ def main(args):
                         int_stress = int_lab[-1]
                         if args.stress:
                             stress_list = [s for s in args.stress.split(',')]
-                            if int_stress not in int_stress:
+                            if int_stress not in stress_list:
                                 continue
 
                         int_word = call(textgrid, 'Get label of interval', 1,

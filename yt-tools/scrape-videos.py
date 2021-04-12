@@ -207,6 +207,11 @@ def process_video(video, channel_dict, log_writer, channel_name=None, channel_id
         if group:
             out_path = path.join(out_path, group)
 
+    # Check if yt_id already exists in some file; skip download if so
+    files = glob(path.join(out_path, "**", "*{0}*".format(yt_id)), recursive=True)
+    if files:
+        return channel_dict
+
     caption_list = write_captions_by_language(video, yt_id, channel_name, channel_id, language, group, screen, include_auto, convert_srt, include_title)
 
     if include_audio:

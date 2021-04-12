@@ -5,16 +5,16 @@ from glob import glob
 from csv import DictWriter
 from pytube import YouTube, exceptions, helpers
 from os import makedirs, path, walk, rename
-from re import sub
-from time import sleep
+from re import sub, findall
+from time import sleep, strftime
 from sys import argv
 
 
-def write_captions(captions, video, position, channel_name="", channel_id="", group=None, convert_srt=False, include_title=False):
+def write_captions(captions, video, yt_id, channel_name="", channel_id="", group=None, screen=None, convert_srt=False, include_title=False):
     """Write Caption object to a file. If an output folder is not specified, captions will be placed in a folder corresponding to the name of the video's author (i.e. channel).
 
     :param captions: The Caption track to download
-    :param position: Channel-wise position of the video in the url list
+    :param yt_id: YouTube ID string of the video from the url
     :param channel_name: The name of the channel as given on its main page (default "")
     :param channel_id: The name of the channel as it appears in the channel's URL (default "")
     :param group: The folder to output the caption track to (default None)
@@ -51,21 +51,21 @@ def write_captions(captions, video, position, channel_name="", channel_id="", gr
 
     try:
         if include_title:
-            captions.download(helpers.safe_filename(safe_title), srt=convert_srt, output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, position))
+            captions.download(helpers.safe_filename(safe_title), srt=convert_srt, output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, yt_id))
             return 1
         else:
-            captions.download(str(position), srt=convert_srt, output_path=out_path, filename_prefix="{0}_".format(safe_author))
+            captions.download(str(yt_id), srt=convert_srt, output_path=out_path, filename_prefix="{0}_".format(safe_author))
             return 1
     except:
-        logging.critical("Video {0}: Could not download caption track for video {0} from channel {1} ({2})".format(position, video.author, video.title))
+        logging.critical("Video {0}: Could not download caption track for video {0} from channel {1} ({2})".format(yt_id, video.author, video.title))
         return 0
 
 
-def write_audio(audio, video, position, channel_name="", channel_id="", group=None, include_title=False):
+def write_audio(audio, video, yt_id, channel_name="", channel_id="", group=None, screen=None, include_title=False):
     """Write audio Stream object to a file. If an output folder is not specified, audio will be placed in a folder corresponding to the name of the video's author (i.e. channel).
 
     :param audio: The audio Stream to download
-    :param position: Channel-wise position of the video in the url list
+    :param yt_id: YouTube ID string of the video from the url
     :param channel_name: The name of the channel as given on its main page (default "")
     :param channel_id: The name of the channel as it appears in the channel's URL (default "")
     :param group: The folder to output the audio stream to (default None)
@@ -94,22 +94,22 @@ def write_audio(audio, video, position, channel_name="", channel_id="", group=No
 
     try:
         if include_title:
-            audio.download(filename=safe_title, output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, position), skip_existing=True)
+            audio.download(filename=safe_title, output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, yt_id), skip_existing=True)
         else:
-            audio.download(filename=str(position), output_path=out_path, filename_prefix="{0}_".format(safe_author), skip_existing=True)
+            audio.download(filename=str(yt_id), output_path=out_path, filename_prefix="{0}_".format(safe_author), skip_existing=True)
 
     except:
-        logging.critical("Video {0}: Could not save audio stream for video {0} from channel {1} ({2})".format(position, video.author, video.title))
+        logging.critical("Video {0}: Could not save audio stream for video {0} from channel {1} ({2})".format(yt_id, video.author, video.title))
 
     # Be polite
     sleep(1)
 
 
-def write_captions_by_language(video, position, channel_name="", channel_id="", language=None, group=None, include_auto=False, convert_srt=False, include_title=False):
+def write_captions_by_language(video, yt_id, channel_name="", channel_id="", language=None, group=None, screen=None, include_auto=False, convert_srt=False, include_title=False):
     """Filter captions by language and write each caption track to a file. If no language is specified, all caption tracks will be downloaded.
 
     :param video: The YouTube object to download caption tracks from
-    :param position: Channel-wise position of the video in the url list
+    :param yt_id: YouTube ID string of the video from the url
     :param channel_name: The name of the channel as given on its main page (default "")
     :param channel_id: The name of the channel as it appears in the channel's URL (default "")
     :param language: The language to download caption tracks for (default None)
@@ -124,7 +124,7 @@ def write_captions_by_language(video, position, channel_name="", channel_id="", 
     for track in video.captions:
         if language is None or (language in track.name and (include_auto or "a." not in track.code)):
 
-            success = write_captions(track, video, position, channel_name, channel_id, group, convert_srt, include_title)
+            success = write_captions(track, video, yt_id, channel_name, channel_id, group, screen, convert_srt, include_title)
             if success:
                 caption_list.append((track.code, track.name))
 
@@ -134,11 +134,11 @@ def write_captions_by_language(video, position, channel_name="", channel_id="", 
     return caption_list
 
 
-def write_metadata(video, position, caption_list, log_writer, url, channel_name="", channel_id=""):
+def write_metadata(video, yt_id, caption_list, log_writer, url, channel_name="", channel_id=""):
     """Write video metadata to log file.
 
     :param video: The YouTube object to log
-    :param position: Channel-wise position of the video in the url list
+    :param yt_id: YouTube ID string of the video from the url
     :param caption_list: A list of successfully-downloaded captions
     :param log_writer: DictWriter to use for writing metadata
     :param channel_name: The name of the channel as given on its main page (default "")
@@ -146,7 +146,7 @@ def write_metadata(video, position, caption_list, log_writer, url, channel_name=
     """
 
     metadata = {
-        "position": position,
+        "yt_id": yt_id,
         "author": video.author,
         "name": channel_name,
         "ID": channel_id,
@@ -164,14 +164,14 @@ def write_metadata(video, position, caption_list, log_writer, url, channel_name=
     log_writer.writerow(metadata)
 
 
-def process_video(video, channel_dict, log_writer, channel_name=None, channel_id=None, url=None, language=None, group=None, include_audio=False, include_auto=False, convert_srt=False, include_title=False):
+def process_video(video, channel_dict, log_writer, channel_name=None, channel_id=None, url=None, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, include_title=False):
     """Download captions, audio (optional), and metadata for a given video.
 
     :param video: The YouTube object to process
     :param channel_name: The name of the channel as given on its main page (default None)
     :param channel_id: The name of the channel as it appears in the channel's URL (default None)
     :param channel_id: The url of the video
-    :param position: Channel-wise position of the video in the url list
+    :param yt_id: YouTube ID string of the video from the url
     :param language: The language to download caption tracks for (default None)
     :param group: The folder to output the caption track to (default None)
     :param convert_srt: Convert captions from XML to SRT format (default False)
@@ -184,21 +184,23 @@ def process_video(video, channel_dict, log_writer, channel_name=None, channel_id
         channel_dict.update({video.author: 0})
     channel_dict[video.author] = channel_dict[video.author] + 1
 
-    position = channel_dict[video.author]
+    punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
+    yt_id = sub(punc_and_whitespace, '',
+                    findall(r".+watch\?v=(.+)\b", url)[0])
 
     caption_list = write_captions_by_language(video, position, channel_name, channel_id, language, group, include_auto, convert_srt, include_title)
 
     if include_audio:
         audio = video.streams.filter(mime_type="audio/mp4").first()
-        write_audio(audio, video, position, channel_name, channel_id, group, include_title)
+        write_audio(audio, video, yt_id, channel_name, channel_id, group, screen, include_title)
 
     if len(caption_list):
-        write_metadata(video, position, caption_list, log_writer, url, channel_name, channel_id)
+        write_metadata(video, yt_id, caption_list, log_writer, url, channel_name, channel_id)
 
     return channel_dict
 
 
-def process_videos(urls_path, batch=False, language=None, group=None, include_audio=False, include_auto=False, convert_srt=False, include_titles=False, resume_from=0, limit_to=-1):
+def process_videos(urls_path, batch=False, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, include_titles=False, resume_from=0, limit_to=-1):
     """Download captions, audio (optional), and metadata for a list of videos.
 
     :param batch: Indicates if a directory or single file is being processed
@@ -227,10 +229,10 @@ def process_videos(urls_path, batch=False, language=None, group=None, include_au
     if batch and group:
         write_type = 'a'
 
-    with open(urls_path, "r") as urls_in, open(path.join("corpus", "logs", log_fn), write_type) as log_out:
+    with open(urls_path, "r") as urls_in, open(log_file, write_type) as log_out:
 
         # Prepare writer for writing video data
-        log_writer = DictWriter(log_out, fieldnames=["position", "author", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions"])
+        log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions"])
         if not (batch and group):
             log_writer.writeheader()
 
@@ -266,14 +268,14 @@ def process_videos(urls_path, batch=False, language=None, group=None, include_au
             #     logging.critical("Video {0}: An unexpected error occured ({1})".format(video_count, url))
             #     continue
 
-            process_video(video, channel_dict, log_writer, channel_name, channel_id, url, language, group, include_audio, include_auto, convert_srt, include_titles)
+            process_video(video, channel_dict, log_writer, channel_name, channel_id, url, language, group, screen, include_audio, include_auto, convert_srt, include_titles)
 
             if limit_to != -1 and video_count == resume_from + limit_to:
                 print("{0}: Limit reached".format(urls_path))
                 break
 
 
-def process_files(urls_path, language=None, group=None, include_audio=False, include_auto=False, convert_srt=False, include_titles=False, resume_from=0, limit_to=-1):
+def process_files(urls_path, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, include_titles=False, resume_from=0, limit_to=-1):
     """Download captions, audio (optional), and metadata from a directoy of video lists.
 
     :param video: Path to a directory containing a set of list files

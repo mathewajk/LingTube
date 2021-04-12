@@ -247,6 +247,10 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
             # Get URL and title
             if len(url_data) == 3:
                 (url, channel_name, channel_id) = url_data
+            elif len(url_data) == 2:
+                url = url_data[0]
+                channel_name=url_data[1]
+                channel_id=None
             elif len(url_data) == 1:
                 url = url_data[0]
                 channel_name=None
@@ -331,7 +335,7 @@ def main(args):
     for dirpath, dirnames, files in walk(path.join('corpus', 'raw_subtitles')):
          for filename in files:
              name, ext = path.splitext(filename)
-             if ext == '.srt':
+             if ext in ['.srt', '.xml']:
                  clean_filename = name.rsplit(' ',1)[0]+ext
                  rename(path.join(dirpath, filename),
                            path.join(dirpath, clean_filename))

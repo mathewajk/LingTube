@@ -8,52 +8,7 @@ import pandas as pd
 from numpy import arange
 
 import parselmouth
-from parselmouth.praat import call, run_file
-
-
-# ARPABET
-# AA	odd     AA D
-# AE	at	AE T
-# AH	hut	HH AH T
-# AO	ought	AO T
-# AW	cow	K AW
-# AY	hide	HH AY D
-# B 	be	B IY
-# CH	cheese	CH IY Z
-# D 	dee	D IY
-# DH	thee	DH IY
-# EH	Ed	EH D
-# ER	hurt	HH ER T
-# EY	ate	EY T
-# F 	fee	F IY
-# G 	green	G R IY N
-# HH	he	HH IY
-# IH	it	IH T
-# IY	eat	IY T
-# JH	gee	JH IY
-# K 	key	K IY
-# L 	lee	L IY
-# M 	me	M IY
-# N 	knee	N IY
-# NG	ping	P IH NG
-# OW	oat	OW T
-# OY	toy	T OY
-# P 	pee	P IY
-# R 	read	R IY D
-# S 	sea	S IY
-# SH	she	SH IY
-# T 	tea	T IY
-# TH	theta	TH EY T AH
-# UH	hood	HH UH D
-# UW	two	T UW
-# V 	vee	V IY
-# W 	we	W IY
-# Y 	yield	Y IY L D
-# Z 	zee	Z IY
-# ZH	seizure	S IY ZH ER
-
-# TODO: make classes of sounds, optional flags for all vowels, specific vowel, ignore unstressed vowels, getting pre- and post- sound, ...
-# vowels = ['AA', 'AE', 'AH', 'AO', 'AW', 'AY', 'EH', 'ER', 'EY', 'IH', 'IY', 'OW', 'OY', 'UH', 'UW']
+from parselmouth.praat import call
 
 # 1 = word tier; 2 = Phone tier
 
@@ -110,21 +65,21 @@ def main(args):
             tgpath = path.join(postalignpath, video_id)
             audpath = path.join(prealignpath, video_id)
 
-            out_tgpath = path.join(acoustic_data_base, "textgrids", channel, video_id)
-            out_audpath = path.join(acoustic_data_base, "audio", channel, video_id)
+            # out_tgpath = path.join(acoustic_data_base, "textgrids", channel, video_id)
+            # out_audpath = path.join(acoustic_data_base, "audio", channel, video_id)
             out_datapath = path.join(acoustic_data_base, "vowels", channel)
 
-            # Make folders and copy files
-            for dir in [out_audpath, out_tgpath, out_datapath]:
-                if not path.exists(dir):
-                    makedirs(dir)
-            for tgfilename in listdir(tgpath):
-                name, ext = path.splitext(tgfilename)
-                wavfilename = name+'.wav'
-                shutil.copyfile(path.join(tgpath, tgfilename),
-                         path.join(out_tgpath, tgfilename))
-                shutil.copyfile(path.join(audpath, wavfilename),
-                         path.join(out_audpath, wavfilename))
+            # # Make folders and copy files
+            # for dir in [out_audpath, out_tgpath, out_datapath]:
+            #     if not path.exists(dir):
+            #         makedirs(dir)
+            # for tgfilename in listdir(tgpath):
+            #     name, ext = path.splitext(tgfilename)
+            #     wavfilename = name+'.wav'
+            #     shutil.copyfile(path.join(tgpath, tgfilename),
+            #              path.join(out_tgpath, tgfilename))
+            #     shutil.copyfile(path.join(audpath, wavfilename),
+            #              path.join(out_audpath, wavfilename))
 
             # Create output data frame (overwriting existing)
             out_df = pd.DataFrame(columns=['channel', 'video_id', 'filename', 'label', 'start_time', 'end_time', 'duration', 'pre_phone', 'post_phone', 'word', 'vowel', 'stress', 'diph'])
@@ -173,7 +128,7 @@ def main(args):
                         int_stress = int_lab[-1]
                         if args.stress:
                             stress_list = [s for s in args.stress.split(',')]
-                            if int_stress not in int_stress:
+                            if int_stress not in stress_list:
                                 continue
 
                         int_word = call(textgrid, 'Get label of interval', 1,

@@ -1,4 +1,5 @@
 .DS_Store
+run-aligner.md
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

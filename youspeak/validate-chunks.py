@@ -183,8 +183,11 @@ def insert_transcript (subtitles):
             if not idx-pre_i < 0:
                 current_words = subtitle_text.strip().split()
                 previous_line = resp_df.iloc[idx-pre_i]['transcription']
-                if len(current_words) == 0:
-                    subtitle_text = pre_subtitle_text.split(previous_line)[-1].strip()
+                if len(current_words) == 0 and previous_line != "":
+                    try:
+                        subtitle_text = pre_subtitle_text.split(previous_line)[-1].strip()
+                    except TypeError:
+                        break
                     break
 
                 try:

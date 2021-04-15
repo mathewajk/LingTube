@@ -37,32 +37,27 @@ def detect_silences(sound, sil_threshold, sil_duration):
 def extract_intervals(sound, textgrid, adjustment):
     sound_start = sound.get_start_time()
     sound_end = sound.get_end_time()
-    # print(sound_start, sound_end)
+
 
     total_ints = call(textgrid, 'Get number of intervals', 1)
     first_label = call(textgrid,'Get label of interval', 1, 1)
-    # print(total_ints)
-    # print(first_label)
+
 
     if first_label == 'speech':
         speech_ints = range(1, total_ints, 2)
     else:
         speech_ints = range(2, total_ints, 2)
-    # print(speech_ints)
 
     extracted_sounds = []
     for int_num in speech_ints:
-        # print(int_num)
         int_start = call(textgrid,'Get start time of interval', 1, int_num)
         int_end = call(textgrid,'Get end time of interval', 1, int_num)
-        # print(int_start, int_end)
 
         # Adjust extraction segment
         int_start = int_start - adjustment
         if int_start < sound_start: int_start = sound_start
         int_end = int_end + adjustment
         if int_end > sound_end: int_end = sound_end
-        # print(int_start, int_end)
 
         ext_sound = call(sound, 'Extract part', int_start, int_end,
                         'rectangular', 1.0, True)
@@ -70,7 +65,6 @@ def extract_intervals(sound, textgrid, adjustment):
 
         chunk_start_ms = call(ext_sound, 'Get start time')
         chunk_end_ms = call(ext_sound, 'Get end time')
-        # print(chunk_start_ms, chunk_end_ms)
 
     return extracted_sounds
 
@@ -80,7 +74,6 @@ def chunk_sound (sound, sil_duration, threshold_quantile, tgpath, name):
 
     n_ints = call(textgrid, 'Count intervals where',
                         1, 'is equal to', 'speech')
-    # print('Intervals containing speech: {0}'.format(n_ints))
 
     # Save first-pass TextGrid now for checking
     # TODO: Add folder for different passes
@@ -114,12 +107,9 @@ def save_chunks(chunk_sound, outputpath, name):
     chunk_name = '{0}_{1}_{2}.wav'.format(name, chunk_start_ms, chunk_end_ms)
     chunk_filename = path.join(outputpath, chunk_name)
     chunk_sound.save(chunk_filename, 'WAV')
-    # print('Saved {0}!'.format(chunk_name))
 
     return {'filename': chunk_name, 'video_id': name, 'start_time': chunk_start_ms, 'end_time': chunk_end_ms, 'duration': chunk_duration}
-    # return '{0}\t{1}\t{2}\t{3}\n'.format(chunk_name, name, chunk_start_ms, chunk_end_ms)
 
-    # TODO: add time before and after each chunk boundary (.25 s?)
 
 def process_soundfile(filename, audiopath, chunkpath):
 
@@ -152,7 +142,6 @@ def process_soundfile(filename, audiopath, chunkpath):
         if not path.exists(soundpath):
             makedirs(soundpath)
 
-
         # Start audio processing
         print('\nCURRENT FILE: {0}'.format(filename))
 
@@ -168,7 +157,6 @@ def process_soundfile(filename, audiopath, chunkpath):
         (extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile, tgpath, video_id)
 
         while n_ints <= 1:
-            # sil_duration -= 0.025
             quantile += 0.025
             extracted_sounds_1 = chunk_sound(sound, sil_duration, quantile, tgpath, video_id)
             # input()
@@ -186,22 +174,18 @@ def process_soundfile(filename, audiopath, chunkpath):
                 if not counter % 5 == 0:
                     sil_duration += 0.05
                     # print('Duration: {0}'.format(sil_duration))
-                    # input()
             if counter > 0 and counter % 5 == 0:
                 sil_duration = 0.1
                 # print('Duration: {0}'.format(sil_duration))
                 # quantile += 0.025
                 # print('Quantile: {0}'.format(quantile))
-                # input()
 
             for subsound in extracted_sounds_1:
                 duration = subsound.get_total_duration()
-                # print(counter, duration)
                 if duration <= 10:
                     log_entry = save_chunks(subsound, soundpath, video_id)
                     output_df = output_df.append(log_entry, ignore_index=True)
                     extracted_sounds_1.remove(subsound)
-                    # input()
                 else:
                     n_ints = -1
                     sub_quantile = 0.025
@@ -210,11 +194,7 @@ def process_soundfile(filename, audiopath, chunkpath):
 
                         if n_ints > 1:
                             extracted_sounds_1.remove(subsound)
-                            for s in extracted_subsounds:
-                                duration = s.get_total_duration()
-                                # print(counter, duration)
                             extracted_sounds_1 = extracted_sounds_1 + extracted_subsounds
-                            # input()
                             break
                         else:
                             sub_quantile += 0.025

@@ -186,11 +186,11 @@ def process_soundfile(filename, audiopath, chunkpath):
                     try:
                         call(base_textgrid, 'Insert boundary', 1, (log_entry['start_time']/1000) )
                     except:
-                        print('Cannot insert boundary.')
+                        print('\nCannot insert boundary at time {0}.'.format(log_entry['start_time']/1000))
                     try:
                         call(base_textgrid, 'Insert boundary', 1, (log_entry['end_time']/1000) )
                     except:
-                        print('Cannot insert boundary.')
+                        print('\nCannot insert boundary at time {0}.'.format(log_entry['start_time']/1000))
 
                     interval_num = call(base_textgrid, 'Get interval at time', 1, log_entry['start_time']/1000)
                     call(base_textgrid, 'Set interval text', 1, interval_num, 'speech')

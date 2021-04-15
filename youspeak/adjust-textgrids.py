@@ -60,7 +60,7 @@ def main(args):
             path_to_out_tgdir = '../{0}/'.format(out_tgdir)
 
             if not path.exists(scriptname):
-                with open(base_script), "rb") as f:
+                with open(base_script, "rb") as f:
                     contents = str(f.read(), 'UTF-8')
                     contents = re.sub("replace_me_with_audpath", path_to_auddir, contents)
                     contents = re.sub("replace_me_with_tgpath", path_to_tgdir, contents)
@@ -76,12 +76,12 @@ def main(args):
 
             print('\nSuccessfully launched Praat for: {0}'.format(video_id))
 
-            print('\nType "next" to move on to the next video. To quit, type "stop".\n')
+            print('\nType "next" to move on to the next video. To quit, type "quit".\n')
             next_video = None
-            while next_video not in ['next', 'stop']:
+            while next_video not in ['next', 'quit']:
                 next_video = input()
-                if next_video == 'stop':
-                    sys.exit('\nSafely quit program!')
+                if next_video == 'quit':
+                    sys.exit('\nSafely quit program!\n')
 
 if __name__ == '__main__':
 

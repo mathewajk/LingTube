@@ -177,7 +177,7 @@ def process_soundfile(filename, audiopath, chunkpath):
             if counter > 0 and counter % 5 == 0:
                 sil_duration = 0.1
                 # print('Duration: {0}'.format(sil_duration))
-                # quantile += 0.025
+                quantile += 0.025
                 # print('Quantile: {0}'.format(quantile))
 
             for subsound in extracted_sounds_1:

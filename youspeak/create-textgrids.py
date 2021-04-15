@@ -91,6 +91,9 @@ def main(args):
                         sound.save(path.join(prealignpath, name+'.wav'), "WAV")
                         textgrid.save(path.join(prealignpath, name+'.TextGrid'))
 
+    out_message = path.join(aligned_audio_base, "adjusted_corpus", "README.md")
+    with open(out_message, 'w') as m:
+        m.write('Channel folders for aligned audio files (found within the "queue" folder of each video sub-folder) go here.')    
 
 if __name__ == '__main__':
 

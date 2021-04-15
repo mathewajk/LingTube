@@ -236,6 +236,9 @@ def main(args):
         else:
             process_soundfile(dir_element, audiopath, chunkpath)
 
+    out_message = path.join(chunkpath, "audio", "chunking", "README.md")
+    with open(out_message, 'w') as m:
+        m.write('Channel folders for chunked audio files (with sub-folders for each original video source) go here.')
 
 if __name__ == '__main__':
 

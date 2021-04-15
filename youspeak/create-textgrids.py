@@ -52,10 +52,11 @@ def main(args):
             prealignpath = path.join(aligned_audio_base, "original_corpus", channel, video_id)
             postalignpath = path.join(aligned_audio_base, "aligned_corpus", channel, video_id)
             alignerpath = path.join(aligned_audio_base, "mfa_aligner")
+            adjusted_queuepath = path.join(aligned_audio_base, "adjusted_corpus", channel, video_id, "queue")
             adjusted_audpath = path.join(aligned_audio_base, "adjusted_corpus", channel, video_id, "audio")
             adjusted_tgpath = path.join(aligned_audio_base, "adjusted_corpus", channel, video_id, "textgrids")
 
-            for dir in [out_audpath, out_tgpath, prealignpath, postalignpath, alignerpath, adjusted_audpath, adjusted_tgpath]:
+            for dir in [out_audpath, out_tgpath, prealignpath, postalignpath, alignerpath, adjusted_queuepath, adjusted_audpath, adjusted_tgpath]:
                 if not path.exists(dir):
                     makedirs(dir)
 

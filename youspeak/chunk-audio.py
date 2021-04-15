@@ -68,27 +68,18 @@ def extract_intervals(sound, textgrid, adjustment):
 
     return extracted_sounds
 
-def chunk_sound (sound, sil_duration, threshold_quantile, tgpath, name):
+def chunk_sound (sound, sil_duration, threshold_quantile):
     sil_threshold = get_silence_threshold(sound, threshold_quantile)
     textgrid = detect_silences(sound, sil_threshold, sil_duration)
 
     n_ints = call(textgrid, 'Count intervals where',
                         1, 'is equal to', 'speech')
 
-    # Save first-pass TextGrid now for checking
-    # TODO: Add folder for different passes
-    if not path.exists(tgpath):
-        makedirs(tgpath)
-    tg_filename = path.join(tgpath, name+'.TextGrid')
-    textgrid.save(tg_filename)
-
-    # print('Extracting intervals...\n')
-    # extracted_sounds_1 = extract_intervals(sound, textgrid, 0.25)
     extracted_sounds = call([sound, textgrid],
                             'Extract intervals where',
                             1, True, 'is equal to', 'speech')
 
-    return extracted_sounds, n_ints
+    return textgrid, extracted_sounds, n_ints
 
 def save_chunks(chunk_sound, outputpath, name):
     """ Saves chunked speech intervals as WAV file.
@@ -154,12 +145,17 @@ def process_soundfile(filename, audiopath, chunkpath):
 
         sil_duration = 0.25
         quantile = 0.05
-        (extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile, tgpath, video_id)
+        (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile)
 
         while n_ints <= 1:
             quantile += 0.025
-            extracted_sounds_1 = chunk_sound(sound, sil_duration, quantile, tgpath, video_id)
-            # input()
+            (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile)
+
+        # Save first-pass TextGrid
+        if not path.exists(tgpath):
+            makedirs(tgpath)
+        tg_filename = path.join(tgpath, name+'_first.TextGrid')
+        base_textgrid.save(tg_filename)
 
         print('Second pass chunking in progress...')
         counter = -1
@@ -185,12 +181,26 @@ def process_soundfile(filename, audiopath, chunkpath):
                 if duration <= 10:
                     log_entry = save_chunks(subsound, soundpath, video_id)
                     output_df = output_df.append(log_entry, ignore_index=True)
+
+                    # Add boundary to base_textgrid
+                    try:
+                        call(base_textgrid, 'Insert boundary', 1, (log_entry['start_time']/1000) )
+                    except:
+                        print('Cannot insert boundary.')
+                    try:
+                        call(base_textgrid, 'Insert boundary', 1, (log_entry['end_time']/1000) )
+                    except:
+                        print('Cannot insert boundary.')
+
+                    interval_num = call(base_textgrid, 'Get interval at time', 1, log_entry['start_time']/1000)
+                    call(base_textgrid, 'Set interval text', 1, interval_num, 'speech')
+
                     extracted_sounds_1.remove(subsound)
                 else:
                     n_ints = -1
                     sub_quantile = 0.025
                     while n_ints <= 1:
-                        (extracted_subsounds, n_ints) = chunk_sound (subsound, sil_duration, sub_quantile, tgpath, video_id)
+                        (subtextgrid, extracted_subsounds, n_ints) = chunk_sound(subsound, sil_duration, sub_quantile)
 
                         if n_ints > 1:
                             extracted_sounds_1.remove(subsound)
@@ -201,6 +211,11 @@ def process_soundfile(filename, audiopath, chunkpath):
 
         output_df = output_df.sort_values(by=["start_time"])
         output_df.to_csv(log_file, mode='a', index=False, header=False)
+
+        # Save second-pass TextGrid
+        call(base_textgrid, 'Replace interval texts', 1, 1, 0, '', 'silence', 'Literals')
+        tg_filename = path.join(tgpath, name+'_second.TextGrid')
+        base_textgrid.save(tg_filename)
 
 def main(args):
 

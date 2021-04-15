@@ -23,6 +23,8 @@ def open_files_in_praat (filename, tgpath, audpath):
         return [sound, textgrid]
 
 def get_formants (sound, int_start, int_dur, proportion_time, max_formant):
+
+    # TODO: Possibly check for pitch(?) to decide whether max formant is 5000 or 5500
     sound_formant = sound.to_formant_burg(0.001, 5.0, 5500.0, 0.025, 50.0)
     timepoint = int_start + (int_dur * proportion_time)
 

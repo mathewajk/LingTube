@@ -48,8 +48,15 @@ def main(args):
 
         for video_id in video_list:
 
-            auddir = path.join(originalpath, video_id)
             tgdir = path.join(alignedpath, video_id)
+            auddir = path.join(adjustedpath, video_id, "queue")
+            print(len(listdir(auddir)))
+            if not len([fn for fn in listdir(auddir) if not fn.startswith('.')]):
+                for fn in listdir(path.join(originalpath, video_id)):
+                    if path.splitext(fn)[1]=='.wav':
+                        shutil.move(path.join(originalpath, video_id, fn),
+                                    path.join(auddir, fn))
+
             out_auddir = path.join(adjustedpath, video_id, "audio")
             out_tgdir = path.join(adjustedpath, video_id, "textgrids")
 

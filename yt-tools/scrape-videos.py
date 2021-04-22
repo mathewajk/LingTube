@@ -155,9 +155,16 @@ def write_metadata(video, yt_id, caption_list, log_writer, url, channel_name="",
     :param channel_id: The name of the channel as it appears in the channel's URL (default "")
     """
 
+    channel_initials = "".join( [name[0] for name in video.author.split()] )
+
+    if not channel_name:
+        punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
+        channel_name = sub(punc_and_whitespace, "", video.author)
+
     metadata = {
         "yt_id": yt_id,
         "author": video.author,
+        "codename": channel_initials,
         "name": channel_name,
         "ID": channel_id,
         "url": url,
@@ -168,7 +175,8 @@ def write_metadata(video, yt_id, caption_list, log_writer, url, channel_name="",
         "publish_date": video.publish_date,
         "views": video.views,
         "rating": video.rating,
-        "captions": caption_list
+        "captions": caption_list,
+        "corrected": 0,
     }
 
     log_writer.writerow(metadata)
@@ -261,7 +269,7 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
     with open(urls_path, "r") as urls_in, open(log_file, write_type) as log_out:
 
         # Prepare writer for writing video data
-        log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions"])
+        log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "codename", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "corrected"])
         if not (batch and group):
             log_writer.writeheader()
 
@@ -341,7 +349,7 @@ def process_files(urls_path, language=None, group=None, screen=None, include_aud
             write_mode = 'w'
 
         with open(log_file, write_mode) as log_out:
-            log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "safe_author", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions"])
+            log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "codename", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "corrected"])
             if not log_exists and not overwrite:
                 log_writer.writeheader()
 

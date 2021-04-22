@@ -361,7 +361,7 @@ def process_files(urls_path, language=None, group=None, screen=None, include_aud
     all_fns = URL_fns_txt + URL_fns_csv
 
     for fn in all_fns:
-        process_videos(fn, True, language, group, screen, include_audio, include_auto, convert_srt, include_titles, resume_from, limit_to)
+        process_videos(fn, True, language, group, screen, include_audio, include_auto, convert_srt, include_titles, resume_from, limit_to, overwrite)
 
 
 def main(args):
@@ -381,10 +381,10 @@ def main(args):
             print("Resuming from video {0}".format(args.resume))
 
         if path.isfile(args.urls_in):
-            process_videos(args.urls_in, False, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.titles, args.resume, args.limit)
+            process_videos(args.urls_in, False, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.titles, args.resume, args.limit, args.overwrite)
 
         if path.isdir(args.urls_in):
-            process_files(args.urls_in, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.titles, args.resume, args.limit)
+            process_files(args.urls_in, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.titles, args.resume, args.limit, args.overwrite)
 
     if args.screen:
         out_path = path.join('corpus', 'screening')

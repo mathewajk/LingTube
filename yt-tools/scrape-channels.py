@@ -170,6 +170,53 @@ def process_channel(url, cutoff=-1, group=None, driver=None):
     save_videos(links, info, group)
 
 
+def process_video(url, cutoff=-1, group=None, driver=None, noscrape=False):
+    """Process a video from a URL
+
+    :param url: Video URL
+    :param cutoff: Limit scrolling to N attempts
+    :param group:  Folder name to group channels under
+    """
+
+    driver.get(url)
+
+    #try:
+    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'ytd-channel-name')))
+    channel_url ='https://youtube.com' + driver.find_element(By.CLASS_NAME, "ytd-channel-name").find_element(By.TAG_NAME, 'a').href
+    logging.info("Gathering information from channel: " + channel_url)
+    #except:
+    #    return
+
+    channel_id = channel_url.split('/')[-1]
+    info = {"ChannelID": channel_id}
+
+    # Run the webdriver
+    # TODO: Repetitive for legacy reasons
+    if driver:
+        info.update(get_info(driver, url + "/about"))
+        sleep(1)
+
+        if not noscrape:
+            links = get_links(driver, url + "/videos", cutoff)
+            logging.info("Found {0} videos".format(str(len(links))))
+        else:
+            links = []
+
+    else:
+        with webdriver.Firefox() as driver:
+
+            info.update(get_info(driver, url + "/about"))
+            sleep(1)
+
+            if not noscrape:
+                links = get_links(driver, url + "/videos", cutoff)
+                logging.info("Found {0} videos".format(str(len(links))))
+            else:
+                links = []
+
+    save_videos(links, info, group)
+
+
 def process_channels(channels_fn, cutoff=-1, group=None):
     """Process a list of channels from a file
 
@@ -186,6 +233,22 @@ def process_channels(channels_fn, cutoff=-1, group=None):
                 sleep(1)
 
 
+def process_videos(channels_fn, cutoff=-1, group=None, noscrape=False):
+    """Process a list of videos from a file
+
+    :param channels_fn: The file to open
+    :param cutoff: Limit scrolling to N attempts
+    :param group:  Folder name to group channels under
+    """
+
+    with open(channels_fn, 'r') as channels_in:
+        with webdriver.Firefox() as driver:
+            for line in channels_in:
+                line = sub('[\s\ufeff]+', '', line.strip('/')) # Handle whitespace and Excel nonsense?
+                process_video(line, cutoff, group, driver, noscrape)
+                sleep(1)
+
+
 def handle_single(args):
     """Wrapper for scraping a single channel"""
     process_channel(args.channel, args.cutoff, args.group)
@@ -196,6 +259,11 @@ def handle_multiple(args):
     process_channels(args.file, args.cutoff, args.group)
 
 
+def handle_video(args):
+    """Wrapper for scraping multiple channels"""
+    process_videos(args.file, args.cutoff, args.group, args.noscrape)
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Scrape video URLs from a YouTube channel.')
@@ -204,7 +272,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--log', action='store_true', default=False, help='log events to file')
     parser.set_defaults(func=None)
 
-    subparsers = parser.add_subparsers(help='process one channel or a list of channels')
+    subparsers = parser.add_subparsers(help='process one channel, a list of channels, or a list of videos')
 
     channel_parser = subparsers.add_parser('single', help='process a single channel (see scrape_yt.py single -h for more help)')
     channel_parser.set_defaults(func=handle_single)
@@ -213,6 +281,11 @@ if __name__ == '__main__':
     list_parser = subparsers.add_parser('multi', help='process a list of channels (see scrape_yt.py multi -h for more help)')
     list_parser.set_defaults(func=handle_multiple)
     list_parser.add_argument('file', type=str, help='file containing a newline-separated list of channel URLs (e.g. https://www.youtube.com/c/Channel1NameHere\\n https://www.youtube.com/c/Channel2NameHere\\n)')
+
+    video_parser = subparsers.add_parser('video', help='process channels from a list of videos (see scrape_yt.py video -h for more help)')
+    video_parser.set_defaults(func=handle_video)
+    video_parser.add_argument('file', type=str, help='file containing a newline-separated list of video URLs')
+    video_parser.add_argument('-n', '--noscrape', action='store_true', default=False, help='don\'t scrape the channel; only gather about info')
 
     args = parser.parse_args()
 

@@ -308,7 +308,7 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
                 break
 
 
-def process_files(urls_path, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, include_titles=False, resume_from=0, limit_to=-1):
+def process_files(urls_path, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, include_titles=False, resume_from=0, limit_to=-1, overwrite=False):
     """Download captions, audio (optional), and metadata from a directoy of video lists.
 
     :param video: Path to a directory containing a set of list files
@@ -334,9 +334,16 @@ def process_files(urls_path, language=None, group=None, screen=None, include_aud
             log_fn = "{0}_log_{1}.csv".format(path.splitext(log_fn)[0], strftime("%Y%m%d%H%M%S"))
             log_file = path.join("corpus", "screening", "logs", log_fn)
 
-        with open(log_file, 'w') as log_out: # Overwrite file in a hacky way
-            log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions"])
-            log_writer.writeheader()
+        log_exists = path.exists(log_file)
+
+        write_mode = 'a'
+        if overwrite:
+            write_mode = 'w'
+
+        with open(log_file, write_mode) as log_out:
+            log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "safe_author", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions"])
+            if not log_exists and not overwrite:
+                log_writer.writeheader()
 
     all_fns = URL_fns_txt + URL_fns_csv
 
@@ -386,8 +393,9 @@ if __name__ == '__main__':
 
     parser.add_argument('urls_in', type=str, help='path to a file or directory containing the URLs to scrape')
 
-    parser.add_argument('--language', '-l', default=None, type=str, help='filter captions by language name (e.g. "Korean"); if unspecified, all captions will be downloaded')
-    parser.add_argument('--group',    '-g', default=None, metavar='NAME', type=str, help='a name for the group; if unspecified, channel names will be used')
+    parser.add_argument('--language',  '-l', default=None, type=str, help='filter captions by language name (e.g. "Korean"); if unspecified, all captions will be downloaded')
+    parser.add_argument('--group',     '-g', default=None, metavar='NAME', type=str, help='a name for the group; if unspecified, channel names will be used')
+    parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite logs rather than appending')
 
     parser.add_argument('--auto',     '-a', action='store_true', default=False, help='include automatically-generated captions')
     parser.add_argument('--audio',    '-s', action='store_true', default=False, help='download audio')
@@ -396,8 +404,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--resume', '-res', type=int, metavar='N', default=0,  help='resume downloading from Nth video or file')
     parser.add_argument('--limit',  '-lim', type=int, metavar='N', default=-1, help='limit processing to N videos or files')
-    parser.add_argument('--screen',            action='store_true', default=False, help='downloading files for screening purposes')
-    parser.add_argument('--clean',            action='store_true', default=False, help='skip scraping and only clean dowloaded caption filenames of langcode')
+    parser.add_argument('--screen',         action='store_true', default=False, help='downloading files for screening purposes')
+    parser.add_argument('--clean',          action='store_true', default=False, help='skip scraping and only clean dowloaded caption filenames of langcode')
 
     args = parser.parse_args()
 

@@ -222,6 +222,12 @@ def process_video(url, cutoff=-1, group=None, driver=None, noscrape=False):
 
     save_videos(links, info, group)
 
+    # Log input video info
+    videos_fn = "{0}.txt"
+    videos_path = path.join("corpus", "scrape_channels", "logs", videos_fn)
+    with open(videos_path, 'a') as videos_out:
+        videos_out.write("{0}\t{1}\t{2}\n".format(url, info["SafeChannelVideos"], info["SafeChannelID"]))
+
 
 def process_channels(channels_fn, cutoff=-1, group=None):
     """Process a list of channels from a file
@@ -266,7 +272,7 @@ def handle_multiple(args):
 
 
 def handle_video(args):
-    """Wrapper for scraping multiple channels"""
+    """Wrapper for scraping multiple videos"""
     process_videos(args.file, args.cutoff, args.group, args.noscrape)
 
 

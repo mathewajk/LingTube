@@ -23,6 +23,8 @@ def open_files_in_praat (filename, tgpath, audpath):
         return [sound, textgrid]
 
 def get_formants (sound, int_start, int_dur, proportion_time, max_formant):
+
+    # TODO: Possibly check for pitch(?) to decide whether max formant is 5000 or 5500
     sound_formant = sound.to_formant_burg(0.001, 5.0, 5500.0, 0.025, 50.0)
     timepoint = int_start + (int_dur * proportion_time)
 
@@ -50,6 +52,7 @@ def main(args):
     for ch_i, channel in enumerate(channel_list):
         print('\nChannel {0} of {1}: {2} ...'.format(ch_i+1, len(channel_list), channel))
 
+        adjustedpath = path.join(aligned_audio_base, "adjusted_corpus", channel)
         postalignpath = path.join(aligned_audio_base, "aligned_corpus", channel)
         prealignpath = path.join(aligned_audio_base, "original_corpus", channel)
 
@@ -62,24 +65,20 @@ def main(args):
         for v_i, video_id in enumerate(video_list):
             print('\nVideo {0} of {1}: {2} ...'.format(v_i+1, len(video_list), video_id))
 
-            tgpath = path.join(postalignpath, video_id)
-            audpath = path.join(prealignpath, video_id)
+            # TODO: Add try for adjusted audio; except to pre/post align or add a flag for testing
+            tgpath = path.join(adjustedpath, video_id, "textgrids")
+            audpath = path.join(adjustedpath, video_id, "audio")
 
-            # out_tgpath = path.join(acoustic_data_base, "textgrids", channel, video_id)
-            # out_audpath = path.join(acoustic_data_base, "audio", channel, video_id)
+            if not [tg for tg in listdir(tgpath) if path.splitext(tg)[1] == '.TextGrid']:
+                print('\nNOTICE: No adjusted textgrids. Processing using unadjusted forced alignment textgrids.\n')
+                tgpath = path.join(postalignpath, video_id)
+                audpath = path.join(prealignpath, video_id)
+
             out_datapath = path.join(acoustic_data_base, "vowels", channel)
 
-            # # Make folders and copy files
-            # for dir in [out_audpath, out_tgpath, out_datapath]:
-            #     if not path.exists(dir):
-            #         makedirs(dir)
-            # for tgfilename in listdir(tgpath):
-            #     name, ext = path.splitext(tgfilename)
-            #     wavfilename = name+'.wav'
-            #     shutil.copyfile(path.join(tgpath, tgfilename),
-            #              path.join(out_tgpath, tgfilename))
-            #     shutil.copyfile(path.join(audpath, wavfilename),
-            #              path.join(out_audpath, wavfilename))
+            # Make folders
+            if not path.exists(out_datapath):
+                makedirs(out_datapath)
 
             # Create output data frame (overwriting existing)
             out_df = pd.DataFrame(columns=['channel', 'video_id', 'filename', 'label', 'start_time', 'end_time', 'duration', 'pre_phone', 'post_phone', 'word', 'vowel', 'stress', 'diph'])

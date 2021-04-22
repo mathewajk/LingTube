@@ -89,6 +89,10 @@ def main(args):
         elif dir_element not in ['mp4', 'wav', '.DS_Store']:
             convert_and_move_dir (dir_element, origpath, wavpath, mp4path, mono)
 
+    out_message = path.join(wavpath, "README.md")
+    with open(out_message, 'w') as m:
+        m.write('Channel folders for full audio files (converted to mono WAV) go here.')
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Convert scraped YouTube audio from mp4 to WAV format.')

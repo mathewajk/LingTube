@@ -232,7 +232,7 @@ def process_video(video, channel_dict, log_writer, channel_name=None, channel_id
     return channel_dict
 
 
-def process_videos(urls_path, batch=False, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, include_titles=False, resume_from=0, limit_to=-1):
+def process_videos(urls_path, batch=False, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, include_titles=False, resume_from=0, limit_to=-1, overwrite=False):
     """Download captions, audio (optional), and metadata for a list of videos.
 
     :param batch: Indicates if a directory or single file is being processed
@@ -262,16 +262,21 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
         log_fn = "{0}_log_{1}.csv".format(path.splitext(log_fn)[0], strftime("%Y%m%d%H%M%S"))
         log_file = path.join("corpus", "screening", "logs", log_fn)
 
-    write_type = 'w'
-    if batch and group:
-        write_type = 'a'
+    log_exists = path.exists(log_file)
+
+    write_type = 'a'
+    #if batch and group:
+    #    write_type = 'a'
+    if overwrite:
+        write_type = 'w'
 
     with open(urls_path, "r") as urls_in, open(log_file, write_type) as log_out:
 
         # Prepare writer for writing video data
         log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "codename", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "corrected"])
         if not (batch and group):
-            log_writer.writeheader()
+            if overwrite or not log_exists:
+                log_writer.writeheader()
 
         for url_data in urls_in:
 
@@ -350,7 +355,7 @@ def process_files(urls_path, language=None, group=None, screen=None, include_aud
 
         with open(log_file, write_mode) as log_out:
             log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "codename", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "corrected"])
-            if not log_exists and not overwrite:
+            if overwrite or not log_exists:
                 log_writer.writeheader()
 
     all_fns = URL_fns_txt + URL_fns_csv

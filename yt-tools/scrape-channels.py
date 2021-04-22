@@ -99,7 +99,7 @@ def save_videos(links, info, group=None):
     with open(videos_out_fn, 'w') as videos_out, open(info_out_fn, 'w') as info_out:
 
         for link in links:
-            videos_out.write("{0}\t{1}\t{2}\n".format(link, info["ChannelName"], info["ChannelID"]))
+            videos_out.write("{0}\t{1}\t{2}\n".format(link, info["SafeChannelName"], info["SafeChannelID"]))
 
         for key in info.keys():
             info_out.write("# {0}\n\n".format(key))
@@ -120,7 +120,12 @@ def get_info(driver, url):
 
     try:
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'ytd-channel-name')))
-        info["ChannelName"] = driver.find_element(By.CLASS_NAME, "ytd-channel-name").text
+
+        punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
+        channel_name = driver.find_element(By.CLASS_NAME, "ytd-channel-name").text
+
+        info["ChannelName"] = channel_name
+        info["SafeChannelName"] = sub(punc_and_whitespace, "", channel_name)
 
     except:
         logging.warning("Could not scrape channel name")
@@ -180,24 +185,25 @@ def process_video(url, cutoff=-1, group=None, driver=None, noscrape=False):
 
     driver.get(url)
 
-    #try:
-    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'ytd-channel-name')))
-    channel_url ='https://youtube.com' + driver.find_element(By.CLASS_NAME, "ytd-channel-name").find_element(By.TAG_NAME, 'a').href
-    logging.info("Gathering information from channel: " + channel_url)
-    #except:
-    #    return
+    try:
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'ytd-channel-name')))
+        channel_url = driver.find_element(By.CLASS_NAME, "ytd-channel-name").find_element(By.TAG_NAME, 'a').get_attribute('href')
+        logging.info("Gathering information from channel: " + channel_url)
+    except:
+        return
 
+    punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
     channel_id = channel_url.split('/')[-1]
-    info = {"ChannelID": channel_id}
+    info = {"ChannelID": channel_id, "SafeChannelID": sub(punc_and_whitespace, "", channel_id)}
 
     # Run the webdriver
     # TODO: Repetitive for legacy reasons
     if driver:
-        info.update(get_info(driver, url + "/about"))
+        info.update(get_info(driver, channel_url + "/about"))
         sleep(1)
 
         if not noscrape:
-            links = get_links(driver, url + "/videos", cutoff)
+            links = get_links(driver, channel_url + "/videos", cutoff)
             logging.info("Found {0} videos".format(str(len(links))))
         else:
             links = []
@@ -205,11 +211,11 @@ def process_video(url, cutoff=-1, group=None, driver=None, noscrape=False):
     else:
         with webdriver.Firefox() as driver:
 
-            info.update(get_info(driver, url + "/about"))
+            info.update(get_info(driver, channel_url + "/about"))
             sleep(1)
 
             if not noscrape:
-                links = get_links(driver, url + "/videos", cutoff)
+                links = get_links(driver, channel_url + "/videos", cutoff)
                 logging.info("Found {0} videos".format(str(len(links))))
             else:
                 links = []

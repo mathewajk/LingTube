@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-import os
 from os import listdir, makedirs, path
-import shutil
 import pandas as pd
 from numpy import arange
 
@@ -12,14 +10,14 @@ from parselmouth.praat import call
 
 # 1 = word tier; 2 = Phone tier
 
-def open_files_in_praat (filename, tgpath, audpath):
-    name, ext = path.splitext(filename)
+def open_files_in_praat (fn, tg_path, audio_path):
+    name, ext = path.splitext(fn)
     if ext == '.TextGrid':
-        tgfile = path.join(tgpath, filename)
-        wavfile = path.join(audpath, name+'.wav')
+        tg_fp = path.join(tg_path, fn)
+        wav_fp = path.join(audio_path, name+'.wav')
 
-        sound = parselmouth.Sound(wavfile)
-        textgrid = parselmouth.read(tgfile)
+        sound = parselmouth.Sound(wav_fp)
+        textgrid = parselmouth.read(tg_fp)
         return [sound, textgrid]
 
 def get_formants (sound, int_start, int_dur, proportion_time, max_formant):
@@ -47,46 +45,42 @@ def main(args):
     if not args.channel == None:
         channel_list = [args.channel]
     else:
-        channel_list = [channel for channel in listdir(path.join(aligned_audio_base, "aligned_corpus")) if not channel.startswith('.')]
+        channel_list = [channel_id for channel_id in listdir(path.join(aligned_audio_base, "aligned_corpus")) if not channel_id.startswith('.')]
 
-    for ch_i, channel in enumerate(channel_list):
-        print('\nChannel {0} of {1}: {2} ...'.format(ch_i+1, len(channel_list), channel))
+    for ch_i, channel_id in enumerate(channel_list):
+        print('\nChannel {0} of {1}: {2} ...'.format(ch_i+1, len(channel_list), channel_id))
 
-        adjustedpath = path.join(aligned_audio_base, "adjusted_corpus", channel)
-        postalignpath = path.join(aligned_audio_base, "aligned_corpus", channel)
-        prealignpath = path.join(aligned_audio_base, "original_corpus", channel)
+        adjusted_path = path.join(aligned_audio_base, "adjusted_corpus", channel_id)
+        post_align_path = path.join(aligned_audio_base, "aligned_corpus", channel_id)
+        pre_align_path = path.join(aligned_audio_base, "original_corpus", channel_id)
 
-        if not args.video == None:
-            video_id = '{0}_{1}'.format(channel, args.video)
-            video_list = [video_id]
-        else:
-            video_list = [video_id for video_id in listdir(postalignpath) if not video_id.startswith('.')]
+        video_list = [video_id for video_id in listdir(post_align_path) if not video_id.startswith('.')]
 
         for v_i, video_id in enumerate(video_list):
             print('\nVideo {0} of {1}: {2} ...'.format(v_i+1, len(video_list), video_id))
 
             # TODO: Add try for adjusted audio; except to pre/post align or add a flag for testing
-            tgpath = path.join(adjustedpath, video_id, "textgrids")
-            audpath = path.join(adjustedpath, video_id, "audio")
+            tg_path = path.join(adjusted_path, video_id, "textgrids")
+            audio_path = path.join(adjusted_path, video_id, "audio")
 
-            if not [tg for tg in listdir(tgpath) if path.splitext(tg)[1] == '.TextGrid']:
+            if not [tg for tg in listdir(tg_path) if path.splitext(tg)[1] == '.TextGrid']:
                 print('\nNOTICE: No adjusted textgrids. Processing using unadjusted forced alignment textgrids.\n')
-                tgpath = path.join(postalignpath, video_id)
-                audpath = path.join(prealignpath, video_id)
+                tg_path = path.join(post_align_path, video_id)
+                audio_path = path.join(pre_align_path, video_id)
 
-            out_datapath = path.join(acoustic_data_base, "vowels", channel)
+            out_data_path = path.join(acoustic_data_base, "vowels", channel_id)
 
             # Make folders
-            if not path.exists(out_datapath):
-                makedirs(out_datapath)
+            if not path.exists(out_data_path):
+                makedirs(out_data_path)
 
             # Create output data frame (overwriting existing)
-            out_df = pd.DataFrame(columns=['channel', 'video_id', 'filename', 'label', 'start_time', 'end_time', 'duration', 'pre_phone', 'post_phone', 'word', 'vowel', 'stress', 'diph'])
+            out_df = pd.DataFrame(columns=['channel', 'video_id', 'fn', 'label', 'start_time', 'end_time', 'duration', 'pre_phone', 'post_phone', 'word', 'vowel', 'stress', 'diph'])
 
-            for file_i, filename in enumerate(listdir(tgpath)):
-                print('Processing file {0} of {1}: {2} ...'.format(file_i+1, len(listdir(tgpath)), filename))
-                sound, textgrid = open_files_in_praat(filename,
-                                                      tgpath, audpath)
+            for f_i, fn in enumerate(listdir(tg_path)):
+                print('Processing file {0} of {1}: {2} ...'.format(f_i+1, len(listdir(tg_path)), fn))
+                sound, textgrid = open_files_in_praat(fn,
+                                                      tg_path, audio_path)
 
                 # def get_formants(textgrid, max_step, max_formant, vowels)
                 monoph = ['AA', 'AE', 'AH', 'AO', 'EH', 'ER', 'IH', 'IY', 'UH', 'UW']
@@ -139,7 +133,7 @@ def main(args):
                             int_diph = 0
 
                         # Add info to data output row
-                        data_row = {'channel': channel, 'video_id': video_id, 'filename': filename, 'label': int_lab, 'start_time': int_start, 'end_time': int_end, 'duration': int_dur, 'pre_phone': int_pre, 'post_phone': int_post, 'word': int_word, 'vowel': int_vowel, 'stress': int_stress, 'diph': int_diph}
+                        data_row = {'channel': channel_id, 'video_id': video_id, 'filename': fn, 'label': int_lab, 'start_time': int_start, 'end_time': int_end, 'duration': int_dur, 'pre_phone': int_pre, 'post_phone': int_post, 'word': int_word, 'vowel': int_vowel, 'stress': int_stress, 'diph': int_diph}
 
                         # Get nucleus formants
                         if args.nucleus:
@@ -174,17 +168,17 @@ def main(args):
                         out_df = out_df.append(data_row, ignore_index=True, sort=False)
 
                         if args.nucleus:
-                            outfilename = '{0}_{1}_{2}.csv'.format(video_id, "vowel","nucleus")
+                            out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","nucleus")
                         if args.onoff:
-                            outfilename = '{0}_{1}_{2}.csv'.format(video_id, "vowel","onoff")
+                            out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","onoff")
                         if args.steps:
-                            outfilename = '{0}_{1}_{2}.csv'.format(video_id, "vowel","steps")
+                            out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","steps")
                         if args.nucleus or args.onoff or args.steps:
                             '{0}_{1}_{2}.csv'.format(video_id, "vowel","formants")
                         else:
-                            outfilename = '{0}_{1}_{2}.csv'.format(video_id, "vowel","duration")
+                            out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","duration")
 
-                        out_df.to_csv(os.path.join(out_datapath, outfilename), index=False)
+                        out_df.to_csv(path.join(out_data_path, out_fn), index=False)
 
 if __name__ == '__main__':
 
@@ -193,13 +187,14 @@ if __name__ == '__main__':
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='channel folder')
-    parser.add_argument('--video', '-v', default=None, type=str, help='video number')
     parser.add_argument('--vowels', '-vw', help='list of vowels to target, comma-separated', type=str)
     parser.add_argument('--stress', '-st', help='list of stress values to target, comma-separated', type=str)
     parser.add_argument('--nucleus', '-n', action='store_true', default=False, help='extract nucleus midpoint formants')
     parser.add_argument('--onoff', '-o', action='store_true', default=False, help='extract onset and offset formants')
     parser.add_argument('--steps', '-s', action='store_true', default=False, help='extract formants at 30 steps')
     parser.add_argument('--formants', '-f', default=3, type=int, help='maximum number of formants to extract (default=3)')
+
+    # TODO: Add overwrite
 
     args = parser.parse_args()
 

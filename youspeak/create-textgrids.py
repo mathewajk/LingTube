@@ -4,6 +4,7 @@ import argparse
 import os
 from os import listdir, makedirs, path
 import shutil
+from glob import glob
 import pandas as pd
 
 import parselmouth
@@ -40,6 +41,10 @@ def main(args):
         for video_id in video_list:
             audpath = path.join(chunked_audio_base, "audio", "chunking", channel, video_id)
             fname = path.join(logpath, video_id+'_coding_responses.csv')
+            if path.isdir(out_audpath) and not args.overwrite:
+                existing_files = glob(path.join(out_audpath, "**", "*{0}*".format(video_id)), recursive=True)
+                if existing_files:
+                    continue
 
             df = pd.read_csv(fname)
             print('Processing audio chunks from: {0}'.format(video_id))
@@ -103,6 +108,7 @@ if __name__ == '__main__':
     parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='channel folder')
     parser.add_argument('--video', '-v', default=None, type=str, help='video number')
+    parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
 
     args = parser.parse_args()
 

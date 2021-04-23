@@ -123,17 +123,17 @@ def get_subtitles(args):
         language = language_list[0]
 
     try:
-        subfile = os.path.join(correct_dir, language, "faves", channel, video_id+".txt")
+        subfile = os.path.join(correct_dir, language, "cleans", channel, video_id+".txt")
 
-        subtitles = pd.read_table(subfile, names=["sp_code", "speaker", "start_time", "end_time", "transcription"])
+        subtitles = pd.read_table(subfile, names=["start_time", "end_time", "transcription"])
     except:
         try:
-            subfile = os.path.join(manual_dir, language, "faves", channel, video_id+".txt")
+            subfile = os.path.join(manual_dir, language, "cleans", channel, video_id+".txt")
 
             if not os.path.isfile(subfile):
-                subfile = os.path.join(auto_dir, language, "faves", channel, video_id+".txt")
+                subfile = os.path.join(auto_dir, language, "cleans", channel, video_id+".txt")
 
-            subtitles = pd.read_table(subfile, names=["sp_code", "speaker", "start_time", "end_time", "transcription"])
+            subtitles = pd.read_table(subfile, names=["start_time", "end_time", "transcription"])
         except:
             subtitles = pd.DataFrame()
             print('No transcript file found for this audio file.')

@@ -4,6 +4,7 @@ from sys import argv
 from time import sleep
 from os import path, makedirs
 from re import sub
+from glob import glob
 import logging, argparse
 
 from selenium import webdriver
@@ -67,7 +68,7 @@ def get_links(driver, url, cutoff):
         return [element.get_attribute('href') for element in elements]
 
 
-def save_videos(links, info, group=None):
+def save_videos(links, info, group=None, noscrape=False, screen=False):
     """Write a scraped list of video links to a file.
 
     :param links: A list of video URLs
@@ -78,33 +79,42 @@ def save_videos(links, info, group=None):
     punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
     safe_channel_name = sub(punc_and_whitespace, "", info["ChannelName"])
 
-    videos_out_fn = "{0}_{1}_videos.txt".format(safe_channel_name, info["ChannelID"])
-    info_out_fn = "{0}_{1}_info.txt".format(safe_channel_name, info["ChannelID"])
+    base_path = path.join("corpus", "screened_urls")
+    if screen:
+        base_path = path.join("corpus", "unscreened_urls")
 
     if group:
-        url_out_dir = path.join("corpus", "channel_data", group, "urls")
-        info_out_dir = path.join("corpus", "channel_data", group, "about")
+        url_out_dir = path.join(base_path, group, "channel_urls")
+        info_out_dir = path.join(base_path, group, "about")
     else:
-        url_out_dir = path.join("corpus", "channel_data", "urls")
-        info_out_dir = path.join("corpus", "channel_data", "about")
+        url_out_dir = path.join(base_path, "channel_urls")
+        info_out_dir = path.join(base_path, "about")
 
-    if not path.exists(url_out_dir):
-        makedirs(url_out_dir)
     if not path.exists(info_out_dir):
         makedirs(info_out_dir)
 
-    videos_out_fn = path.join(url_out_dir, videos_out_fn)
+    info_out_fn = "{0}_{1}_info.txt".format(safe_channel_name, info["SafeChannelID"])
+
     info_out_fn = path.join(info_out_dir, info_out_fn)
 
-    with open(videos_out_fn, 'w') as videos_out, open(info_out_fn, 'w') as info_out:
-
-        for link in links:
-            videos_out.write("{0}\t{1}\t{2}\n".format(link, info["SafeChannelName"], info["SafeChannelID"]))
+    with open(info_out_fn, 'w') as info_out:
 
         for key in info.keys():
             info_out.write("# {0}\n\n".format(key))
             info_out.write("{0}\n\n".format(info[key]))
 
+    if not noscrape:
+        if not path.exists(url_out_dir):
+            makedirs(url_out_dir)
+
+        videos_out_fn = "{0}_{1}_videos.txt".format(safe_channel_name, info["SafeChannelID"])
+
+        videos_out_fn = path.join(url_out_dir, videos_out_fn)
+
+        with open(videos_out_fn, 'w') as videos_out:
+
+            for link in links:
+                videos_out.write("{0}\t{1}\t{2}\n".format(link, info["ChannelName"], info["SafeChannelID"]))
 
 def get_info(driver, url):
     """Scrape the channel's description.
@@ -143,7 +153,7 @@ def get_info(driver, url):
     return info
 
 
-def process_channel(url, cutoff=-1, group=None, driver=None):
+def process_channel(url, cutoff=-1, group=None, driver=None, noscrape=False, screen=False):
     """Process a channel from a URL
 
     :param url: Channel URL
@@ -172,10 +182,10 @@ def process_channel(url, cutoff=-1, group=None, driver=None):
             links = get_links(driver, url + "/videos", cutoff)
 
     logging.info("Found {0} videos".format(str(len(links))))
-    save_videos(links, info, group)
+    save_videos(links, info, group, noscrape, screen)
 
 
-def process_video(url, cutoff=-1, group=None, driver=None, noscrape=False):
+def process_video(url, videos_path, cutoff=-1, group=None, driver=None, noscrape=False, screen=False, overwrite=False):
     """Process a video from a URL
 
     :param url: Video URL
@@ -220,16 +230,14 @@ def process_video(url, cutoff=-1, group=None, driver=None, noscrape=False):
             else:
                 links = []
 
-    save_videos(links, info, group)
+    save_videos(links, info, group, noscrape, screen)
 
     # Log input video info
-    videos_fn = "{0}.txt"
-    videos_path = path.join("corpus", "scrape_channels", "logs", videos_fn)
     with open(videos_path, 'a') as videos_out:
-        videos_out.write("{0}\t{1}\t{2}\n".format(url, info["SafeChannelVideos"], info["SafeChannelID"]))
+        videos_out.write("{0}\t{1}\t{2}\n".format(url, info["ChannelName"], info["SafeChannelID"]))
 
 
-def process_channels(channels_fn, cutoff=-1, group=None):
+def process_channels(channels_fn, cutoff=-1, group=None, noscrape=False, screen=False):
     """Process a list of channels from a file
 
     :param channels_fn: The file to open
@@ -240,12 +248,13 @@ def process_channels(channels_fn, cutoff=-1, group=None):
     with open(channels_fn, 'r') as channels_in:
         with webdriver.Firefox() as driver:
             for line in channels_in:
+                line = line.split('\t')[0]
                 line = sub('[\s\ufeff]+', '', line.strip('/')) # Handle whitespace and Excel nonsense?
-                process_channel(line, cutoff, group, driver)
+                process_channel(line, cutoff, group, driver, noscrape)
                 sleep(1)
 
 
-def process_videos(channels_fn, cutoff=-1, group=None, noscrape=False):
+def process_videos(channels_fn, cutoff=-1, group=None, noscrape=False, screen=False, overwrite=False):
     """Process a list of videos from a file
 
     :param channels_fn: The file to open
@@ -253,48 +262,73 @@ def process_videos(channels_fn, cutoff=-1, group=None, noscrape=False):
     :param group:  Folder name to group channels under
     """
 
+    base_path = path.join("corpus", "screened_urls")
+    if screen:
+        base_path = path.join("corpus", "unscreened_urls")
+
+    if group:
+        videos_out_dir = path.join(base_path, group, "urls")
+        videos_fn = "{0}.txt".format(group)
+    else:
+        videos_out_dir = path.join(base_path, "urls")
+        videos_fn = "{0}.txt".format(info["SafeChannelName"])
+    if not path.exists(videos_out_dir):
+        makedirs(videos_out_dir)
+
+    videos_path = path.join(videos_out_dir, videos_fn)
+
+    write_mode = 'a'
+    if overwrite:
+        write_mode = 'w'
+
+    videos_out = open(videos_path, write_mode)
+    videos_out.close()
+
     with open(channels_fn, 'r') as channels_in:
         with webdriver.Firefox() as driver:
             for line in channels_in:
+                line = line.split('\t')[0]
                 line = sub('[\s\ufeff]+', '', line.strip('/')) # Handle whitespace and Excel nonsense?
-                process_video(line, cutoff, group, driver, noscrape)
+                process_video(line, videos_path, cutoff, group, driver, noscrape, screen, overwrite)
                 sleep(1)
 
 
 def handle_single(args):
     """Wrapper for scraping a single channel"""
-    process_channel(args.channel, args.cutoff, args.group)
+    process_channel(args.channel, args.cutoff, args.group, args.noscrape, args.screen)
 
 
 def handle_multiple(args):
     """Wrapper for scraping multiple channels"""
-    process_channels(args.file, args.cutoff, args.group)
+    process_channels(args.file, args.cutoff, args.group, args.noscrape, args.screen)
 
 
 def handle_video(args):
     """Wrapper for scraping multiple videos"""
-    process_videos(args.file, args.cutoff, args.group, args.noscrape)
+    process_videos(args.file, args.cutoff, args.group, args.noscrape, args.screen, args.overwrite)
 
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Scrape video URLs from a YouTube channel.')
-    parser.add_argument('-g', '--group', default=None, metavar='NAME', type=str, help='name to group files under (will create a subfolder: channel_data/$group)')
+    parser.add_argument('-g', '--group', default=None, metavar='NAME', type=str, help='name to group files under (will create a subfolder: screened_urls/$group)')
     parser.add_argument('--cutoff', type=int, default=-1, help='maximum number of times to scroll the page')
+    parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
+    parser.add_argument('--screen',         action='store_true', default=False, help='downloading files for screening purposes')
     parser.add_argument('-l', '--log', action='store_true', default=False, help='log events to file')
     parser.set_defaults(func=None)
 
     subparsers = parser.add_subparsers(help='process one channel, a list of channels, or a list of videos')
 
-    channel_parser = subparsers.add_parser('single', help='process a single channel (see scrape_yt.py single -h for more help)')
+    channel_parser = subparsers.add_parser('single', help='process a single channel (see scrape_channels.py single -h for more help)')
     channel_parser.set_defaults(func=handle_single)
     channel_parser.add_argument('channel', type=str, help='URL pointing to the channel\'s main page, e.g. https://www.youtube.com/c/ChannelNameHere')
 
-    list_parser = subparsers.add_parser('multi', help='process a list of channels (see scrape_yt.py multi -h for more help)')
+    list_parser = subparsers.add_parser('multi', help='process a list of channels (see scrape_channels.py multi -h for more help)')
     list_parser.set_defaults(func=handle_multiple)
     list_parser.add_argument('file', type=str, help='file containing a newline-separated list of channel URLs (e.g. https://www.youtube.com/c/Channel1NameHere\\n https://www.youtube.com/c/Channel2NameHere\\n)')
 
-    video_parser = subparsers.add_parser('video', help='process channels from a list of videos (see scrape_yt.py video -h for more help)')
+    video_parser = subparsers.add_parser('video', help='process channels from a list of videos (see scrape_channels.py video -h for more help)')
     video_parser.set_defaults(func=handle_video)
     video_parser.add_argument('file', type=str, help='file containing a newline-separated list of video URLs')
     video_parser.add_argument('-n', '--noscrape', action='store_true', default=False, help='don\'t scrape the channel; only gather about info')

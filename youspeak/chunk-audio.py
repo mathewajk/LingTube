@@ -2,7 +2,7 @@
 
 import argparse
 from os import path, listdir, makedirs
-import re
+from glob import glob
 import pandas as pd
 import parselmouth
 from parselmouth.praat import call, run_file
@@ -102,7 +102,7 @@ def save_chunks(chunk_sound, outputpath, name):
     return {'filename': chunk_name, 'video_id': name, 'start_time': chunk_start_ms, 'end_time': chunk_end_ms, 'duration': chunk_duration}
 
 
-def process_soundfile(filename, audiopath, chunkpath):
+def process_soundfile(fn, audio_path, chunk_path, overwrite=False):
 
     name, ext = path.splitext(filename)
 
@@ -118,6 +118,10 @@ def process_soundfile(filename, audiopath, chunkpath):
         soundpath = path.join(chunkpath, "audio", "chunking", channel, video_id)
         tgpath = path.join(chunkpath, "textgrids", "chunking", channel, video_id)
         logpath = path.join(chunkpath, "logs", "chunking", channel)
+        if path.isdir(sound_path) and not overwrite:
+            existing_files = glob(path.join(sound_path, "**", "*{0}*".format(video_id)), recursive=True)
+            if existing_files:
+                return 1
 
         # Create log file
         log_file = path.join(logpath, video_id+'_chunking_log.csv')
@@ -246,6 +250,7 @@ if __name__ == '__main__':
 
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
+    parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
 
     args = parser.parse_args()
 

@@ -81,13 +81,13 @@ def chunk_sound (sound, sil_duration, threshold_quantile):
 
     return textgrid, extracted_sounds, n_ints
 
-def save_chunks(chunk_sound, outputpath, name):
+def save_chunks(chunk_sound, out_path, video_id):
     """ Saves chunked speech intervals as WAV file.
 
     :param chunk_sound: A parselmouth.praat Sound object
     # :param adjustment: The padding time on either side of target speech
-    :param outputpath: The output path of the wav file
-    :param name: The original soundfile name (w/o ext)
+    :param out_path: The output path of the wav file
+    :param video_id: The original soundfile name (w/o ext)
 
     :return logfile_entry: Row with chunk metadata to be written to log
     """
@@ -95,38 +95,33 @@ def save_chunks(chunk_sound, outputpath, name):
     chunk_end_ms = int(chunk_sound.get_end_time()*1000)
     chunk_duration = chunk_end_ms - chunk_start_ms
 
-    chunk_name = '{0}_{1}_{2}.wav'.format(name, chunk_start_ms, chunk_end_ms)
-    chunk_filename = path.join(outputpath, chunk_name)
-    chunk_sound.save(chunk_filename, 'WAV')
+    chunk_fn = '{0}_{1}_{2}.wav'.format(video_id, chunk_start_ms, chunk_end_ms)
+    chunk_file_path = path.join(out_path, chunk_fn)
+    chunk_sound.save(chunk_file_path, 'WAV')
 
-    return {'filename': chunk_name, 'video_id': name, 'start_time': chunk_start_ms, 'end_time': chunk_end_ms, 'duration': chunk_duration}
+    return {'filename': chunk_fn, 'video_id': video_id, 'start_time': chunk_start_ms, 'end_time': chunk_end_ms, 'duration': chunk_duration}
 
 
 def process_soundfile(fn, audio_path, chunk_path, overwrite=False):
 
-    name, ext = path.splitext(filename)
+    video_id, ext = path.splitext(fn)
 
     if ext == '.wav':
-        if not re.match(r".*_[\d\w]+$",name):
-            # If filenames do include video titles
-            video_id = name.rsplit('_',1)[0]
-            channel = video_id.rsplit('_',1)[0]
-        else:
-            video_id = name
-            channel = video_id.rsplit('_',1)[0]
+        channel_id, yt_id = video_id.rsplit('_',1)
 
-        soundpath = path.join(chunkpath, "audio", "chunking", channel, video_id)
-        tgpath = path.join(chunkpath, "textgrids", "chunking", channel, video_id)
-        logpath = path.join(chunkpath, "logs", "chunking", channel)
+        sound_path = path.join(chunk_path, "audio", "chunking", channel_id, video_id)
+        tg_path = path.join(chunk_path, "textgrids", "chunking", channel_id, video_id)
+        log_path = path.join(chunk_path, "logs", "chunking", channel_id)
+
         if path.isdir(sound_path) and not overwrite:
             existing_files = glob(path.join(sound_path, "**", "*{0}*".format(video_id)), recursive=True)
             if existing_files:
                 return 1
 
         # Create log file
-        log_file = path.join(logpath, video_id+'_chunking_log.csv')
-        if not path.exists(logpath):
-            makedirs(logpath)
+        log_file = path.join(log_path, video_id+'_chunking_log.csv')
+        if not path.exists(log_path):
+            makedirs(log_path)
 
         output_df = pd.DataFrame(columns=['filename','video_id',
                                           'start_time','end_time', 'duration'])
@@ -134,14 +129,14 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False):
 
 
         # Create output directory
-        if not path.exists(soundpath):
-            makedirs(soundpath)
+        if not path.exists(sound_path):
+            makedirs(sound_path)
 
         # Start audio processing
-        print('\nCURRENT FILE: {0}'.format(filename))
+        print('\nCURRENT FILE: {0}'.format(fn))
 
-        wav_filename = path.join(audiopath, filename)
-        sound = parselmouth.Sound(wav_filename).convert_to_mono()
+        wav_fn = path.join(audio_path, fn)
+        sound = parselmouth.Sound(wav_fn).convert_to_mono()
 
 
         print('First pass chunking in progress...')
@@ -156,10 +151,10 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False):
             (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile)
 
         # Save first-pass TextGrid
-        if not path.exists(tgpath):
-            makedirs(tgpath)
-        tg_filename = path.join(tgpath, name+'_first.TextGrid')
-        base_textgrid.save(tg_filename)
+        if not path.exists(tg_path):
+            makedirs(tg_path)
+        tg_fn = path.join(tg_path, video_id+'_first.TextGrid')
+        base_textgrid.save(tg_fn)
 
         print('Second pass chunking in progress...')
         counter = -1
@@ -183,18 +178,18 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False):
             for subsound in extracted_sounds_1:
                 duration = subsound.get_total_duration()
                 if duration <= 10:
-                    log_entry = save_chunks(subsound, soundpath, video_id)
+                    log_entry = save_chunks(subsound, sound_path, video_id)
                     output_df = output_df.append(log_entry, ignore_index=True)
 
                     # Add boundary to base_textgrid
                     try:
                         call(base_textgrid, 'Insert boundary', 1, (log_entry['start_time']/1000) )
                     except:
-                        print('\nCannot insert boundary at time {0}.'.format(log_entry['start_time']/1000))
+                        print('\nNo boundary inserted at time {0}.'.format(log_entry['start_time']/1000))
                     try:
                         call(base_textgrid, 'Insert boundary', 1, (log_entry['end_time']/1000) )
                     except:
-                        print('\nCannot insert boundary at time {0}.'.format(log_entry['start_time']/1000))
+                        print('\nNo boundary inserted at time {0}.'.format(log_entry['start_time']/1000))
 
                     interval_num = call(base_textgrid, 'Get interval at time', 1, log_entry['start_time']/1000)
                     call(base_textgrid, 'Set interval text', 1, interval_num, 'speech')
@@ -218,31 +213,29 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False):
 
         # Save second-pass TextGrid
         call(base_textgrid, 'Replace interval texts', 1, 1, 0, '', 'silence', 'Literals')
-        tg_filename = path.join(tgpath, name+'_second.TextGrid')
-        base_textgrid.save(tg_filename)
+        tg_fn = path.join(tg_path, video_id+'_second.TextGrid')
+        base_textgrid.save(tg_fn)
 
 def main(args):
 
-    chunkpath = path.join('corpus','chunked_audio')
-
+    chunk_path = path.join('corpus','chunked_audio')
+    audio_path = path.join('corpus','raw_audio', "wav")
     if args.group:
-        chunkpath = path.join('corpus','chunked_audio', args.group)
-        audiopath = path.join('corpus','raw_audio', args.group, "wav")
-    else:
-        audiopath = path.join('corpus','raw_audio', "wav")
+        chunk_path = path.join('corpus','chunked_audio', args.group)
+        audio_path = path.join('corpus','raw_audio', args.group, "wav")
 
-    for dir_element in listdir(audiopath):
+    for dir_element in listdir(audio_path):
 
-        if path.isdir(path.join(audiopath, dir_element)):
-            channel_audiopath = path.join(audiopath, dir_element)
-            for filename in listdir(channel_audiopath):
-                process_soundfile(filename, channel_audiopath, chunkpath)
+        if path.isdir(path.join(audio_path, dir_element)):
+            channel_audio_path = path.join(audio_path, dir_element)
+            for fn in listdir(channel_audio_path):
+                process_soundfile(fn, channel_audio_path, chunk_path)
         else:
-            process_soundfile(dir_element, audiopath, chunkpath)
+            process_soundfile(dir_element, audio_path, chunk_path)
 
-    out_message = path.join(chunkpath, "audio", "chunking", "README.md")
-    with open(out_message, 'w') as m:
-        m.write('Channel folders for chunked audio files (with sub-folders for each original video source) go here.')
+    out_message = path.join(chunk_path, "audio", "chunking", "README.md")
+    with open(out_message, 'w') as file:
+        file.write('Channel folders for chunked audio files (with sub-folders for each original video source) go here.')
 
 if __name__ == '__main__':
 

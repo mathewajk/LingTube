@@ -28,9 +28,9 @@ def write_captions(captions, video, yt_id, channel_name="", channel_id="", group
     out_path = ""
 
     if screen:
-        out_path = path.join("corpus", "screening", "subtitles")
+        out_path = path.join("corpus", "unscreened_urls", "subtitles")
         if group:
-            out_path = path.join("corpus", "screening", group, "subtitles")
+            out_path = path.join("corpus", "unscreened_urls", group, "subtitles")
     else:
         out_path = path.join("corpus", "raw_subtitles")
         if group:
@@ -81,9 +81,9 @@ def write_audio(audio, video, yt_id, channel_name="", channel_id="", group=None,
     safe_author = helpers.safe_filename(video.author)
 
     if screen:
-        out_path = path.join("corpus", "screening", "audio")
+        out_path = path.join("corpus", "unscreened_urls", "audio")
         if group:
-            out_path = path.join("corpus", "screening", group, "audio")
+            out_path = path.join("corpus", "unscreened_urls", group, "audio")
     else:
         out_path = path.join("corpus", "raw_audio")
         if group:
@@ -207,9 +207,9 @@ def process_video(video, channel_dict, log_writer, channel_name=None, channel_id
                     findall(r".+watch\?v=(.+)\b", url)[0])
 
     if screen:
-        out_path = path.join("corpus", "screening", "subtitles")
+        out_path = path.join("corpus", "unscreened_urls", "subtitles")
         if group:
-            out_path = path.join("corpus", "screening", group, "subtitles")
+            out_path = path.join("corpus", "unscreened_urls", group, "subtitles")
     else:
         out_path = path.join("corpus", "raw_subtitles")
         if group:
@@ -345,7 +345,7 @@ def process_files(urls_path, language=None, group=None, screen=None, include_aud
         log_file = path.join("corpus", "logs", log_fn)
         if screen:
             log_fn = "{0}_log_{1}.csv".format(path.splitext(log_fn)[0], strftime("%Y%m%d%H%M%S"))
-            log_file = path.join("corpus", "screening", "logs", log_fn)
+            log_file = path.join("corpus", "unscreened_urls", "logs", log_fn)
 
         log_exists = path.exists(log_file)
 
@@ -374,8 +374,8 @@ def main(args):
         if not path.exists(path.join("corpus", "logs")):
             makedirs(path.join("corpus", "logs"))
         if args.screen:
-            if not path.exists(path.join("corpus", "screening", "logs")):
-                makedirs(path.join("corpus", "screening", "logs"))
+            if not path.exists(path.join("corpus", "unscreened_urls", "logs")):
+                makedirs(path.join("corpus", "unscreened_urls", "logs"))
 
         if(args.resume):
             print("Resuming from video {0}".format(args.resume))
@@ -387,7 +387,7 @@ def main(args):
             process_files(args.urls_in, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.titles, args.resume, args.limit, args.overwrite)
 
     if args.screen:
-        out_path = path.join('corpus', 'screening')
+        out_path = path.join('corpus', 'unscreened_urls')
     else:
         out_path = path.join('corpus', 'raw_subtitles')
 

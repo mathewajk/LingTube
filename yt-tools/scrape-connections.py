@@ -73,9 +73,9 @@ def main(args):
     print('\nScraping connections for about description...')
 
     if args.group:
-        connect_out_dir = path.join("corpus", "screening", args.group, "connections")
+        connect_out_dir = path.join("corpus", "unscreened_urls", args.group, "connections")
     else:
-        connect_out_dir = path.join("corpus", "screening", "connections")
+        connect_out_dir = path.join("corpus", "unscreened_urls", "connections")
     if not path.exists(connect_out_dir):
         makedirs(connect_out_dir)
 
@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
     parser.add_argument('seed_users', type=str, help='path to a file containing the users to start search from')
     parser.add_argument('--max_depth', '-max', type=int, metavar='N', default=5,  help='maximum depth of recursion (default=5)')
-    parser.add_argument('-g', '--group', default=None, type=str, help='name to group files under (will create a subfolder: screening/$group)')
+    parser.add_argument('-g', '--group', default=None, type=str, help='name to group files under (will create a subfolder: unscreened_urls/$group)')
 
     args = parser.parse_args()
 

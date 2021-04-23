@@ -81,11 +81,11 @@ def save_videos(links, search_query, exclude_query, group=None):
     urls_out_fn = "{0}_{1}_urls.txt".format(search_string, current_time)
 
     if group:
-        full_out_dir = path.join("corpus", "screening", group, "search", "full")
-        url_out_dir = path.join("corpus", "screening", group, "search", "url")
+        full_out_dir = path.join("corpus", "unscreened_urls", group, "search", "info")
+        url_out_dir = path.join("corpus", "unscreened_urls", group, "search", "urls")
     else:
-        full_out_dir = path.join("corpus", "screening", "search", "full")
-        url_out_dir = path.join("corpus", "screening", "search", "url")
+        full_out_dir = path.join("corpus", "unscreened_urls", "search", "info")
+        url_out_dir = path.join("corpus", "unscreened_urls", "search", "urls")
 
     if not path.exists(full_out_dir):
         makedirs(full_out_dir)

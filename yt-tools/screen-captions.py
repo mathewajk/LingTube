@@ -77,9 +77,11 @@ def get_context (doc, target_list, output_type='window', start_NE_num=0, end_NE_
 
 def main (args):
 
-    screen_sub_base = path.join('corpus','screening', 'subtitles')
+    screen_sub_base = path.join('corpus','unscreened_urls', 'subtitles')
+    screen_about_dir = path.join('corpus','unscreened_urls', 'about')
     if args.group:
-        screen_sub_base = path.join('corpus','screening', args.group, 'subtitles')
+        screen_sub_base = path.join('corpus','unscreened_urls', args.group, 'subtitles')
+        screen_about_dir = path.join('corpus','unscreened_urls', args.group, 'about')
 
     outfile = path.join(screen_sub_base, 'screened_channels.csv')
     if path.exists(outfile):

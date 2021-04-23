@@ -385,7 +385,7 @@ if __name__ == '__main__':
 
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
-    parser.add_argument('--language', '-l', default=None, type=str, help='language code')
+    parser.add_argument('--language', '-l', default=None, type=str, help='language code (default uses first available language)')
 
     args = parser.parse_args()
 

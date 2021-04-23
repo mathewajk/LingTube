@@ -1,97 +1,93 @@
 #!/usr/bin/env python3
 import argparse
-import sys
-import shutil
+from shutil import move
 from os import listdir, makedirs, path
 from pydub import AudioSegment
-import re
 
-def convert_to_wav (filename, name, origpath, wavpath, mono):
+def convert_to_wav (fn, orig_path, wav_path, mono=False):
     """ Takes an mp4 file and converts it to WAV format.
 
-    :param filename: An mp4 file (with ext)
-    :param name: The extracted mp4 filename identifier (w/o ext)
-    :param origpath: The original path of the mp4 file
-    :param wavpath: The output path of the wav file
+    :param fn: The mp4 filename (w/ ext)
+    :param orig_path: The original path of the mp4 file
+    :param wav_path: The output path of the wav file
+    :param mono: Boolean for converting sound to mono
     """
-    print("Converting {0} to .wav...".format(filename))
-    if not re.match(r".*_[\d\w]+$",name):
-        # If filenames do include video titles
-        name = name.rsplit('_',1)[0]
+    print("Converting {0} to .wav...".format(fn))
 
-    channel, vid_num = name.rsplit('_', 1)
-    # channel = re.sub(r'[^A-Za-z1-9]', '', channel)
-    newname = '_'.join([channel, vid_num])
-
-    exportname = newname + ".wav"
-    filepath = path.join(origpath, filename)
-
-    if not path.exists(wavpath):
-        makedirs(wavpath)
-    exportPath = path.join(wavpath, exportname)
-    sound = AudioSegment.from_file(filepath,"mp4")
+    name, ext = path.splitext(fn)
+    file_path = path.join(orig_path,  name + ".mp4")
+    sound = AudioSegment.from_file(file_path, "mp4")
     if mono == True:
         sound = sound.set_channels(1)
-    sound.export(exportPath, format="wav")
 
-def convert_and_move_file (filename, origpath, wavpath, mp4path, mono):
+    if not path.exists(wav_path):
+        makedirs(wav_path)
+    out_file_path = path.join(wav_path, name + ".wav")
+    sound.export(out_file_path, format="wav")
+
+def convert_and_move_file (fn, orig_path, wav_path, mp4_path, mono=False):
     """ Wrapper to convert mp4 file and move to separate directory.
 
-    :param filename: An mp4 file
-    :param origpath: The original path of the mp4 file
-    :param wavpath: The output path of the wav file
-    :param mp4path: The output path of the mp4 file
+    :param fn: An mp4 filename (w/ ext)
+    :param orig_path: The original path of the mp4 file
+    :param wav_path: The output path of the wav file
+    :param mp4_path: The output path of the mp4 file
+    :param mono: Boolean for converting sound to mono
     """
-    name, ext = path.splitext(filename)
+    name, ext = path.splitext(fn)
     if ext == ".mp4":
-        convert_to_wav (filename, name, origpath, wavpath, mono)
+        convert_to_wav (fn, orig_path, wav_path, mono)
 
-    if not path.exists(mp4path):
-        makedirs(mp4path)
-    oldlocation = path.join(origpath, filename)
-    newlocation = path.join(mp4path, filename)
-    shutil.move(oldlocation, newlocation)
+    if not path.exists(mp4_path):
+        makedirs(mp4_path)
+    move(path.join(orig_path, fn), path.join(mp4_path, fn))
 
-def convert_and_move_dir (dirname, origpath, wavpath, mp4path, mono):
+def convert_and_move_dir (dir_name, orig_path, wav_path, mp4_path, mono):
     """ Wrapper to convert each mp4 file in a channel folder and
     move the entire folder to a separate directory.
 
-    :param dirname: An sub-directory name (i.e., channel folders)
-    :param origpath: The original path of the sub-directory
-    :param wavpath: The output path of the wav sub-directory
-    :param mp4path: The output path of the mp4 sub-directory
+    :param dir_name: An sub-directory name (i.e., channel folders)
+    :param orig_path: The original path of the sub-directory
+    :param wav_path: The output path of the wav sub-directory
+    :param mp4_path: The output path of the mp4 sub-directory
+    :param mono: Boolean for converting sound to mono
     """
-    print('\nCURRENT CHANNEL: {0}'.format(dirname))
-    origdirpath = path.join(origpath, dirname)
-    wavdirpath = path.join(wavpath, dirname)
-    for filename in listdir(origdirpath):
-        name, ext = path.splitext(filename)
-        if ext == ".mp4":
-            convert_to_wav(filename, name, origdirpath, wavdirpath, mono)
+    print('\nCURRENT CHANNEL: {0}'.format(dir_name))
 
-    if not path.exists(mp4path):
-        makedirs(mp4path)
-    shutil.move(origdirpath, mp4path)
+    orig_dir_path = path.join(orig_path, dir_name)
+    wav_dir_path = path.join(wav_path, dir_name)
+
+    for fn in listdir(orig_dir_path):
+        name, ext = path.splitext(fn)
+        if ext == ".mp4":
+            convert_to_wav(fn, orig_dir_path, wav_dir_path, mono)
+
+    if not path.exists(mp4_path):
+        makedirs(mp4_path)
+    move(orig_dir_path, mp4_path)
 
 def main(args):
 
-    origpath = path.join('corpus','raw_audio')
+    orig_path = path.join('corpus','raw_audio')
     if args.group:
-        origpath = path.join(origpath, args.group)
-    mp4path = path.join(origpath, "mp4")
-    wavpath = path.join(origpath, "wav")
+        orig_path = path.join(orig_path, args.group)
+    mp4_path = path.join(orig_path, "mp4")
+    wav_path = path.join(orig_path, "wav")
 
+    # TODO: Legacy mono option
     mono = True # Convert files to mono
 
-    for dir_element in listdir(origpath):
-        if path.splitext(dir_element)[1] == '.mp4':
-            convert_and_move_file(dir_element, origpath, wavpath, mp4path, mono)
-        elif dir_element not in ['mp4', 'wav', '.DS_Store']:
-            convert_and_move_dir (dir_element, origpath, wavpath, mp4path, mono)
+    for dir_element in listdir(orig_path):
 
-    out_message = path.join(wavpath, "README.md")
-    with open(out_message, 'w') as m:
-        m.write('Channel folders for full audio files (converted to mono WAV) go here.')
+        if path.splitext(dir_element)[1] == '.mp4':
+            convert_and_move_file(dir_element, orig_path, wav_path, mp4_path, mono)
+
+        elif dir_element not in ['mp4', 'wav', '.DS_Store']:
+            convert_and_move_dir(dir_element, orig_path, wav_path, mp4_path, mono)
+
+    out_message = path.join(wav_path, "README.md")
+    with open(out_message, 'w') as file:
+        file.write('Channel folders for full audio files (converted to mono WAV) go here.')
 
 if __name__ == '__main__':
 

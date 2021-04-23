@@ -1,9 +1,8 @@
 import argparse
-import os
-from os import listdir, makedirs, path
+from os import listdir, makedirs, path, remove
 import shutil
 import subprocess
-import re
+from re import sub
 import sys
 from tkinter.messagebox import showinfo
 from tkinter.filedialog import askopenfilename
@@ -34,32 +33,20 @@ def main(args):
     if args.channel:
         channel_list = [args.channel]
     else:
-        channel_list = [channel for channel in listdir(path.join(aligned_audio_base, "original_corpus")) if not channel.startswith('.')]
+        channel_list = [channel_id for channel_id in listdir(path.join(aligned_audio_base, "original_corpus")) if not channel_id.startswith('.')]
 
-    for channel in channel_list:
-        originalpath = path.join(aligned_audio_base, "original_corpus", channel)
-        alignedpath = path.join(aligned_audio_base, "aligned_corpus", channel)
-        adjustedpath = path.join(aligned_audio_base, "adjusted_corpus", channel)
+    for channel_id in channel_list:
+        original_path = path.join(aligned_audio_base, "original_corpus", channel_id)
+        aligned_path = path.join(aligned_audio_base, "aligned_corpus", channel_id)
+        adjusted_path = path.join(aligned_audio_base, "adjusted_corpus", channel_id)
 
-        if args.video:
-            video_id = '{0}_{1}'.format(channel, args.video)
-            video_list = [video_id]
-        else:
-            video_list = [video_id for video_id in listdir(originalpath) if not video_id.startswith('.')]
+        video_list = [video_id for video_id in listdir(original_path) if not video_id.startswith('.')]
 
         for video_id in video_list:
 
-            tgdir = path.join(alignedpath, video_id)
-            auddir = path.join(adjustedpath, video_id, "queue")
-            print(len(listdir(auddir)))
-            if not len([fn for fn in listdir(auddir) if not fn.startswith('.')]):
-                for fn in listdir(path.join(originalpath, video_id)):
-                    if path.splitext(fn)[1]=='.wav':
-                        shutil.move(path.join(originalpath, video_id, fn),
-                                    path.join(auddir, fn))
+            tg_path = path.join(aligned_path, video_id)
+            audio_path = path.join(adjusted_path, video_id, "queue")
 
-            out_auddir = path.join(adjustedpath, video_id, "audio")
-            out_tgdir = path.join(adjustedpath, video_id, "textgrids")
             if not args.review:
                 # Move audio files to queue if not already there
                 if not len([fn for fn in listdir(audio_path) if not fn.startswith('.')]):
@@ -68,33 +55,38 @@ def main(args):
                             shutil.move(path.join(original_path, video_id, fn),
                                         path.join(audio_path, fn))
 
-            scriptname = path.join("scripts", 'adjust-alignment_{0}.praat'.format(video_id))
-            path_to_auddir = '../{0}/'.format(auddir)
-            path_to_tgdir = '../{0}/'.format(tgdir)
-            path_to_out_auddir = '../{0}/'.format(out_auddir)
-            path_to_out_tgdir = '../{0}/'.format(out_tgdir)
+            out_audio_path = path.join(adjusted_path, video_id, "audio")
+            out_tg_path = path.join(adjusted_path, video_id, "textgrids")
 
-            if not path.exists(scriptname):
-                with open(base_script, "rb") as f:
-                    contents = str(f.read(), 'UTF-8')
-                    contents = re.sub("replace_me_with_audpath", path_to_auddir, contents)
-                    contents = re.sub("replace_me_with_tgpath", path_to_tgdir, contents)
-                    contents = re.sub("replace_me_with_out_audpath", path_to_out_auddir, contents)
-                    contents = re.sub("replace_me_with_out_tgpath", path_to_out_tgdir, contents)
+            video_script_fp = path.join("scripts", '{0}_{1}.praat'.format(mode, video_id))
 
-                with open(scriptname, "w") as f:
-                    f.write(contents)
+            # TODO: Add compatability with Windows (use '\')
+            path_to_audio = '../{0}/'.format(audio_path)
+            path_to_tgs = '../{0}/'.format(tg_path)
+            path_to_out_audio = '../{0}/'.format(out_audio_path)
+            path_to_out_tgs = '../{0}/'.format(out_tg_path)
 
-                print('\nCreated copy of adjust-alignment.praat for: {0}'.format(video_id))
+            if not path.exists(video_script_fp):
+                with open(base_script_fp, "rb") as file:
+                    contents = str(file.read(), 'UTF-8')
+                    contents = sub("replace_me_with_audpath", path_to_audio, contents)
+                    contents = sub("replace_me_with_tgpath", path_to_tgs, contents)
+                    contents = sub("replace_me_with_out_audpath", path_to_out_audio, contents)
+                    contents = sub("replace_me_with_out_tgpath", path_to_out_tgs, contents)
 
-            subprocess.run(['open', scriptname], check=True)
+                with open(video_script_fp, "w") as file:
+                    file.write(contents)
+
+            subprocess.run(['open', video_script_fp], check=True)
 
             print('\nSuccessfully launched Praat for: {0}'.format(video_id))
+            print('Run the script in Praat now.')
 
             print('\nType "next" to move on to the next video. To quit, type "quit".\n')
             next_video = None
             while next_video not in ['next', 'quit']:
                 next_video = input()
+                remove(video_script_fp)
                 if next_video == 'quit':
                     sys.exit('\nSafely quit program!\n')
 

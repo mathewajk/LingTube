@@ -24,45 +24,49 @@ def convert_to_seconds (timestamp) :
         time_s = float(time_ms)/float(1000)
         return time_s
 
-def clean_text (text):
+def clean_text (text,langcode):
     """ Automated cleaning of text.
     """
-    text = re.sub(r'1\.5', 'one point five', text)
-    text = re.sub(r'[\.,"!?:;()]', '', text)
-    numbers = {'1': 'one',
-                '2': 'two',
-                '3': 'three',
-                '4': 'four',
-                '5': 'five',
-                '6': 'six',
-                '7': 'seven',
-                '8': 'eight',
-                '9': 'nine',
-                '10': 'ten',
-                '11': 'eleven',
-                '12': 'twelve',
-                '13': 'thirteen',
-                '14': 'fourteen',
-                '15': 'fifteen',
-                '16': 'sixteen',
-                '17': 'seventeen',
-                '18': 'eighteen',
-                '19': 'nineteen',
-                '20': 'twenty',
-                '21': 'twenty-one',
-                '22': 'twenty-two',
-                '23': 'twenty-three',
-                '24': 'twenty-four',
-                '25': 'twenty-five'}
 
-    for numeral, word in numbers.items():
-        numeral_string = ' '+ numeral +' '
-        word_string = ' '+ word +' '
-        text = re.sub(numeral_string, word_string, text)
+    if langcode == 'en':
+        text = re.sub(r'1\.5', 'one point five', text)
+
+        numbers = {'1': 'one',
+                    '2': 'two',
+                    '3': 'three',
+                    '4': 'four',
+                    '5': 'five',
+                    '6': 'six',
+                    '7': 'seven',
+                    '8': 'eight',
+                    '9': 'nine',
+                    '10': 'ten',
+                    '11': 'eleven',
+                    '12': 'twelve',
+                    '13': 'thirteen',
+                    '14': 'fourteen',
+                    '15': 'fifteen',
+                    '16': 'sixteen',
+                    '17': 'seventeen',
+                    '18': 'eighteen',
+                    '19': 'nineteen',
+                    '20': 'twenty',
+                    '21': 'twenty-one',
+                    '22': 'twenty-two',
+                    '23': 'twenty-three',
+                    '24': 'twenty-four',
+                    '25': 'twenty-five'}
+
+        for numeral, word in numbers.items():
+            numeral_string = ' '+ numeral +' '
+            word_string = ' '+ word +' '
+            text = re.sub(numeral_string, word_string, text)
+
+    text = re.sub(r'[\.,"!?:;()]', '', text)
 
     return text
 
-def get_timestamped_lines (in_dir, fn):
+def get_timestamped_lines (in_dir, fn, langcode):
     """ Extract timestamps and text per caption line
     """
     with open(path.join(in_dir,fn)) as file:
@@ -75,7 +79,7 @@ def get_timestamped_lines (in_dir, fn):
     for line in subs:
         time_start_s = convert_to_seconds(line[0])
         time_end_s = convert_to_seconds(line[1])
-        sub_text = clean_text(line[2])
+        sub_text = clean_text(line[2], langcode)
         timed_lines.append((time_start_s, time_end_s, sub_text))
 
     lasti = len(timed_lines)
@@ -90,19 +94,6 @@ def get_timestamped_lines (in_dir, fn):
         corrected_timed_lines.append((time_start, time_end, sub_text))
 
     return corrected_timed_lines
-
-def read_timestamped_lines (in_dir, fn):
-    """ XXX
-    """
-    with open(path.join(in_dir, fn)) as file:
-        corrected_timed_lines = []
-        lines = file.read().split('\n')
-        for line in lines:
-            if not line == '':
-                timestamped_line = tuple(line.split('\t'))
-                corrected_timed_lines.append(timestamped_line)
-
-        return corrected_timed_lines
 
 def write_to_output (file_type, out_dir, name, timed_lines):
     """ Write to files
@@ -137,7 +128,7 @@ def write_to_output (file_type, out_dir, name, timed_lines):
     else:
         print('File type is not valid (cleans, fave, text).')
 
-def process_raw_subs (i, fn, in_dir, cleans_dir, fave_dir, text_dir, fave=False, text=False, overwrite=False):
+def process_raw_subs (i, fn, langcode, in_dir, cleans_dir, fave_dir, text_dir, fave=False, text=False, overwrite=False):
     name, ext = path.splitext(fn)
 
     if path.isdir(cleans_dir) and not overwrite:
@@ -147,7 +138,7 @@ def process_raw_subs (i, fn, in_dir, cleans_dir, fave_dir, text_dir, fave=False,
 
     print('Processing transcript {0}: {1}'.format(i+1,fn))
 
-    timed_lines = get_timestamped_lines(in_dir, fn)
+    timed_lines = get_timestamped_lines(in_dir, fn, langcode)
     write_to_output('cleans', cleans_dir, name, timed_lines)
     if fave:
         write_to_output('fave', fave_dir, name, timed_lines)
@@ -176,16 +167,16 @@ def main(args):
 
         if args.language:
             language_list = [args.language]
-        elif path.isdir(raw_sub_dir):
-            language_list = [lang for lang in listdir(raw_sub_dir) if not lang.startswith('.')]
+        if path.isdir(raw_sub_dir):
+            language_list = [langcode for langcode in listdir(raw_sub_dir) if not langcode.startswith('.')]
         else:
             language_list = []
 
-        for language in language_list:
-            in_dir = path.join(raw_sub_dir, language)
-            cleans_dir = path.join(clean_sub_dir, language, "cleans")
-            fave_dir = path.join(clean_sub_dir, language, "faves")
-            text_dir = path.join(clean_sub_dir, language, "texts")
+        for langcode in language_list:
+            in_dir = path.join(raw_sub_dir, langcode)
+            cleans_dir = path.join(clean_sub_dir, langcode, "cleans")
+            fave_dir = path.join(clean_sub_dir, langcode, "faves")
+            text_dir = path.join(clean_sub_dir, langcode, "texts")
 
             if path.isdir(in_dir):
                 dir_list = [dir_element for dir_element in listdir(in_dir)]
@@ -201,9 +192,9 @@ def main(args):
                         channel_text_dir = path.join(text_dir, dir_element)
 
                         for j, fn in enumerate(listdir(channel_in_dir)):
-                            process_raw_subs(j, fn, channel_in_dir, channel_cleans_dir,channel_fave_dir, channel_text_dir, args.fave, args.text, args.overwrite)
+                            process_raw_subs(j, fn, langcode, channel_in_dir, channel_cleans_dir,channel_fave_dir, channel_text_dir, args.fave, args.text, args.overwrite)
                     else:
-                        process_raw_subs(i, dir_element, in_dir, cleans_dir, fave_dir, text_dir, args.fave, args.text, args.overwrite)
+                        process_raw_subs(i, dir_element, langcode, in_dir, cleans_dir, fave_dir, text_dir, args.fave, args.text, args.overwrite)
 
 
 if __name__ == '__main__':

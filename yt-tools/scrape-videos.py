@@ -155,7 +155,7 @@ def write_metadata(video, yt_id, caption_list, log_writer, url, channel_name="",
     :param channel_id: The name of the channel as it appears in the channel's URL (default "")
     """
 
-    channel_initials = "".join( [name[0] for name in video.author.split()] )
+    channel_initials = "".join( [name[0].upper() for name in video.author.split()] )
 
     if not channel_name:
         punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
@@ -176,13 +176,14 @@ def write_metadata(video, yt_id, caption_list, log_writer, url, channel_name="",
         "views": video.views,
         "rating": video.rating,
         "captions": caption_list,
+        "scrape_time": strftime("%Y-%m-%d_%H:%M:%S"),
         "corrected": 0,
     }
 
     log_writer.writerow(metadata)
 
 
-def process_video(video, channel_dict, log_writer, channel_name=None, channel_id=None, url=None, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, include_title=False):
+def process_video(video, channel_dict, log_writer, channel_name=None, channel_id=None, url=None, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, include_title=False, overwrite=False):
     """Download captions, audio (optional), and metadata for a given video.
 
     :param video: The YouTube object to process
@@ -216,9 +217,11 @@ def process_video(video, channel_dict, log_writer, channel_name=None, channel_id
             out_path = path.join(out_path, group)
 
     # Check if yt_id already exists in some file; skip download if so
-    files = glob(path.join(out_path, "**", "*{0}*".format(yt_id)), recursive=True)
-    if files:
-        return channel_dict
+
+    if not overwrite:
+        files = glob(path.join(out_path, "**", "*{0}*".format(yt_id)), recursive=True)
+        if files:
+            return channel_dict
 
     caption_list = write_captions_by_language(video, yt_id, channel_name, channel_id, language, group, screen, include_auto, convert_srt, include_title)
 
@@ -232,7 +235,7 @@ def process_video(video, channel_dict, log_writer, channel_name=None, channel_id
     return channel_dict
 
 
-def process_videos(urls_path, batch=False, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, include_titles=False, resume_from=0, limit_to=-1, overwrite=False):
+def process_videos(urls_path, batch=False, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, resume_from=0, limit_to=-1, overwrite=False):
     """Download captions, audio (optional), and metadata for a list of videos.
 
     :param batch: Indicates if a directory or single file is being processed
@@ -244,7 +247,6 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
     :param include_audio: Download audio in addition to captions (default False)
     :param include_auto: Download automatically-generated captions (default False)
     :param convert_srt: Convert captions from XML to SRT format (default False)
-    :param include_titles: Include video titles in caption filenames (default False)
     :param resume_from: Start from the Nth entry in the URL list (default 0)
     :param limit_to: Download captions (and audio) from only N files (default -1)
     """
@@ -260,7 +262,7 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
     log_file = path.join("corpus", "logs", log_fn)
     if screen:
         log_fn = "{0}_log_{1}.csv".format(path.splitext(log_fn)[0], strftime("%Y%m%d%H%M%S"))
-        log_file = path.join("corpus", "screening", "logs", log_fn)
+        log_file = path.join("corpus", "unscreened_urls", "logs", log_fn)
 
     log_exists = path.exists(log_file)
 
@@ -273,7 +275,7 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
     with open(urls_path, "r") as urls_in, open(log_file, write_type) as log_out:
 
         # Prepare writer for writing video data
-        log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "codename", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "corrected"])
+        log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "codename", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "scrape_time", "corrected"])
         if not (batch and group):
             if overwrite or not log_exists:
                 log_writer.writeheader()
@@ -314,14 +316,14 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
             #     logging.critical("Video {0}: An unexpected error occured ({1})".format(video_count, url))
             #     continue
 
-            process_video(video, channel_dict, log_writer, channel_name, channel_id, url, language, group, screen, include_audio, include_auto, convert_srt, include_titles)
+            process_video(video, channel_dict, log_writer, channel_name, channel_id, url, language, group, screen, include_audio, include_auto, convert_srt, overwrite)
 
             if limit_to != -1 and video_count == resume_from + limit_to:
                 print("{0}: Limit reached".format(urls_path))
                 break
 
 
-def process_files(urls_path, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, include_titles=False, resume_from=0, limit_to=-1, overwrite=False):
+def process_files(urls_path, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, resume_from=0, limit_to=-1, overwrite=False):
     """Download captions, audio (optional), and metadata from a directoy of video lists.
 
     :param video: Path to a directory containing a set of list files
@@ -332,7 +334,6 @@ def process_files(urls_path, language=None, group=None, screen=None, include_aud
     :param include_audio: Download audio in addition to captions (default False)
     :param include_auto: Download automatically-generated captions (default False)
     :param convert_srt: Convert captions from XML to SRT format (default False)
-    :param include_titles: Include video titles in caption filenames (default False)
     :param resume_from: Start from the Nth entry in the URL list (default 0)
     :param limit_to: Download captions (and audio) from only N files (default -1)
     """
@@ -354,14 +355,14 @@ def process_files(urls_path, language=None, group=None, screen=None, include_aud
             write_mode = 'w'
 
         with open(log_file, write_mode) as log_out:
-            log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "codename", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "corrected"])
+            log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "codename", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "scrape_time", "corrected"])
             if overwrite or not log_exists:
                 log_writer.writeheader()
 
     all_fns = URL_fns_txt + URL_fns_csv
 
     for fn in all_fns:
-        process_videos(fn, True, language, group, screen, include_audio, include_auto, convert_srt, include_titles, resume_from, limit_to, overwrite)
+        process_videos(fn, True, language, group, screen, include_audio, include_auto, convert_srt, resume_from, limit_to, overwrite)
 
 
 def main(args):
@@ -381,10 +382,10 @@ def main(args):
             print("Resuming from video {0}".format(args.resume))
 
         if path.isfile(args.urls_in):
-            process_videos(args.urls_in, False, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.titles, args.resume, args.limit, args.overwrite)
+            process_videos(args.urls_in, False, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.resume, args.limit, args.overwrite)
 
         if path.isdir(args.urls_in):
-            process_files(args.urls_in, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.titles, args.resume, args.limit, args.overwrite)
+            process_files(args.urls_in, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.resume, args.limit, args.overwrite)
 
     if args.screen:
         out_path = path.join('corpus', 'unscreened_urls')
@@ -408,11 +409,10 @@ if __name__ == '__main__':
 
     parser.add_argument('--language',  '-l', default=None, type=str, help='filter captions by language name (e.g. "Korean"); if unspecified, all captions will be downloaded')
     parser.add_argument('--group',     '-g', default=None, metavar='NAME', type=str, help='a name for the group; if unspecified, channel names will be used')
-    parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite logs rather than appending')
+    parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite logs and files rather than appending')
 
     parser.add_argument('--auto',     '-a', action='store_true', default=False, help='include automatically-generated captions')
     parser.add_argument('--audio',    '-s', action='store_true', default=False, help='download audio')
-    parser.add_argument('--titles',   '-t', action='store_true', default=False, help='include video titles in caption and audio filenames')
     parser.add_argument('--srt',            action='store_true', default=False, help='download captions in SRT format')
 
     parser.add_argument('--resume', '-res', type=int, metavar='N', default=0,  help='resume downloading from Nth video or file')

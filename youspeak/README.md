@@ -2,6 +2,8 @@
 
 Tools for processing audio speech data from YouTube.
 
+*[Note: Currently only compatible with OS and tested on English speech.]*
+
 ## Updates
 * 04/06/21: All scripts and documentation currently under active development
 

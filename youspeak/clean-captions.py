@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse
-import os
 from os import listdir, makedirs, path
-import shutil
+from glob import glob
 import re
 import pandas as pd
 
@@ -30,8 +29,6 @@ def clean_text (text):
     """
     text = re.sub(r'1\.5', 'one point five', text)
     text = re.sub(r'[\.,"!?:;()]', '', text)
-    # text = re.sub(r'&', 'and', text)
-    # text = re.sub(r'%', 'percent', text)
     numbers = {'1': 'one',
                 '2': 'two',
                 '3': 'three',
@@ -65,14 +62,14 @@ def clean_text (text):
 
     return text
 
-def get_timestamped_lines (indir, filename):
-    """ XXX
+def get_timestamped_lines (in_dir, fn):
+    """ Extract timestamps and text per caption line
     """
-    with open(path.join(indir,filename)) as file:
-        subtext = file.read()
+    with open(path.join(in_dir,fn)) as file:
+        file_text = file.read()
 
         # Extract only the relevant parts of each time+text set
-        subs = re.findall(r'\d+\n(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})\n(\w.*)\n', subtext)
+        subs = re.findall(r'\d+\n(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})\n(\w.*)\n', file_text)
 
     timed_lines = []
     for line in subs:
@@ -94,10 +91,10 @@ def get_timestamped_lines (indir, filename):
 
     return corrected_timed_lines
 
-def read_timestamped_lines (insubdir, filename):
+def read_timestamped_lines (in_dir, fn):
     """ XXX
     """
-    with open(path.join(insubdir, filename)) as file:
+    with open(path.join(in_dir, fn)) as file:
         corrected_timed_lines = []
         lines = file.read().split('\n')
         for line in lines:
@@ -107,59 +104,58 @@ def read_timestamped_lines (insubdir, filename):
 
         return corrected_timed_lines
 
-def write_to_output (filetype, outdir, video_id, timed_lines):
-    """ XXX
+def write_to_output (file_type, out_dir, name, timed_lines):
+    """ Write to files
+    :param name: The filename (w/o ext)
     """
-    channel = video_id.rsplit('_', 1)[0]
+    channel_name = name.split('_', 1)[0]
 
-    if not path.exists(outdir):
-        makedirs(outdir)
-    output_file = path.join(outdir, video_id+'.txt')
+    if not path.exists(out_dir):
+        makedirs(out_dir)
+    out_file_path = path.join(out_dir, name+'.txt')
 
-    if filetype == 'cleans':
-        output_df = pd.DataFrame(columns=['start_time', 'end_time', 'subtitle_text'])
+    if file_type == 'cleans':
+        out_df = pd.DataFrame(columns=['start_time', 'end_time', 'subtitle_text'])
         for line in timed_lines:
             subtitle_row = {"start_time": line[0], "end_time": line[1], "subtitle_text": line[2]}
-            output_df = output_df.append(subtitle_row, ignore_index=True)
-        output_df.to_csv(output_file, sep='\t', index=False, header=False)
+            out_df = out_df.append(subtitle_row, ignore_index=True)
+        out_df.to_csv(out_file_path, sep='\t', index=False, header=False)
 
-    elif filetype == 'fave':
-        output_df = pd.DataFrame(columns=['speaker_code', 'speaker_name',
+    elif file_type == 'fave':
+        out_df = pd.DataFrame(columns=['speaker_code', 'speaker_name',
                                  'start_time', 'end_time', 'subtitle_text'])
         for line in timed_lines:
-            subtitle_row = {"speaker_code": channel[:2], "speaker_name": channel, "start_time": line[0], "end_time": line[1], "subtitle_text": line[2]}
-            output_df = output_df.append(subtitle_row, ignore_index=True)
-        output_df.to_csv(output_file, sep='\t', index=False, header=False)
+            subtitle_row = {"speaker_code": channel_name[:2], "speaker_name": channel_name, "start_time": line[0], "end_time": line[1], "subtitle_text": line[2]}
+            out_df = out_df.append(subtitle_row, ignore_index=True)
+        out_df.to_csv(out_file_path, sep='\t', index=False, header=False)
 
-    elif filetype == 'text':
+    elif file_type == 'text':
         all_lines = [line[2] for line in timed_lines]
         all_text = " ".join(all_lines)
-        with open(output_file, "w") as file:
+        with open(out_file_path, "w") as file:
             file.write(all_text)
     else:
-        print('Filetype not valid.')
+        print('File type is not valid (cleans, fave, text).')
 
-def process_raw_subs (i, subfilename, indir, cleansubdir, favedir, textdir):
-    print('Processing transcript {0}: {1}'.format(i+1,subfilename))
+def process_raw_subs (i, fn, in_dir, cleans_dir, fave_dir, text_dir, fave=False, text=False, overwrite=False):
+    name, ext = path.splitext(fn)
 
-    name = path.splitext(subfilename)[0] # channel_num
-    if not re.match(r".*_[\d\w]+$",name):
-        # If filenames do include video titles
-        name = name.rsplit('_',1)[0]
+    if path.isdir(cleans_dir) and not overwrite:
+        existing_files = glob(path.join(cleans_dir, "**", "*{0}*".format(name)), recursive=True)
+        if existing_files:
+            return 1
 
-    channel, vid_num = name.rsplit('_', 1)
-    # channel = re.sub(r'[^A-Za-z1-9]', '', channel)
-    newname = '_'.join([channel, vid_num])
+    print('Processing transcript {0}: {1}'.format(i+1,fn))
 
-    timed_lines = get_timestamped_lines(indir, subfilename)
-
-    # Write to file
-    write_to_output('cleans', cleansubdir, newname, timed_lines)
-    write_to_output('fave', favedir, newname, timed_lines)
-    write_to_output('text', textdir, newname, timed_lines)
+    timed_lines = get_timestamped_lines(in_dir, fn)
+    write_to_output('cleans', cleans_dir, name, timed_lines)
+    if fave:
+        write_to_output('fave', fave_dir, name, timed_lines)
+    if text:
+        write_to_output('text', text_dir, name, timed_lines)
 
 
-# TODO: Make routes for (1) -t titles in filenames (2) xml files
+# TODO: Make routes for (1) xml files
 def main(args):
 
     raw_sub_base = path.join('corpus','raw_subtitles')
@@ -169,46 +165,45 @@ def main(args):
         raw_sub_base = path.join(raw_sub_base, args.group)
         clean_sub_base = path.join(clean_sub_base, args.group)
 
-    for subtype in ['auto', 'manual', 'corrected']:
-        if args.corrected and subtype != 'corrected':
-                continue
+    for sub_type in ['auto', 'manual', 'corrected']:
+        # if args.corrected and sub_type != 'corrected':
+        #         continue
 
-        print('\nSUBTITLE TYPE: {0}'.format(subtype))
+        print('\nSUBTITLE TYPE: {0}'.format(sub_type))
 
-        raw_sub_dir = path.join(raw_sub_base, subtype)
-        clean_sub_dir = path.join(clean_sub_base, subtype)
+        raw_sub_dir = path.join(raw_sub_base, sub_type)
+        clean_sub_dir = path.join(clean_sub_base, sub_type)
 
         if args.language:
             language_list = [args.language]
         elif path.isdir(raw_sub_dir):
-            language_list = [lang for lang in listdir(raw_sub_dir)if not lang.startswith('.')]
+            language_list = [lang for lang in listdir(raw_sub_dir) if not lang.startswith('.')]
         else:
             language_list = []
 
         for language in language_list:
-            indir = path.join(raw_sub_dir, language)
-            cleansubdir = path.join(clean_sub_dir, language, "cleans")
-            favedir = path.join(clean_sub_dir, language, "faves")
-            textdir = path.join(clean_sub_dir, language, "texts")
+            in_dir = path.join(raw_sub_dir, language)
+            cleans_dir = path.join(clean_sub_dir, language, "cleans")
+            fave_dir = path.join(clean_sub_dir, language, "faves")
+            text_dir = path.join(clean_sub_dir, language, "texts")
 
-            if path.isdir(indir):
-                dir_list = [e for e in listdir(indir)]
+            if path.isdir(in_dir):
+                dir_list = [dir_element for dir_element in listdir(in_dir)]
                 if '.DS_Store' in dir_list:
                     dir_list.remove('.DS_Store')
                 for i, dir_element in enumerate(dir_list):
-                    if not dir_element == '.DS_Store':
-                        if path.isdir(path.join(indir, dir_element)):
-                            print('\nChannel {0}: {1}'.format(i+1, dir_element))
+                    if path.isdir(path.join(in_dir, dir_element)):
+                        # print('\nChannel {0}: {1}'.format(i+1, dir_element))
 
-                            indir_ch = path.join(indir, dir_element)
-                            cleansubdir_ch = path.join(cleansubdir, dir_element)
-                            favedir_ch = path.join(favedir, dir_element)
-                            textdir_ch = path.join(textdir, dir_element)
+                        channel_in_dir = path.join(in_dir, dir_element)
+                        channel_cleans_dir = path.join(cleans_dir, dir_element)
+                        channel_fave_dir = path.join(fave_dir, dir_element)
+                        channel_text_dir = path.join(text_dir, dir_element)
 
-                            for subi, subdir_element in enumerate(listdir(indir_ch)):
-                                process_raw_subs(subi, subdir_element, indir_ch, cleansubdir_ch, favedir_ch, textdir_ch)
-                        else:
-                            process_raw_subs(i, dir_element, indir, cleansubdir, favedir, textdir)
+                        for j, fn in enumerate(listdir(channel_in_dir)):
+                            process_raw_subs(j, fn, channel_in_dir, channel_cleans_dir,channel_fave_dir, channel_text_dir, args.fave, args.text, args.overwrite)
+                    else:
+                        process_raw_subs(i, dir_element, in_dir, cleans_dir, fave_dir, text_dir, args.fave, args.text, args.overwrite)
 
 
 if __name__ == '__main__':
@@ -217,8 +212,11 @@ if __name__ == '__main__':
 
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
-    parser.add_argument('--language', '-l', default=None, type=str, help='language code')
-    parser.add_argument('--corrected', '-c', action='store_true', default=False, help='only run on corrected subtitles')
+    parser.add_argument('--language', '-l', default=None, type=str, help='language code (e.g., "en" for English)')
+    parser.add_argument('--fave', '-f', action='store_true', default=False, help='also output Fave-format file')
+    parser.add_argument('--text', '-t', action='store_true', default=False, help='also output text-only file')
+    # parser.add_argument('--corrected', '-c', action='store_true', default=False, help='only run on corrected subtitles')
+    parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
 
     args = parser.parse_args()
 

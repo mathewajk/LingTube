@@ -10,18 +10,19 @@ from tkinter.filedialog import askopenfilename
 
 def main(args):
 
-    if args.initialize:
-        showinfo('Window', "Go to LingTube > youspeak and select the following file:\n\nadjust-alignment.praat")
-        scriptfile = askopenfilename()
-        scriptfilename = path.basename(scriptfile)
+    mode = 'adjust-alignment'
+    if args.review:
+        mode = 'review-alignment'
+
+    base_script_fp = path.join("scripts", mode+".praat")
+    if not path.exists(base_script_fp):
+        showinfo('Window', "Go to LingTube > youspeak and select the following file:\n\n{0}.praat".format(mode))
+        script_fp = askopenfilename()
+        script_fn = path.basename(script_fp)
         if not path.exists("scripts"):
             makedirs("scripts")
-        shutil.copyfile(scriptfile,
-                        path.join("scripts", scriptfilename))
-
-    base_script = path.join("scripts", "adjust-alignment.praat")
-    if not path.exists(base_script):
-        sys.exit('Script has not yet been initialized. Please run again once with the flag --initialize or -i.')
+        shutil.copyfile(script_fp,
+                        path.join("scripts", script_fn))
 
     # base paths
     aligned_audio_base = path.join("corpus", "aligned_audio")
@@ -59,6 +60,13 @@ def main(args):
 
             out_auddir = path.join(adjustedpath, video_id, "audio")
             out_tgdir = path.join(adjustedpath, video_id, "textgrids")
+            if not args.review:
+                # Move audio files to queue if not already there
+                if not len([fn for fn in listdir(audio_path) if not fn.startswith('.')]):
+                    for fn in listdir(path.join(original_path, video_id)):
+                        if path.splitext(fn)[1]=='.wav':
+                            shutil.move(path.join(original_path, video_id, fn),
+                                        path.join(audio_path, fn))
 
             scriptname = path.join("scripts", 'adjust-alignment_{0}.praat'.format(video_id))
             path_to_auddir = '../{0}/'.format(auddir)
@@ -97,8 +105,7 @@ if __name__ == '__main__':
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='channel folder')
-    parser.add_argument('--video', '-v', default=None, type=str, help='video number')
-    parser.add_argument('--initialize', '-i', action='store_true', default=False, help='access the praat script (only need to run the first time for a particular corpus)')
+    parser.add_argument('--review', '-r', default=None,  action='store_true', help='run in review mode to check adjusted textgrids')
 
     args = parser.parse_args()
 

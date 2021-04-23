@@ -63,8 +63,8 @@ def get_links(driver, url, cutoff):
             print("Loading... ({0})".format(count))
 
         # Gather urls and metadata
-        elements = driver.find_elements_by_xpath('//*[@id="video-title"]')
-        return [(element.get_attribute('href'), element.get_attribute('aria-label')) for element in elements]
+        video_elements = driver.find_elements_by_xpath('//*[@id="video-title"]')
+        return [(element.get_attribute('href'), element.get_attribute('aria-label')) for element in video_elements]
 
 
 def save_videos(links, search_query, exclude_query, group=None):
@@ -77,7 +77,7 @@ def save_videos(links, search_query, exclude_query, group=None):
     search_string = '-'.join(search_query.split())
     current_time = strftime("%Y%m%d%H%M%S")
 
-    videos_out_fn = "{0}_{1}_videos.txt".format(search_string, current_time)
+    videos_out_fn = "{0}_{1}_videos.csv".format(search_string, current_time)
     urls_out_fn = "{0}_{1}_urls.txt".format(search_string, current_time)
 
     if group:
@@ -103,13 +103,13 @@ def save_videos(links, search_query, exclude_query, group=None):
                 video_title, video_author, video_other  = info_details[0]
 
                 if search_query.lower() in video_title.lower():
-                    videos_out.write("{0}\t{1}\t{2}\t{3}\n".format(link, video_author, video_title, video_other))
+                    videos_out.write("{0},{1},{2},{3}\n".format(link, video_author, video_title, video_other))
 
-                    # if exclude_query:
-                    #     if not any(term.lower() in video_title.lower() for term in exclude_query.split(',')):
-                    #         urls_out.write("{0}\t{1}\n".format(link, video_author))
-                    # else:
-                    urls_out.write("{0}\t{1}\n".format(link, video_author))
+                    if exclude_query:
+                        if not any(term.lower() in video_title.lower() for term in exclude_query.split(',')):
+                            urls_out.write("{0}\t{1}\n".format(link, video_author))
+                    else:
+                        urls_out.write("{0}\t{1}\n".format(link, video_author))
 
 def process_results(search_query, exclude_query=None, cutoff=-1, group=None, driver=None):
     """Process a channel from a URL
@@ -121,10 +121,10 @@ def process_results(search_query, exclude_query=None, cutoff=-1, group=None, dri
 
     print("Gathering videos from search results for: " + search_query)
 
-    if exclude_query:
-        url = "https://www.youtube.com/results?search_query=" + '+'.join(search_query.split()) + '+' + '+'.join(exclude_query.split())
-    else:
-        url = "https://www.youtube.com/results?search_query=" + '+'.join(search_query.split())
+    # if exclude_query:
+    #     url = "https://www.youtube.com/results?search_query=" + '+'.join(search_query.split()) + '+' + '+'.join(exclude_query.split())
+    # else:
+    url = "https://www.youtube.com/results?search_query=" + '+'.join(search_query.split())
 
     if driver:
         sleep(1)
@@ -145,7 +145,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Scrape video URLs from a YouTube channel.')
     parser.add_argument('search_query', type=str, help='search query (e.g., "get to know me")')
-    parser.add_argument('--exclude_query', '-ex', metavar='STR', help='string of terms used to exclude videos from search with "-" and quotes', type=str)
+    parser.add_argument('--exclude_query', '-ex', metavar='STR', help='string of terms used to exclude from video title', type=str)
     parser.add_argument('--group', '-g', default=None, metavar='NAME', type=str, help='name to group files under (will create a subfolder: channel_data/$group)')
     parser.add_argument('--cutoff', type=int, metavar='N', default=-1, help='maximum number of times to scroll the page')
     parser.set_defaults(func=None)

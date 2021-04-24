@@ -1,4 +1,4 @@
-out_fn#!/usr/bin/env python3
+#!/usr/bin/env python3
 
 '''
 app to read in and classify chunks of audio
@@ -19,12 +19,10 @@ from tkinter.filedialog import askopenfilename
 from tkinter.messagebox import showinfo
 from functools import partial
 import sys
-from os import path, listdir
+from os import path, listdir, makedirs
 import subprocess
 import datetime
 import argparse
-
-from math import ceil, log10
 
 idx = 0
 df = None
@@ -50,14 +48,11 @@ def codinginfo():
     base_fn = path.basename(log_fn)
 
     video_id = base_fn.split('_chunking')[0]
-    channel_id = base_fn.rsplit('_', 1)[0]
-
-    print(video_id)
+    channel_id = video_id.rsplit('_', 1)[0]
 
     base_dir = path.join("corpus", "chunked_audio")
     if args.group:
         base_dir = path.join(base_dir, args.group)
-    print(base_dir)
 
     audio_dir = path.join(base_dir, 'audio', 'chunking', channel_id, video_id)
     log_dir = path.join(base_dir, 'logs', 'chunking', channel_id)
@@ -103,12 +98,12 @@ def get_subtitles(args):
 
     global subtitles
 
-    subtitledir = path.join("corpus", "cleaned_subtitles")
+    subtitle_dir = path.join("corpus", "cleaned_subtitles")
     if args.group:
-        subtitledir = path.join(subtitledir, args.group)
-    correct_dir = path.join(subtitledir, "corrected")
-    manual_dir = path.join(subtitledir, "manual")
-    auto_dir = path.join(subtitledir, "auto")
+        subtitle_dir = path.join(subtitle_dir, args.group)
+    correct_dir = path.join(subtitle_dir, "corrected")
+    manual_dir = path.join(subtitle_dir, "manual")
+    auto_dir = path.join(subtitle_dir, "auto")
 
     if args.language:
         language = args.language
@@ -123,20 +118,20 @@ def get_subtitles(args):
         language = language_list[0]
 
     try:
-        subfile = path.join(correct_dir, language, "cleans", channel_id, video_id+".txt")
+        subtitle_fp = path.join(correct_dir, language, "cleans", channel_id, video_id+".txt")
 
-        subtitles = pd.read_table(subfile, names=["start_time", "end_time", "transcription"])
+        subtitles = pd.read_table(subtitle_fp, names=["start_time", "end_time", "transcription"])
     except:
         try:
-            subfile = path.join(manual_dir, language, "cleans", channel_id, video_id+".txt")
+            subtitle_fp = path.join(manual_dir, language, "cleans", channel_id, video_id+".txt")
 
-            if not path.isfile(subfile):
-                subfile = path.join(auto_dir, language, "cleans", channel_id, video_id+".txt")
+            if not path.isfile(subtitle_fp):
+                subtitle_fp = path.join(auto_dir, language, "cleans", channel_id, video_id+".txt")
 
-            subtitles = pd.read_table(subfile, names=["start_time", "end_time", "transcription"])
+            subtitles = pd.read_table(subtitle_fp, names=["start_time", "end_time", "transcription"])
         except:
             subtitles = pd.DataFrame()
-            print('No transcript file found for this audio file.')
+            print('No subtitle file found for this audio file.')
 
     if not subtitles.empty:
         subtitles['start_time'] = (subtitles['start_time'])*1000

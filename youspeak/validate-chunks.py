@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+out_fn#!/usr/bin/env python3
 
 '''
 app to read in and classify chunks of audio
@@ -19,7 +19,7 @@ from tkinter.filedialog import askopenfilename
 from tkinter.messagebox import showinfo
 from functools import partial
 import sys
-import os
+from os import path, listdir
 import subprocess
 import datetime
 import argparse
@@ -38,44 +38,44 @@ def codinginfo():
     global df
     global group
     global video_id
-    global channel
-    global audiodir
-    global outdir
-    global outfilename
+    global channel_id
+    global audio_dir
+    global out_dir
+    global out_fn
     global resp_df
 
     showinfo('Window', "Select a chunking log file")
 
-    fname = askopenfilename()
-    basename = os.path.basename(fname)
+    log_fn = askopenfilename()
+    base_fn = path.basename(log_fn)
 
-    video_id = basename.rsplit('_', 2)[0]
-    channel = basename.rsplit('_', 3)[0]
+    video_id = base_fn.split('_chunking')[0]
+    channel_id = base_fn.rsplit('_', 1)[0]
 
     print(video_id)
 
-    basedir = os.path.join("corpus", "chunked_audio")
+    base_dir = path.join("corpus", "chunked_audio")
     if args.group:
-        basedir = os.path.join(basedir, args.group)
-    print(basedir)
+        base_dir = path.join(base_dir, args.group)
+    print(base_dir)
 
-    audiodir = os.path.join(basedir, 'audio', 'chunking', channel, video_id)
-    logdir = os.path.join(basedir, 'logs', 'chunking', channel)
-    outdir = os.path.join(basedir, 'logs', 'coding', channel)
-    if not os.path.exists(outdir):
-        os.makedirs(outdir)
-    outfilename = video_id+"_coding_responses.csv"
+    audio_dir = path.join(base_dir, 'audio', 'chunking', channel_id, video_id)
+    log_dir = path.join(base_dir, 'logs', 'chunking', channel_id)
+    out_dir = path.join(base_dir, 'logs', 'coding', channel_id)
+    if not path.exists(out_dir):
+        makedirs(out_dir)
+    out_fn = video_id+"_coding_responses.csv"
 
-    df = pd.read_csv(fname) # the master config file that won't change
+    df = pd.read_csv(log_fn) # the master config file that won't change
 
     try:
-        resp_df = pd.read_csv(os.path.join(outdir, outfilename)) # if available, open the response df in read mode
+        resp_df = pd.read_csv(path.join(out_dir, out_fn)) # if available, open the response df in read mode
 
     except: # if not, create one
         resp_df = pd.DataFrame(columns=['filename','video_id',
                               'start_time','end_time', 'duration',
                               'id', 'transcription', 'usability', 'bg_music', 'bg_noise', 'other_voice', 'only_music', 'only_noise', 'other_sounds', 'annotator', 'annotate_date_YYYYMMDD']) # add addtl columns, file_name=None,
-        resp_df.to_csv(os.path.join(outdir, outfilename), index=False)
+        resp_df.to_csv(path.join(out_dir, out_fn), index=False)
 
     if len(resp_df['id']) > 0:
         idx = resp_df['id'].max() + 1
@@ -103,35 +103,35 @@ def get_subtitles(args):
 
     global subtitles
 
-    subtitledir = os.path.join("corpus", "cleaned_subtitles")
+    subtitledir = path.join("corpus", "cleaned_subtitles")
     if args.group:
-        subtitledir = os.path.join(subtitledir, args.group)
-    correct_dir = os.path.join(subtitledir, "corrected")
-    manual_dir = os.path.join(subtitledir, "manual")
-    auto_dir = os.path.join(subtitledir, "auto")
+        subtitledir = path.join(subtitledir, args.group)
+    correct_dir = path.join(subtitledir, "corrected")
+    manual_dir = path.join(subtitledir, "manual")
+    auto_dir = path.join(subtitledir, "auto")
 
     if args.language:
         language = args.language
-    elif os.path.isdir(correct_dir):
-        language_list = os.listdir(correct_dir)
+    elif path.isdir(correct_dir):
+        language_list = listdir(correct_dir)
         language = language_list[0]
-    elif os.path.isdir(manual_dir):
-        language_list = os.listdir(manual_dir)
+    elif path.isdir(manual_dir):
+        language_list = listdir(manual_dir)
         language = language_list[0]
-    elif os.path.isdir(auto_dir):
-        language_list = os.listdir(auto_dir)
+    elif path.isdir(auto_dir):
+        language_list = listdir(auto_dir)
         language = language_list[0]
 
     try:
-        subfile = os.path.join(correct_dir, language, "cleans", channel, video_id+".txt")
+        subfile = path.join(correct_dir, language, "cleans", channel_id, video_id+".txt")
 
         subtitles = pd.read_table(subfile, names=["start_time", "end_time", "transcription"])
     except:
         try:
-            subfile = os.path.join(manual_dir, language, "cleans", channel, video_id+".txt")
+            subfile = path.join(manual_dir, language, "cleans", channel_id, video_id+".txt")
 
-            if not os.path.isfile(subfile):
-                subfile = os.path.join(auto_dir, language, "cleans", channel, video_id+".txt")
+            if not path.isfile(subfile):
+                subfile = path.join(auto_dir, language, "cleans", channel_id, video_id+".txt")
 
             subtitles = pd.read_table(subfile, names=["start_time", "end_time", "transcription"])
         except:
@@ -238,7 +238,7 @@ def play_audio():
     # global subtitles
 
     row = df.iloc[idx]
-    audiofile = os.path.join(audiodir, row['filename'])
+    audiofile = path.join(audio_dir, row['filename'])
     print('\nFile number {0}: {1}\n'.format(idx, row['filename'])) # keep us updated about progress in terminal
 
     if not subtitles.empty:
@@ -265,7 +265,7 @@ def save_coding():
 
     annotated_row = pd.DataFrame([row]).assign(id=idx, transcription=transcription, usability=usability, bg_music=issue_bg_music, bg_noise=issue_bg_noise, other_voice=issue_other_voice, only_music=issue_only_music, only_noise=issue_only_noise, other_sounds=issue_other_sounds, annotator=annotator, annotate_date_YYYYMMDD=annotate_date_YYYYMMDD)
     resp_df = resp_df.append(annotated_row, sort=False)
-    resp_df.to_csv(os.path.join(outdir, outfilename), index=False)
+    resp_df.to_csv(path.join(out_dir, out_fn), index=False)
 
 #go to the next audio file
 def next_audio():

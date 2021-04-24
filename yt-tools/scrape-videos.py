@@ -42,7 +42,6 @@ def write_captions(captions, video, yt_id, channel_name="", channel_id="", group
         out_path = path.join(out_path, "manual", captions.code.split(".")[0])
 
     punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-    # non_alphanumeric = r"[^A-Za-z1-9]"
     if channel_name and channel_id:
         safe_channel_name = sub(punc_and_whitespace, "", channel_name)
         safe_author = "{0}_{1}".format(safe_channel_name, channel_id)
@@ -90,7 +89,6 @@ def write_audio(audio, video, yt_id, channel_name="", channel_id="", group=None,
             out_path = path.join(out_path, group)
 
     punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-    # non_alphanumeric = r"[^A-Za-z1-9]"
     if channel_name and channel_id:
         safe_channel_name = sub(punc_and_whitespace, "", channel_name)
         safe_author = "{0}_{1}".format(safe_channel_name, channel_id)
@@ -157,15 +155,14 @@ def write_metadata(video, yt_id, caption_list, log_writer, url, channel_name="",
 
     channel_initials = "".join( [name[0].upper() for name in video.author.split()] )
 
-    if not channel_name:
-        punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-        channel_name = sub(punc_and_whitespace, "", video.author)
+    punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
+    safe_author = sub(punc_and_whitespace, "", video.author)
 
     metadata = {
         "yt_id": yt_id,
         "author": video.author,
-        "codename": channel_initials,
-        "name": channel_name,
+        "code": channel_initials,
+        "name": safe_author,
         "ID": channel_id,
         "url": url,
         "title": video.title,
@@ -275,7 +272,7 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
     with open(urls_path, "r") as urls_in, open(log_file, write_type) as log_out:
 
         # Prepare writer for writing video data
-        log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "codename", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "scrape_time", "corrected"])
+        log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "code", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "scrape_time", "corrected"])
         if not (batch and group):
             if overwrite or not log_exists:
                 log_writer.writeheader()
@@ -355,7 +352,7 @@ def process_files(urls_path, language=None, group=None, screen=None, include_aud
             write_mode = 'w'
 
         with open(log_file, write_mode) as log_out:
-            log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "codename", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "scrape_time", "corrected"])
+            log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "code", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "scrape_time", "corrected"])
             if overwrite or not log_exists:
                 log_writer.writeheader()
 

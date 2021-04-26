@@ -26,6 +26,40 @@ to install the version of Python that is bundled with TK. By default, `brew inst
 
 ### yt-tools
 
+#### correct-captions.py
+
+
+This script helps to streamline the correction of YouTube captions prior to chunking. It opens each video in a list of videos one-at-a-time in the browser alongside the caption file, which opens in a text editor of the user's choice. Correction progress can be saved such that next time the program is run, the video will open where the user left off last time.
+
+##### Usage
+
+```
+python3 /Users/narquelion/Documents/research/git-projects/LingTube/yt-tools/correct-captions.py -h
+usage: correct-captions.py [-h] [--group GROUP] [--lang_code LANG_CODE]
+                           [--channel CHANNEL] [--editor EDITOR]
+
+Open captions text file and YouTube video in browser to aid in correcting captions,
+based on a log file in corpus/logs. If group is specified, uses
+corpus/logs/$group_log.csv. If no group is specified, ask user to navigate to and
+select a log file.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --group GROUP, -g GROUP
+                        name to group files under (create and /or assume files are
+                        located in a subfolder: raw_subtitles/$group)
+  --lang_code LANG_CODE, -l LANG_CODE
+                        open captions with a specific a language code (e.g., "en");
+                        if unspecified, uses first available language code in
+                        subtitle directory
+  --channel CHANNEL, -ch CHANNEL
+                        run on files for a specific channel name; if unspecified,
+                        goes through all channels in order
+  --editor EDITOR, -e EDITOR
+                        opens text file in a specified text editor: TextEdit, Atom,
+                        Notepad++ (default=TextEdit)
+```
+
 #### scrape-channels.py
 
 This script allows the user to scrape video URLs from a specified channel or list of channels. The user can also input a list of videos in order to scrape the uploading channel's infor and/or scrape the remaining videos from their channel.

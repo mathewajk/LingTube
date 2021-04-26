@@ -73,7 +73,7 @@ def get_timestamped_lines (in_dir, fn, langcode):
         file_text = file.read()
 
         # Extract only the relevant parts of each time+text set
-        subs = re.findall(r'\d+\n(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})\n(\w.*)\n', file_text)
+        subs = re.findall(r'\d+\n(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})\n(.*)\n', file_text)
 
     timed_lines = []
     for line in subs:

@@ -41,7 +41,7 @@ def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
         print('\nOpening video {0}: {1} (starting at {2})'.format(i, video_id, timestamp))
 
         # Clear and configure displays
-        complete.set(0)
+        complete.set(False)
         display.config(text="Channel: {0}\tCurrent Video: {1}".format(row['name'], row['yt_id']))
         end_time.delete(0, 'end')
         if timestamp == '0':
@@ -104,7 +104,7 @@ def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
 
 def save_progress (log_fp, log, end_time, complete):
     global i
-    print('Complete: {0}'.format(complete.get()))
+    # print('Complete: {0}'.format(complete.get()))
     if complete.get() == True:
         log.loc[i, 'corrected'] = 1
         log.to_csv(log_fp, index=False)
@@ -190,8 +190,8 @@ def main (args):
 
     # Completion checkbox
     tk.Label(frame, text="Complete?").grid(row=4, column=1)
-    complete = tk.IntVar()
-    tk.Checkbutton(frame, text='Yes', variable=complete, onvalue=1, offvalue=0).grid(row=4, column=2)
+    complete = tk.BooleanVar(frame)
+    tk.Checkbutton(frame, text='Yes', variable=complete).grid(row=4, column=2)
 
     tk.Button(frame, text="   Open   ", command=partial(open_video_and_subtitles, args, log_fp, log, display, end_time, complete), bg="grey").grid(row=1, column=0)
     tk.Button(frame, text=" Save Progress ", command=partial(save_progress, log_fp, log, end_time, complete), bg="grey").grid(row=1, column=1)
@@ -203,7 +203,7 @@ def main (args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Open captions text file and YouTube video in browser to aid in correcting captions, based on a log file in corpus/logs. If group is specified, uses corpus/logs/$group_log.csv. If no group is specified, ask user to navigate to and select a log file.')
+    parser = argparse.ArgumentParser(description='Open captions text file and YouTube video in browser to aid in correcting captions, based on a log file in corpus/logs. If group is specified, uses corpus/logs/$group_log.csv. If no group is specified, asks user to navigate to and select a log file.')
 
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')

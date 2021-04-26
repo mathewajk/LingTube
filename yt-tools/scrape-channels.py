@@ -25,7 +25,7 @@ def scroll_channel(driver, pause_time):
     # Get scroll height
     last_height = driver.execute_script('return document.querySelector("#page-manager").scrollHeight')
 
-    # Scroll down to bottom
+    # Scroll down to bottom of current view
     driver.execute_script('window.scrollTo(0,document.querySelector("#page-manager").scrollHeight);')
 
     # Wait to load page
@@ -45,7 +45,7 @@ def get_links(driver, url, cutoff):
     :param url: URL of the channel's videos page
     :param cutoff: Limit scrolling to N attempts
 
-    :return continue: 1 if scroll was successful, 0 if page bottom has been reached
+    :return : List of videos URLs
     """
 
     # Load the page
@@ -68,21 +68,22 @@ def get_links(driver, url, cutoff):
         return [element.get_attribute('href') for element in elements]
 
 
-def save_videos(links, info, group=None, noscrape=False, screen=False):
-    """Write a scraped list of video links to a file.
+def save_info_and_videos(links, info, group=None, noscrape=False, screen=False):
+    """Write channel information and (if scraping) a scraped list of video links to a file.
 
     :param links: A list of video URLs
     :param info: A dictionary containing the channel's name, ID, description, bio, and metadata
     :param group: The folder to output the channel info to (default None)
+    :param noscrape: Whether or not video links were scraped\
+    :param screen: Whether or not videos are being saved for screening
     """
 
-    punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-    safe_channel_name = sub(punc_and_whitespace, "", info["ChannelName"])
-
+    # Create output paths
     base_path = path.join("corpus", "screened_urls")
-    if screen:
+    if screen: # If videos need to be screened, save to separate folder
         base_path = path.join("corpus", "unscreened_urls")
 
+    # Group output under shared folder if necessary
     if group:
         url_out_dir = path.join(base_path, group, "channel_urls")
         info_out_dir = path.join(base_path, group, "about")
@@ -93,28 +94,32 @@ def save_videos(links, info, group=None, noscrape=False, screen=False):
     if not path.exists(info_out_dir):
         makedirs(info_out_dir)
 
-    info_out_fn = "{0}_{1}_info.txt".format(safe_channel_name, info["SafeChannelID"])
-
+    # Create filename based on channel name and unique ID
+    info_out_fn = "{0}_{1}_info.txt".format(info["SafeChannelName"], info["SafeChannelID"])
     info_out_fn = path.join(info_out_dir, info_out_fn)
 
+    # Save channel info
     with open(info_out_fn, 'w') as info_out:
 
         for key in info.keys():
             info_out.write("# {0}\n\n".format(key))
             info_out.write("{0}\n\n".format(info[key]))
 
-    if not noscrape:
-        if not path.exists(url_out_dir):
-            makedirs(url_out_dir)
+    # Don't save the links if we didn't scrape anything
+    if noscrape:
+        return
 
-        videos_out_fn = "{0}_{1}_videos.txt".format(safe_channel_name, info["SafeChannelID"])
+    if not path.exists(url_out_dir):
+        makedirs(url_out_dir)
 
-        videos_out_fn = path.join(url_out_dir, videos_out_fn)
+    videos_out_fn = "{0}_{1}_videos.txt".format(safe_channel_name, info["SafeChannelID"])
 
-        with open(videos_out_fn, 'w') as videos_out:
+    videos_out_fn = path.join(url_out_dir, videos_out_fn)
 
-            for link in links:
-                videos_out.write("{0}\t{1}\t{2}\n".format(link, info["ChannelName"], info["SafeChannelID"]))
+    with open(videos_out_fn, 'w') as videos_out:
+
+        for link in links:
+            videos_out.write("{0}\t{1}\t{2}\n".format(link, info["ChannelName"], info["SafeChannelID"]))
 
 def get_info(driver, url):
     """Scrape the channel's description.
@@ -182,7 +187,7 @@ def process_channel(url, cutoff=-1, group=None, driver=None, noscrape=False, scr
             links = get_links(driver, url + "/videos", cutoff)
 
     logging.info("Found {0} videos".format(str(len(links))))
-    save_videos(links, info, group, noscrape, screen)
+    save_info_and_videos(links, info, group, noscrape, screen)
 
 
 def process_video(url, videos_path, cutoff=-1, group=None, driver=None, noscrape=False, screen=False, overwrite=False):
@@ -230,7 +235,7 @@ def process_video(url, videos_path, cutoff=-1, group=None, driver=None, noscrape
             else:
                 links = []
 
-    save_videos(links, info, group, noscrape, screen)
+    save_info_and_videos(links, info, group, noscrape, screen)
 
     # Log input video info
     with open(videos_path, 'a') as videos_out:
@@ -311,11 +316,6 @@ def handle_video(args):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Scrape video URLs from a YouTube channel.')
-    parser.add_argument('-g', '--group', default=None, metavar='NAME', type=str, help='name to group files under (will create a subfolder: screened_urls/$group)')
-    parser.add_argument('--cutoff', type=int, default=-1, help='maximum number of times to scroll the page')
-    parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
-    parser.add_argument('--screen',         action='store_true', default=False, help='downloading files for screening purposes')
-    parser.add_argument('-l', '--log', action='store_true', default=False, help='log events to file')
     parser.set_defaults(func=None)
 
     subparsers = parser.add_subparsers(help='process one channel, a list of channels, or a list of videos')
@@ -323,15 +323,30 @@ if __name__ == '__main__':
     channel_parser = subparsers.add_parser('single', help='process a single channel (see scrape_channels.py single -h for more help)')
     channel_parser.set_defaults(func=handle_single)
     channel_parser.add_argument('channel', type=str, help='URL pointing to the channel\'s main page, e.g. https://www.youtube.com/c/ChannelNameHere')
+    channel_parser.add_argument('-g', '--group', default=None, metavar='NAME', type=str, help='grouping for the output files (will create a subfolder: screened_urls/$group)')
+    channel_parser.add_argument('--cutoff', type=int, default=-1, help='maximum number of times to scroll the page when scraping')
+    channel_parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
+    channel_parser.add_argument('--screen',         action='store_true', default=False, help='download files for screening purposes')
+    channel_parser.add_argument('-l', '--log', action='store_true', default=False, help='log events to file')
 
     list_parser = subparsers.add_parser('multi', help='process a list of channels (see scrape_channels.py multi -h for more help)')
     list_parser.set_defaults(func=handle_multiple)
     list_parser.add_argument('file', type=str, help='file containing a newline-separated list of channel URLs (e.g. https://www.youtube.com/c/Channel1NameHere\\n https://www.youtube.com/c/Channel2NameHere\\n)')
+    list_parser.add_argument('-g', '--group', default=None, metavar='NAME', type=str, help='grouping for the output files (will create a subfolder: screened_urls/$group)')
+    list_parser.add_argument('--cutoff', type=int, default=-1, help='maximum number of times to scroll the page when scraping')
+    list_parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
+    list_parser.add_argument('--screen',         action='store_true', default=False, help='download files for screening purposes')
+    list_parser.add_argument('-l', '--log', action='store_true', default=False, help='log events to file')
 
     video_parser = subparsers.add_parser('video', help='process channels from a list of videos (see scrape_channels.py video -h for more help)')
     video_parser.set_defaults(func=handle_video)
     video_parser.add_argument('file', type=str, help='file containing a newline-separated list of video URLs')
     video_parser.add_argument('-n', '--noscrape', action='store_true', default=False, help='don\'t scrape the channel; only gather about info')
+    video_parser.add_argument('-g', '--group', default=None, metavar='NAME', type=str, help='grouping for the output files (will create a subfolder: screened_urls/$group)')
+    video_parser.add_argument('--cutoff', type=int, default=-1, help='maximum number of times to scroll the page when scraping')
+    video_parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
+    video_parser.add_argument('--screen',         action='store_true', default=False, help='download files for screening purposes')
+    video_parser.add_argument('-l', '--log', action='store_true', default=False, help='log events to file')
 
     args = parser.parse_args()
 

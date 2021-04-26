@@ -256,12 +256,11 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
     else:
         log_fn = "{0}_log.csv".format(group)
 
-    log_file = path.join("corpus", "logs", log_fn)
+    log_fp = path.join("corpus", "logs", log_fn)
     if screen:
-        log_fn = "{0}_log_{1}.csv".format(path.splitext(log_fn)[0], strftime("%Y%m%d%H%M%S"))
-        log_file = path.join("corpus", "unscreened_urls", "logs", log_fn)
+        log_fp = path.join("corpus", "unscreened_urls", "logs", log_fn)
 
-    log_exists = path.exists(log_file)
+    log_exists = path.exists(log_fp)
 
     write_type = 'a'
     #if batch and group:
@@ -269,7 +268,7 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
     if overwrite:
         write_type = 'w'
 
-    with open(urls_path, "r") as urls_in, open(log_file, write_type) as log_out:
+    with open(urls_path, "r") as urls_in, open(log_fp, write_type) as log_out:
 
         # Prepare writer for writing video data
         log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "code", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "scrape_time", "corrected"])
@@ -340,18 +339,17 @@ def process_files(urls_path, language=None, group=None, screen=None, include_aud
 
     if group:
         log_fn = "{0}_log.csv".format(group)
-        log_file = path.join("corpus", "logs", log_fn)
+        log_fp = path.join("corpus", "logs", log_fn)
         if screen:
-            log_fn = "{0}_log_{1}.csv".format(path.splitext(log_fn)[0], strftime("%Y%m%d%H%M%S"))
-            log_file = path.join("corpus", "unscreened_urls", "logs", log_fn)
+            log_fp = path.join("corpus", "unscreened_urls", "logs", log_fn)
 
-        log_exists = path.exists(log_file)
+        log_exists = path.exists(log_fp)
 
         write_mode = 'a'
         if overwrite:
             write_mode = 'w'
 
-        with open(log_file, write_mode) as log_out:
+        with open(log_fp, write_mode) as log_out:
             log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "code", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "scrape_time", "corrected"])
             if overwrite or not log_exists:
                 log_writer.writeheader()

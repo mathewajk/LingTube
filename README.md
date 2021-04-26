@@ -10,7 +10,7 @@ Dependencies are provided in the `requirements/` folder. To install all dependen
 
 `pip install -r $FileName`
 
-where $FileName is one of `correcting.txt` (if you need only the dependencies for making corrections), `youspeak.txt` (if you need only the YouSpeak pipeline dependencies), `yt-tools.txt` (if you need only the depenedencies for scraping YouTube), or `full.txt` if you want to install all dependencies. Note, depending on your system, you may need to run `pip3 install` instead of `pip install`.
+where $FileName is one of `correct.txt` (if you need only the dependencies for making corrections), `youspeak.txt` (if you need only the YouSpeak pipeline dependencies), `yt-tools.txt` (if you need only the dependencies for scraping YouTube),`text-tools.txt` (if you need only the dependencies for working with caption text), or `full.txt` if you want to install all dependencies. Note, depending on your system, you may need to run `pip3 install` instead of `pip install`.
 
 In addition, this software requires the latest version of Python and TK. If you are on MacOS and using Homebrew, simply run
 
@@ -21,6 +21,8 @@ to install the version of Python that is bundled with TK. By default, `brew inst
 ## Components
 *Details coming soon!*
 
+* `yt-tools`
+* `text-tools`
 * `youdep`
 * `youspeak`
 
@@ -215,7 +217,7 @@ optional arguments:
                         channel_data/$group)
   --cutoff N            maximum number of times to scroll the page
 ```
-  
+
 #### scrape-videos.py
 
 ##### Usage

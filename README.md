@@ -25,6 +25,8 @@ where $FileName is one of `correcting.txt` (if you need only the dependencies fo
 
 This script allows the user to scrape video URLs from a specified channel or list of channels. The user can also input a list of videos in order to scrape the uploading channel's infor and/or scrape the remaining videos from their channel.
 
+##### Usage
+
 General usage:
 
 ```
@@ -120,7 +122,7 @@ optional arguments:
   -l, --log             log events to file
 ```
 
-Example usage:
+##### Examples
 
 `python3 yt-tools/scrape-channels.py -h -g cali-tw --cutoff 10 --screen multi urls.txt`
 

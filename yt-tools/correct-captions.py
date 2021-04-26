@@ -51,19 +51,19 @@ def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
         if args.group:
             raw_subtitles_base = path.join(raw_subtitles_base, args.group)
 
-        if args.language:
-            language = args.language
+        if args.lang_code:
+            lang_code = args.lang_code
         elif path.isdir(path.join(raw_subtitles_base, "manual")):
-            language_list = listdir(path.join(raw_subtitles_base, "manual"))
-            language = language_list[0]
+            lang_code_list = listdir(path.join(raw_subtitles_base, "manual"))
+            lang_code = lang_code_list[0]
         elif path.isdir(path.join(raw_subtitles_base, "auto")):
-            language_list = listdir(path.join(raw_subtitles_base, "auto"))
-            language = language_list[0]
+            lang_code_list = listdir(path.join(raw_subtitles_base, "auto"))
+            lang_code = lang_code_list[0]
 
-        manual_dir = path.join(raw_subtitles_base, "manual", language, channel_id)
+        manual_dir = path.join(raw_subtitles_base, "manual", lang_code, channel_id)
         print(manual_dir)
-        auto_dir = path.join(raw_subtitles_base, "auto", language, channel_id)
-        corrected_dir = path.join(raw_subtitles_base, "corrected", language, channel_id)
+        auto_dir = path.join(raw_subtitles_base, "auto", lang_code, channel_id)
+        corrected_dir = path.join(raw_subtitles_base, "corrected", lang_code, channel_id)
         if not path.exists(corrected_dir):
             makedirs(corrected_dir)
 
@@ -204,13 +204,13 @@ def main (args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Open text file and YouTube video to aid in correcting captions.')
+    parser = argparse.ArgumentParser(description='Open captions text file and YouTube video in browser to aid in correcting captions.')
 
     parser.set_defaults(func=None)
-    parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
-    parser.add_argument('--language', '-l', default=None, type=str, help='language code')
-    parser.add_argument('--channel', '-ch', default=None, type=str, help='channel folder')
-    parser.add_argument('--editor', '-e', default='textedit', type=str, help='preferred text editor')
+    parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
+    parser.add_argument('--lang_code', '-l', default=None, type=str, help='open captions with a specific a language code (e.g., "en"); if unspecified, uses first available language code in subtitle directory')
+    parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
+    parser.add_argument('--editor', '-e', default='textedit', type=str, help='opens text file in specified text editor')
 
     args = parser.parse_args()
 

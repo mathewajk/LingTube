@@ -105,28 +105,28 @@ def get_subtitles(args):
     manual_dir = path.join(subtitle_dir, "manual")
     auto_dir = path.join(subtitle_dir, "auto")
 
-    if args.language:
-        language = args.language
+    if args.lang_code:
+        lang_code = args.lang_code
     elif path.isdir(correct_dir):
-        language_list = listdir(correct_dir)
-        language = language_list[0]
+        lang_code_list = listdir(correct_dir)
+        lang_code = lang_code_list[0]
     elif path.isdir(manual_dir):
-        language_list = listdir(manual_dir)
-        language = language_list[0]
+        lang_code_list = listdir(manual_dir)
+        lang_code = lang_code_list[0]
     elif path.isdir(auto_dir):
-        language_list = listdir(auto_dir)
-        language = language_list[0]
+        lang_code_list = listdir(auto_dir)
+        lang_code = lang_code_list[0]
 
     try:
-        subtitle_fp = path.join(correct_dir, language, "cleans", channel_id, video_id+".txt")
+        subtitle_fp = path.join(correct_dir, lang_code, "cleans", channel_id, video_id+".txt")
 
         subtitles = pd.read_table(subtitle_fp, names=["start_time", "end_time", "transcription"])
     except:
         try:
-            subtitle_fp = path.join(manual_dir, language, "cleans", channel_id, video_id+".txt")
+            subtitle_fp = path.join(manual_dir, lang_code, "cleans", channel_id, video_id+".txt")
 
             if not path.isfile(subtitle_fp):
-                subtitle_fp = path.join(auto_dir, language, "cleans", channel_id, video_id+".txt")
+                subtitle_fp = path.join(auto_dir, lang_code, "cleans", channel_id, video_id+".txt")
 
             subtitles = pd.read_table(subtitle_fp, names=["start_time", "end_time", "transcription"])
         except:
@@ -376,11 +376,11 @@ def main(args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Opens a GUI for categorizing and transcribing audio chunks.')
+    parser = argparse.ArgumentParser(description='Open a GUI for categorizing and transcribing audio chunks.')
 
     parser.set_defaults(func=None)
-    parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
-    parser.add_argument('--language', '-l', default=None, type=str, help='language code (default uses first available language)')
+    parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: chunked_audio/$group)')
+    parser.add_argument('--lang_code', '-l', default=None, type=str, help='open captions with a specific a language code (e.g., "en"); if unspecified, uses first available language code in subtitle directory')
 
     args = parser.parse_args()
 

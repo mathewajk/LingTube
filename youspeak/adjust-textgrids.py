@@ -94,11 +94,11 @@ def main(args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Open Praat to adjust textgrids.')
+    parser = argparse.ArgumentParser(description='Open Praat scripts for adjusting force-aligned textgrids.')
 
     parser.set_defaults(func=None)
-    parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
-    parser.add_argument('--channel', '-ch', default=None, type=str, help='channel folder')
+    parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: adjusted_corpus/$group)')
+    parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
     parser.add_argument('--review', '-r', default=None,  action='store_true', help='run in review mode to check adjusted textgrids')
 
     args = parser.parse_args()

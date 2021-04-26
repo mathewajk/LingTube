@@ -95,7 +95,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Convert scraped YouTube audio from mp4 to WAV format.')
 
     parser.set_defaults(func=None)
-    parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
+    parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_audio/$group)')
 
     args = parser.parse_args()
 

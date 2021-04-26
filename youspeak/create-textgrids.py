@@ -98,8 +98,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create MFA-compatible textgrids and move to MFA alignment folder.')
 
     parser.set_defaults(func=None)
-    parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
-    parser.add_argument('--channel', '-ch', default=None, type=str, help='channel folder')
+    parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: aligned_audio/$group)')
+    parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
     parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
 
     args = parser.parse_args()

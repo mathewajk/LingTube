@@ -157,22 +157,22 @@ def main(args):
         clean_sub_base = path.join(clean_sub_base, args.group)
 
     for sub_type in ['auto', 'manual', 'corrected']:
-        # if args.corrected and sub_type != 'corrected':
-        #         continue
+        if args.corrected and sub_type != 'corrected':
+                continue
 
         print('\nSUBTITLE TYPE: {0}'.format(sub_type))
 
         raw_sub_dir = path.join(raw_sub_base, sub_type)
         clean_sub_dir = path.join(clean_sub_base, sub_type)
 
-        if args.language:
-            language_list = [args.language]
+        if args.lang_code:
+            lang_code_list = [args.lang_code]
         if path.isdir(raw_sub_dir):
-            language_list = [langcode for langcode in listdir(raw_sub_dir) if not langcode.startswith('.')]
+            lang_code_list = [langcode for langcode in listdir(raw_sub_dir) if not langcode.startswith('.')]
         else:
-            language_list = []
+            lang_code_list = []
 
-        for langcode in language_list:
+        for langcode in lang_code_list:
             in_dir = path.join(raw_sub_dir, langcode)
             cleans_dir = path.join(clean_sub_dir, langcode, "cleans")
             fave_dir = path.join(clean_sub_dir, langcode, "faves")
@@ -199,14 +199,14 @@ def main(args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Convert scraped YouTube subtitles to cleaned transcript format.')
+    parser = argparse.ArgumentParser(description='Convert scraped YouTube captions to cleaned transcript format.')
 
     parser.set_defaults(func=None)
-    parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
-    parser.add_argument('--language', '-l', default=None, type=str, help='language code (e.g., "en" for English)')
-    parser.add_argument('--fave', '-f', action='store_true', default=False, help='also output Fave-format file')
-    parser.add_argument('--text', '-t', action='store_true', default=False, help='also output text-only file')
-    # parser.add_argument('--corrected', '-c', action='store_true', default=False, help='only run on corrected subtitles')
+    parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: cleaned_subtitles/$group)')
+    parser.add_argument('--lang_code', '-l', default=None, type=str, help='open captions with a specific a language code (e.g., "en"); if unspecified, goes through all available language code in subtitle directory')
+    parser.add_argument('--fave', '-f', action='store_true', default=False, help='additionally output Fave-format file')
+    parser.add_argument('--text', '-t', action='store_true', default=False, help='additionally output text-only file')
+    parser.add_argument('--corrected', '-c', action='store_true', default=False, help='only run on corrected subtitles')
     parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
 
     args = parser.parse_args()

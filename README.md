@@ -28,13 +28,12 @@ to install the version of Python that is bundled with TK. By default, `brew inst
 
 #### correct-captions.py
 
-
 This script helps to streamline the correction of YouTube captions prior to chunking. It opens each video in a list of videos one-at-a-time in the browser alongside the caption file, which opens in a text editor of the user's choice. Correction progress can be saved such that next time the program is run, the video will open where the user left off last time.
 
 ##### Usage
 
 ```
-python3 /Users/narquelion/Documents/research/git-projects/LingTube/yt-tools/correct-captions.py -h
+python3 yt-tools/correct-captions.py -h
 usage: correct-captions.py [-h] [--group GROUP] [--lang_code LANG_CODE]
                            [--channel CHANNEL] [--editor EDITOR]
 
@@ -170,3 +169,84 @@ This call:
 2. Scrapes each channel, scrolling the list of videos up to 10 times
 3. Groups the resulting video URLs under a subfolder called `cali-tw`
 4. Additionally groups them under a folder called `unscreened_videos` indicating that the videos need to be checked for usability
+
+#### scrape-connections.py
+
+##### Usage
+
+```
+python3 yt-tools/scrape-connections.py -h
+usage: scrape-connections.py [-h] [--max_depth N] [-g GROUP] seed_users
+
+Scrape connected channel links from YouTube channel and their about pages.
+
+positional arguments:
+  seed_users            path to a file containing the users to start search from
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --max_depth N, -max N
+                        maximum depth of recursion (default=5)
+  -g GROUP, --group GROUP
+                        name to group files under (will create a subfolder:
+                        unscreened_urls/$group)
+```
+
+#### scrape-search.py
+
+##### Usage
+
+```
+python3 yt-tools/scrape-search.py -h
+usage: scrape-search.py [-h] [--exclude_query STR] [--group NAME] [--cutoff N]
+                        search_query
+
+Scrape video URLs from a YouTube channel.
+
+positional arguments:
+  search_query          search query (e.g., "get to know me")
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --exclude_query STR, -ex STR
+                        string of terms used to exclude from video title
+  --group NAME, -g NAME
+                        name to group files under (will create a subfolder:
+                        channel_data/$group)
+  --cutoff N            maximum number of times to scroll the page
+```
+  
+#### scrape-videos.py
+
+##### Usage
+
+```
+python3 yt-tools/scrape-videos.py -h
+usage: scrape-videos.py [-h] [--language LANGUAGE] [--group NAME] [--overwrite]
+                        [--auto] [--audio] [--srt] [--resume N] [--limit N]
+                        [--screen] [--clean]
+                        urls_in
+
+Download available subtitles and audio from a list of YouTube video urls.
+
+positional arguments:
+  urls_in               path to a file or directory containing the URLs to scrape
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --language LANGUAGE, -l LANGUAGE
+                        filter captions by language name (e.g. "Korean"); if
+                        unspecified, all captions will be downloaded
+  --group NAME, -g NAME
+                        a name for the group; if unspecified, channel names will be
+                        used
+  --overwrite, -o       overwrite logs and files rather than appending
+  --auto, -a            include automatically-generated captions
+  --audio, -s           download audio
+  --srt                 download captions in SRT format
+  --resume N, -res N    resume downloading from Nth video or file
+  --limit N, -lim N     limit processing to N videos or files
+  --screen              downloading files for screening purposes
+  --clean               skip scraping and only clean dowloaded caption filenames of
+                        langcode
+```

@@ -12,6 +12,11 @@ Dependencies are provided in the `requirements/` folder. To install all dependen
 
 where $FileName is one of `correcting.txt` (if you need only the dependencies for making corrections), `youspeak.txt` (if you need only the YouSpeak pipeline dependencies), `yt-tools.txt` (if you need only the depenedencies for scraping YouTube), or `full.txt` if you want to install all dependencies. Note, depending on your system, you may need to run `pip3 install` instead of `pip install`.
 
+In addition, this software requires the latest version of Python and TK. If you are on MacOS and using Homebrew, simply run
+
+`brew install python-tk`
+
+to install the version of Python that is bundled with TK. By default, `brew install python` no longer installs TK.
 
 ## Components
 *Details coming soon!*

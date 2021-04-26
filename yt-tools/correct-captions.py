@@ -19,10 +19,12 @@ from functools import partial
 
 
 def open_file_in_editor (file):
-    if args.editor == 'textedit':
+    if args.editor.lower() == 'textedit':
         subprocess.call(['open', '-a', 'TextEdit', file])
-    elif args.editor == 'atom':
+    elif args.editor.lower() == 'atom':
         subprocess.call(['open', '-a', 'Atom', file])
+    elif args.editor.lower() == 'notepad++':
+        subprocess.call(['open', '-a', 'Notepad++', file])
     else:
         print('This editor is not available. Please choose an available editor: textedit, atom')
 
@@ -142,10 +144,6 @@ def main (args):
         showinfo('Window', "Opening log file for group: {0}".format(args.group))
         log_fn = '{0}_log.csv'.format(args.group)
         log_fp = path.join('corpus', 'logs', log_fn)
-    elif args.channel:
-        showinfo('Window', "Opening log file for channel: {0}".format(args.channel))
-        log_fn = '{0}_log.csv'.format(args.channel)
-        log_fp = path.join('corpus', 'logs', log_fn)
     else:
         showinfo('Window', "No group was specified. Select a channel log file from corpus > logs.")
         log_fp = askopenfilename()
@@ -205,13 +203,13 @@ def main (args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Open captions text file and YouTube video in browser to aid in correcting captions.')
+    parser = argparse.ArgumentParser(description='Open captions text file and YouTube video in browser to aid in correcting captions, based on a log file in corpus/logs. If group is specified, uses corpus/logs/$group_log.csv. If no group is specified, ask user to navigate to and select a log file.')
 
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
     parser.add_argument('--lang_code', '-l', default=None, type=str, help='open captions with a specific a language code (e.g., "en"); if unspecified, uses first available language code in subtitle directory')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
-    parser.add_argument('--editor', '-e', default='textedit', type=str, help='opens text file in specified text editor')
+    parser.add_argument('--editor', '-e', default='textedit', type=str, help='opens text file in a specified text editor: TextEdit, Atom, Notepad++ (default=TextEdit)')
 
     args = parser.parse_args()
 

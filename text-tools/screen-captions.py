@@ -240,7 +240,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Screen captions for speaker background information.')
     parser.set_defaults(func=None)
-    parser.add_argument('--group', '-g', default=None, type=str, help='grouping folder')
+    parser.add_argument('--group',     '-g', default=None, metavar='NAME', type=str, help='a name for the group; if unspecified, channel names will be used')
     parser.add_argument('--sub_type', '-s', default=None, type=str, help='subtitle type (auto, manual)')
     parser.add_argument('--language', '-l', default=None, type=str, help='language code')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='channel folder')

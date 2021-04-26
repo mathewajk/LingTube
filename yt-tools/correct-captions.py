@@ -102,6 +102,7 @@ def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
 
 def save_progress (log_fp, log, end_time, complete):
     global i
+    print('Complete: {0}'.format(complete.get()))
     if complete.get() == True:
         log.loc[i, 'corrected'] = 1
         log.to_csv(log_fp, index=False)

@@ -143,10 +143,10 @@ def main(args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Scrape video URLs from a YouTube channel.')
+    parser = argparse.ArgumentParser(description='Scrape video URLs from a YouTube search page.')
     parser.add_argument('search_query', type=str, help='search query (e.g., "get to know me")')
     parser.add_argument('--exclude_query', '-ex', metavar='STR', help='string of terms used to exclude from video title', type=str)
-    parser.add_argument('--group', '-g', default=None, metavar='NAME', type=str, help='name to group files under (will create a subfolder: channel_data/$group)')
+    parser.add_argument('--group', '-g', default=None, metavar='NAME', type=str, help='name to group files under (will create a subfolder: unscreened_urls/$group)')
     parser.add_argument('--cutoff', type=int, metavar='N', default=-1, help='maximum number of times to scroll the page')
     parser.set_defaults(func=None)
 

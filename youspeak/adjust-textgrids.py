@@ -15,6 +15,9 @@ def main(args):
     if args.review:
         mode = 'review-alignment'
 
+    root = tk.Tk()
+    root.withdraw()
+
     base_script_fp = path.join("scripts", mode+".praat")
     if not path.exists(base_script_fp):
         showinfo('Window', "Go to LingTube > youspeak and select the following file:\n\n{0}.praat".format(mode))

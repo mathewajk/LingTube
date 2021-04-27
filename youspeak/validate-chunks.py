@@ -19,7 +19,7 @@ from tkinter.filedialog import askopenfilename
 from tkinter.messagebox import showinfo
 from functools import partial
 import sys
-from os import path, listdir, makedirs
+from os import sep, path, listdir, makedirs
 import subprocess
 import datetime
 import argparse
@@ -31,7 +31,7 @@ resp_df = None
 
 
 # Get coding log info
-def codinginfo():
+def codinginfo(args):
     global idx
     global df
     global group
@@ -42,17 +42,33 @@ def codinginfo():
     global out_fn
     global resp_df
 
-    showinfo('Window', "Select a chunking log file")
+    group = args.group
+    if group:
+        showinfo('Window', "Select a chunking log file from a channel folder in:\n\n corpus > chunked_audio > {0} > logs > chunking.".format(group))
+    else:
+        showinfo('Window', "Select a chunking log file from a channel folder in:\n\n corpus > chunked_audio > logs > chunking.")
 
-    log_fn = askopenfilename()
-    base_fn = path.basename(log_fn)
+    log_fp = askopenfilename()
+    if log_fp == '':
+        sys.exit('\nNo file selected. Exiting program now.')
+    log_fp_parts = path.normpath(log_fp).split(sep)
+
+    if not group:
+        if not log_fp_parts[-5] == 'chunked_audio' and log_fp_parts[-6] == 'chunked_audio':
+            group = log_fp_parts[-5]
+            showinfo('Window', '\nNo group was specified but the following group was detected:\n\n{0}\n\nIf this was not intended, re-start the program and select a new chunking log file.'.format(group))
+    else:
+        if not log_fp_parts[-5] == group:
+            showinfo('Window', "File structure does not match the group that was specified:\n\n{0}\n\nPlease re-start the program and specify the correct group or select an acceptable chunking log file.".format(group))
+            sys.exit()
+    base_fn = path.basename(log_fp)
 
     video_id = base_fn.split('_chunking')[0]
     channel_id = video_id.rsplit('_', 1)[0]
 
     base_dir = path.join("corpus", "chunked_audio")
-    if args.group:
-        base_dir = path.join(base_dir, args.group)
+    if group:
+        base_dir = path.join(base_dir, group)
 
     audio_dir = path.join(base_dir, 'audio', 'chunking', channel_id, video_id)
     log_dir = path.join(base_dir, 'logs', 'chunking', channel_id)
@@ -61,7 +77,7 @@ def codinginfo():
         makedirs(out_dir)
     out_fn = video_id+"_coding_responses.csv"
 
-    df = pd.read_csv(log_fn) # the master config file that won't change
+    df = pd.read_csv(log_fp) # the master config file that won't change
 
     try:
         resp_df = pd.read_csv(path.join(out_dir, out_fn)) # if available, open the response df in read mode
@@ -84,10 +100,12 @@ def annotatorinfo():
     annotate.title("Annotator information")
     annotateSize = 220
 
-    tk.Label(annotate, text="Enter your name/initials:").grid(row=0)
+    global annotator
+    annotator = None
+
+    tk.Label(annotate, text="Enter your initials:").grid(row=0)
     name = tk.Entry(annotate)
     def return_name_and_close(annotate):
-        global annotator
         annotator = name.get()
         annotate.destroy()
     name.grid(row=0, column=1)
@@ -99,8 +117,8 @@ def get_subtitles(args):
     global subtitles
 
     subtitle_dir = path.join("corpus", "cleaned_subtitles")
-    if args.group:
-        subtitle_dir = path.join(subtitle_dir, args.group)
+    if group:
+        subtitle_dir = path.join(subtitle_dir, group)
     correct_dir = path.join(subtitle_dir, "corrected")
     manual_dir = path.join(subtitle_dir, "manual")
     auto_dir = path.join(subtitle_dir, "auto")
@@ -230,7 +248,9 @@ def play_audio():
 
     global row
     global audiofile
-    # global subtitles
+
+    if not annotator:
+        sys.exit('\nNo annotator initials provided. Please re-start the program and enter your initials in the "Annotator information" pop-up window.')
 
     row = df.iloc[idx]
     audiofile = path.join(audio_dir, row['filename'])
@@ -365,7 +385,7 @@ def main(args):
 
     clear()
 
-    codinginfo()
+    codinginfo(args)
 
     annotatorinfo()
 

@@ -20,16 +20,25 @@ from functools import partial
 
 def open_file_in_editor (file):
     if not args.editor:
-        subprocess.Popen([file], shell=True)
+        try:
+            subprocess.call(['open', '-t', file])
+        except:
+            subprocess.Popen([file], shell=True)
     elif args.editor.lower() == 'textedit':
-        # subprocess.call(['open', '-a', 'TextEdit', file], shell=True)
-        subprocess.Popen(['TextEdit', file], shell=True)
+        try:
+            subprocess.call(['open', '-a', 'TextEdit', file])
+        except:
+            subprocess.Popen(['TextEdit', file], shell=True)
     elif args.editor.lower() == 'atom':
-        # subprocess.call(['open', '-a', 'Atom', file], shell=True)
-        subprocess.Popen(['Atom', file], shell=True)
+        try:
+            subprocess.call(['open', '-a', 'Atom', file])
+        except:
+            subprocess.Popen(['Atom', file], shell=True)
     elif args.editor.lower() == 'notepad':
-        # subprocess.call(['open', '-a', 'Notepad', file], shell=True)
-        subprocess.Popen(['Notepad', file], shell=True)
+        try:
+            subprocess.call(['open', '-a', 'Notepad', file])
+        except:
+            subprocess.Popen(['Notepad', file], shell=True)
 
 def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
     if i == len(log):
@@ -92,7 +101,7 @@ def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
             open_file_in_editor(corrected_fp)
         except:
             print('Could not open file. Try specifying a different text editor.')
-            
+
         # Open YouTube video in web browser
         if not timestamp == '0':
             times = timestamp.split(':')

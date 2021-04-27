@@ -19,14 +19,17 @@ from functools import partial
 
 
 def open_file_in_editor (file):
-    if args.editor.lower() == 'textedit':
-        subprocess.call(['open', '-a', 'TextEdit', file])
+    if not args.editor:
+        subprocess.Popen([file], shell=True)
+    elif args.editor.lower() == 'textedit':
+        # subprocess.call(['open', '-a', 'TextEdit', file], shell=True)
+        subprocess.Popen(['TextEdit', file], shell=True)
     elif args.editor.lower() == 'atom':
-        subprocess.call(['open', '-a', 'Atom', file])
-    elif args.editor.lower() == 'notepad++':
-        subprocess.call(['open', '-a', 'Notepad++', file])
-    else:
-        print('This editor is not available. Please choose an available editor: textedit, atom')
+        # subprocess.call(['open', '-a', 'Atom', file], shell=True)
+        subprocess.Popen(['Atom', file], shell=True)
+    elif args.editor.lower() == 'notepad':
+        # subprocess.call(['open', '-a', 'Notepad', file], shell=True)
+        subprocess.Popen(['Notepad', file], shell=True)
 
 def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
     if i == len(log):
@@ -63,7 +66,6 @@ def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
             lang_code = lang_code_list[0]
 
         manual_dir = path.join(raw_subtitles_base, "manual", lang_code, channel_id)
-        print(manual_dir)
         auto_dir = path.join(raw_subtitles_base, "auto", lang_code, channel_id)
         corrected_dir = path.join(raw_subtitles_base, "corrected", lang_code, channel_id)
         if not path.exists(corrected_dir):
@@ -78,16 +80,19 @@ def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
                 corrected_fp = path.join(corrected_dir, sub_fn)
                 if not path.exists(corrected_fp):
                     shutil.copyfile(sub_fp, corrected_fp)
-                open_file_in_editor(corrected_fp)
             else:
                 sub_fp = path.join(auto_dir, sub_fn)
                 corrected_fp = path.join(corrected_dir, sub_fn)
                 if not path.exists(corrected_fp):
                     shutil.copyfile(sub_fp, corrected_fp)
-                open_file_in_editor(corrected_fp)
         except FileNotFoundError:
             print('File does not exist.')
 
+        try:
+            open_file_in_editor(corrected_fp)
+        except:
+            print('Could not open file. Try specifying a different text editor.')
+            
         # Open YouTube video in web browser
         if not timestamp == '0':
             times = timestamp.split(':')
@@ -209,7 +214,7 @@ if __name__ == '__main__':
     parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
     parser.add_argument('--lang_code', '-l', default=None, type=str, help='open captions with a specific a language code (e.g., "en"); if unspecified, uses first available language code in subtitle directory')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
-    parser.add_argument('--editor', '-e', default='textedit', type=str, help='opens text file in a specified text editor: TextEdit, Atom, Notepad++ (default=TextEdit)')
+    parser.add_argument('--editor', '-e', default=None, type=str, help='opens text file in a specified text editor: TextEdit, Atom, Notepad; if unspecified, uses the default program for .srt files')
 
     args = parser.parse_args()
 

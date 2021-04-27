@@ -106,6 +106,7 @@ def annotatorinfo():
     tk.Label(annotate, text="Enter your initials:").grid(row=0)
     name = tk.Entry(annotate)
     def return_name_and_close(annotate):
+        global annotator
         annotator = name.get()
         annotate.destroy()
     name.grid(row=0, column=1)

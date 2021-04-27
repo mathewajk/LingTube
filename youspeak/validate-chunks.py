@@ -21,6 +21,8 @@ from functools import partial
 import sys
 from os import sep, path, listdir, makedirs
 import subprocess
+from pydub import AudioSegment
+from pydub.playback import play
 import datetime
 import argparse
 
@@ -260,7 +262,10 @@ def play_audio():
     if not subtitles.empty:
         insert_transcript(subtitles)
 
-    subprocess.call(["afplay", audiofile])
+    try: # MacOS compatible
+        subprocess.call(["afplay", audiofile])
+    except: # Windows compatible with pydub + simpleaudio
+        play(AudioSegment.from_wav(audiofile))
 
 def save_coding():
 

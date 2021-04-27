@@ -153,6 +153,8 @@ def main (args):
 
     global i
 
+    root = tk.Tk()
+
     # Open log file
     if args.group:
         showinfo('Window', "Opening log file for group: {0}".format(args.group))
@@ -187,7 +189,6 @@ def main (args):
         i = i_list[0][0]
 
     # Pop-up Window
-    root = tk.Tk()
     root.update()
     root.title("Correct Subtitles")
     frame = tk.Frame(root)

@@ -61,27 +61,27 @@ def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
         else:
             end_time.insert(0, timestamp)
 
-        raw_subtitles_base = path.join('corpus','raw_subtitles')
+        cleaned_subtitles_base = path.join('corpus','cleaned_subtitles')
         if args.group:
-            raw_subtitles_base = path.join(raw_subtitles_base, args.group)
+            cleaned_subtitles_base = path.join(cleaned_subtitles_base, args.group)
 
         if args.lang_code:
             lang_code = args.lang_code
-        elif path.isdir(path.join(raw_subtitles_base, "manual")):
-            lang_code_list = listdir(path.join(raw_subtitles_base, "manual"))
+        elif path.isdir(path.join(cleaned_subtitles_base, "manual")):
+            lang_code_list = listdir(path.join(cleaned_subtitles_base, "manual"))
             lang_code = lang_code_list[0]
-        elif path.isdir(path.join(raw_subtitles_base, "auto")):
-            lang_code_list = listdir(path.join(raw_subtitles_base, "auto"))
+        elif path.isdir(path.join(cleaned_subtitles_base, "auto")):
+            lang_code_list = listdir(path.join(cleaned_subtitles_base, "auto"))
             lang_code = lang_code_list[0]
 
-        manual_dir = path.join(raw_subtitles_base, "manual", lang_code, channel_id)
-        auto_dir = path.join(raw_subtitles_base, "auto", lang_code, channel_id)
-        corrected_dir = path.join(raw_subtitles_base, "corrected", lang_code, channel_id)
+        manual_dir = path.join(cleaned_subtitles_base, "manual", lang_code, "cleans", channel_id)
+        auto_dir = path.join(cleaned_subtitles_base, "auto", lang_code, "cleans", channel_id)
+        corrected_dir = path.join(cleaned_subtitles_base, "corrected", lang_code, "cleans", channel_id)
         if not path.exists(corrected_dir):
             makedirs(corrected_dir)
 
-        # Open .srt file in Text Editor
-        sub_fn = '{0}.srt'.format(video_id)
+        # Open .txt file in Text Editor
+        sub_fn = '{0}.txt'.format(video_id)
 
         try:
             sub_fp = path.join(manual_dir, sub_fn)
@@ -221,10 +221,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Open captions text file and YouTube video in browser to aid in correcting captions, based on a log file in corpus/logs. If group is specified, uses corpus/logs/$group_log.csv. If no group is specified, asks user to navigate to and select a log file.')
 
     parser.set_defaults(func=None)
-    parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
+    parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: cleaned_subtitles/$group)')
     parser.add_argument('--lang_code', '-l', default=None, type=str, help='open captions with a specific a language code (e.g., "en"); if unspecified, uses first available language code in subtitle directory')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
-    parser.add_argument('--editor', '-e', default=None, type=str, help='opens text file in a specified text editor: TextEdit, Atom, Notepad; if unspecified, uses the default program for .srt files')
+    parser.add_argument('--editor', '-e', default=None, type=str, help='opens text file in a specified text editor: TextEdit, Atom, Notepad; if unspecified, uses the default program for .txt files')
 
     args = parser.parse_args()
 

@@ -178,8 +178,7 @@ def main(args):
         raw_sub_base = path.join(raw_sub_base, args.group)
         clean_sub_base = path.join(clean_sub_base, args.group)
 
-    # TODO: Remove 'corrected' once all legacy dirs are handled
-    for sub_type in ['auto', 'manual', 'corrected']:
+    for sub_type in ['auto', 'manual']:
 
         print('\nSUBTITLE TYPE: {0}'.format(sub_type))
 

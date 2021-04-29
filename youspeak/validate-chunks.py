@@ -319,7 +319,10 @@ def save_and_quit():
     sys.exit('\nSafely saved progress!')
 
 def repeat():
-    subprocess.call(["afplay", audiofile])
+    try: # MacOS compatible
+        subprocess.call(["afplay", audiofile])
+    except: # Windows compatible with pydub + simpleaudio
+        play(AudioSegment.from_wav(audiofile))
 
 
 def main(args):

@@ -178,9 +178,8 @@ def main(args):
         raw_sub_base = path.join(raw_sub_base, args.group)
         clean_sub_base = path.join(clean_sub_base, args.group)
 
+    # TODO: Remove 'corrected' once all legacy dirs are handled
     for sub_type in ['auto', 'manual', 'corrected']:
-        if args.corrected and sub_type != 'corrected':
-                continue
 
         print('\nSUBTITLE TYPE: {0}'.format(sub_type))
 
@@ -228,7 +227,6 @@ if __name__ == '__main__':
     parser.add_argument('--lang_code', '-l', default=None, type=str, help='open captions with a specific a language code (e.g., "en"); if unspecified, goes through all available language code in subtitle directory')
     parser.add_argument('--fave', '-f', action='store_true', default=False, help='additionally output Fave-format file')
     parser.add_argument('--text', '-t', action='store_true', default=False, help='additionally output text-only file')
-    parser.add_argument('--corrected', '-c', action='store_true', default=False, help='only run on corrected subtitles')
     parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
 
     args = parser.parse_args()

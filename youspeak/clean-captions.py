@@ -29,9 +29,9 @@ def clean_text (text,langcode):
     """
 
     if langcode == 'en':
-        text = re.sub(r'1\.5', 'one point five', text)
 
-        numbers = {'1': 'one',
+        numbers = {'0': 'zero',
+                    '1': 'one',
                     '2': 'two',
                     '3': 'three',
                     '4': 'four',
@@ -51,18 +51,40 @@ def clean_text (text,langcode):
                     '18': 'eighteen',
                     '19': 'nineteen',
                     '20': 'twenty',
-                    '21': 'twenty-one',
-                    '22': 'twenty-two',
-                    '23': 'twenty-three',
-                    '24': 'twenty-four',
-                    '25': 'twenty-five'}
+                    '30': 'thirty',
+                    '40': 'forty',
+                    '50': 'fifty',
+                    '60': 'sixty',
+                    '70': 'seventy',
+                    '80': 'eighty',
+                    '90': 'ninety'}
 
-        for numeral, word in numbers.items():
-            numeral_string = ' '+ numeral +' '
-            word_string = ' '+ word +' '
-            text = re.sub(numeral_string, word_string, text)
+        text = re.sub(r'1\.5', 'one point five', text)
+        for per in re.findall(r'\d+%', text):
+            text = re.sub(r'%', ' percent', text)
 
-    text = re.sub(r'[\.,"!?:;()]', '', text)
+        text = re.sub(r':00', '', text)
+        text = re.sub(r':', ' ', text)
+        text = re.sub(r'24/7', 'twenty-four seven', text)
+
+        for abb in re.findall(r'(?:^|\s)((?:[a-zA-Z]\.)+)(?:$|\s)', text):
+            cap_string = abb.replace('.','').upper()
+            text = re.sub(abb, cap_string, text)
+
+        for num in re.findall(r'(?:^|\s)(\d{1,2})(?:$|\s)', text):
+            if num in numbers.keys():
+                numeral_string = '{0}'.format(num)
+                word_string = '{0}'.format(numbers.get(num))
+                text = re.sub(numeral_string, word_string, text)
+            else:
+                ones = numbers.get(num[-1])
+                tens = numbers.get("{0}0".format(num[-2]))
+                numeral_string = '{0}'.format(num)
+                word_string = '{0}-{1}'.format(tens, ones)
+                text = re.sub(numeral_string, word_string, text)
+
+    # text = re.sub(r'[\.,"!?:;()]', '', text)
+    text = re.sub(r' & ', ' and ', text)
 
     return text
 

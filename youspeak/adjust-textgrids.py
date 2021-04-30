@@ -6,6 +6,10 @@ import shutil
 import subprocess
 from re import sub
 import sys
+try:
+    import Tkinter as tk  # Python2
+except ImportError:
+    import tkinter as tk  # Python3
 from tkinter.messagebox import showinfo
 from tkinter.filedialog import askopenfilename
 

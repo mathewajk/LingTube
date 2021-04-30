@@ -60,11 +60,14 @@ def clean_text (text,langcode):
                     '90': 'ninety'}
 
         text = re.sub(r'1\.5', 'one point five', text)
-        for per in re.findall(r'\d+%', text):
-            text = re.sub(r'%', ' percent', text)
+        for val, per in re.findall(r'(\d+)(%)', text):
+            text = re.sub(val+per, val+' percent', text)
 
         text = re.sub(r':00', '', text)
         text = re.sub(r':', ' ', text)
+        for i in range(2):
+            for pre, hyp, post in re.findall(r'([a-zA-Z]+)(\-)([a-zA-Z]+)', text):
+                text = re.sub(pre+hyp+post, pre+' '+post, text)
         text = re.sub(r'24/7', 'twenty-four seven', text)
 
         for abb in re.findall(r'(?:^|\s)((?:[a-zA-Z]\.)+)(?:$|\s)', text):
@@ -80,7 +83,7 @@ def clean_text (text,langcode):
                 ones = numbers.get(num[-1])
                 tens = numbers.get("{0}0".format(num[-2]))
                 numeral_string = '{0}'.format(num)
-                word_string = '{0}-{1}'.format(tens, ones)
+                word_string = '{0} {1}'.format(tens, ones)
                 text = re.sub(numeral_string, word_string, text)
 
     # text = re.sub(r'[\.,"!?:;()]', '', text)

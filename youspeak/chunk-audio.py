@@ -229,9 +229,9 @@ def main(args):
         if path.isdir(path.join(audio_path, dir_element)):
             channel_audio_path = path.join(audio_path, dir_element)
             for fn in listdir(channel_audio_path):
-                process_soundfile(fn, channel_audio_path, chunk_path)
+                process_soundfile(fn, channel_audio_path, chunk_path, args.overwrite)
         else:
-            process_soundfile(dir_element, audio_path, chunk_path)
+            process_soundfile(dir_element, audio_path, chunk_path, args.overwrite)
 
     out_message = path.join(chunk_path, "audio", "chunking", "README.md")
     with open(out_message, 'w') as file:

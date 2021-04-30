@@ -68,6 +68,17 @@ def main(args):
             out_tg_path = path.join(adjusted_path, video_id, "textgrids")
 
             video_script_fp = path.join("scripts", '{0}_{1}.praat'.format(mode, video_id))
+            if args.reset:
+                for fn in listdir(out_audio_path):
+                    shutil.move(path.join(out_audio_path, fn), path.join(audio_path, fn))
+                for fn in listdir(out_tg_path):
+                    remove(path.join(out_tg_path, fn))
+                continue
+
+            if args.move:
+                continue
+
+            video_script_fp = path.join(script_path, '{0}_{1}.praat'.format(mode, video_id))
 
             # TODO: Add compatability with Windows (use '\')
             path_to_audio = '../{0}/'.format(audio_path)
@@ -107,6 +118,8 @@ if __name__ == '__main__':
     parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: adjusted_corpus/$group)')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
     parser.add_argument('--review', '-r', default=None,  action='store_true', help='run in review mode to check adjusted textgrids')
+    parser.add_argument('--move', '-m', default=None,  action='store_true', help='run in move mode to only move sound files to queue')
+    parser.add_argument('--reset', default=None,  action='store_true', help='run in reset mode to only clear progress (for testing purposes)')
 
     args = parser.parse_args()
 

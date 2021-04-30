@@ -22,15 +22,16 @@ def main(args):
     root = tk.Tk()
     root.withdraw()
 
-    base_script_fp = path.join("scripts", mode+".praat")
+    script_path = path.join("resources", "scripts")
+    base_script_fp = path.join(script_path, mode+".praat")
     if not path.exists(base_script_fp):
         showinfo('Window', "Go to LingTube > youspeak and select the following file:\n\n{0}.praat".format(mode))
         script_fp = askopenfilename()
         script_fn = path.basename(script_fp)
-        if not path.exists("scripts"):
-            makedirs("scripts")
+        if not path.exists(script_path):
+            makedirs(script_path)
         shutil.copyfile(script_fp,
-                        path.join("scripts", script_fn))
+                        path.join(script_path, script_fn))
 
     # base paths
     aligned_audio_base = path.join("corpus", "aligned_audio")
@@ -67,7 +68,6 @@ def main(args):
             out_audio_path = path.join(adjusted_path, video_id, "audio")
             out_tg_path = path.join(adjusted_path, video_id, "textgrids")
 
-            video_script_fp = path.join("scripts", '{0}_{1}.praat'.format(mode, video_id))
             if args.reset:
                 for fn in listdir(out_audio_path):
                     shutil.move(path.join(out_audio_path, fn), path.join(audio_path, fn))

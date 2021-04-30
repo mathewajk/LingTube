@@ -80,11 +80,10 @@ def main(args):
 
             video_script_fp = path.join(script_path, '{0}_{1}.praat'.format(mode, video_id))
 
-            # TODO: Add compatability with Windows (use '\')
-            path_to_audio = '../{0}/'.format(audio_path)
-            path_to_tgs = '../{0}/'.format(tg_path)
-            path_to_out_audio = '../{0}/'.format(out_audio_path)
-            path_to_out_tgs = '../{0}/'.format(out_tg_path)
+            path_to_audio = path.join("..", "..", audio_path, "")
+            path_to_tgs = path.join("..", "..", tg_path, "")
+            path_to_out_audio = path.join("..", "..", out_audio_path, "")
+            path_to_out_tgs = path.join("..", "..", out_tg_path, "")
 
             if not path.exists(video_script_fp):
                 with open(base_script_fp, "rb") as file:

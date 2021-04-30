@@ -4,6 +4,7 @@ import argparse
 from os import listdir, makedirs, path
 from glob import glob
 import pandas as pd
+from re import sub, findall
 
 import parselmouth
 from parselmouth.praat import call, run_file
@@ -18,6 +19,13 @@ def main(args):
     if args.group:
         chunked_audio_base = path.join(chunked_audio_base, args.group)
         aligned_audio_base = path.join(aligned_audio_base, args.group)
+
+    dict_path = path.join(aligned_audio_base, "trained_models", "dictionary")
+    dict_fp = path.join(dict_path, "word_list.txt")
+    update_fp = path.join(dict_path, "update_list.txt")
+    if args.overwrite:
+        file = open(dict_fp, "w")
+        file.close()
 
     # Get file info
     if args.channel:
@@ -54,13 +62,15 @@ def main(args):
             adjusted_audio_path = path.join(aligned_audio_base, "adjusted_corpus", channel_id, video_id, "audio")
             adjusted_tg_path = path.join(aligned_audio_base, "adjusted_corpus", channel_id, video_id, "textgrids")
 
-            for dir in [out_audio_path, out_tg_path, pre_align_path, post_align_path, aligner_path, adjusted_queue_path, adjusted_audio_path, adjusted_tg_path]:
+            for dir in [dict_path, out_audio_path, out_tg_path, pre_align_path, post_align_path, aligner_path, adjusted_queue_path, adjusted_audio_path, adjusted_tg_path]:
                 if not path.exists(dir):
                     makedirs(dir)
 
             # Start audio-textgrid processing
             sil1 = call('Create Sound from formula', "silence", 1, 0, 0.25, 44100, "0")
             sil2 = call('Create Sound from formula', "silence", 1, 0, 0.25, 44100, "0")
+
+            word_list = []
 
             for i in df['id']:
                 row = df.iloc[i]
@@ -88,6 +98,23 @@ def main(args):
                         # Save copy to temp MFA pre-alignment dir
                         sound.save(path.join(pre_align_path, name+'.wav'), "WAV")
                         textgrid.save(path.join(pre_align_path, name+'.TextGrid'))
+
+                        punc = "[\.\?\!,;:\"\\\/]+"
+                        word_list = word_list + [sub(punc, '', word) for word in row['transcription'].split()]
+
+
+            # Add to word list for dictionary generation
+            with open(dict_fp, "a+") as word_file, open(update_fp, "a+") as update_file:
+                word_file.seek(0)
+                word_contents = word_file.read().split('\n')
+                for word in set(word_list):
+                    if not word in word_contents:
+                        update_file.seek(0)
+                        update_words = findall(r"\b(.+)\t", update_file.read())
+                        if word.isupper() and "-" not in word:
+                            if not sub("\-","",word.lower()) in update_words:
+                                update_file.write(word.lower()+'\n')
+                        word_file.write(word.lower()+'\n')
 
     out_message = path.join(aligned_audio_base, "adjusted_corpus", "README.md")
     with open(out_message, 'w') as file:

@@ -22,22 +22,23 @@ form Modify textgrids
 	sentence out_audio_dir replace_me_with_out_audpath
 	comment Directory to write the TextGrid to
 	sentence out_tg_dir replace_me_with_out_tgpath
+	comment Review List Directory
+	sentence out_list_dir replace_me_with_out_listpath
 endform
 
 #first rename
 clearinfo
 Create Strings as file list... list 'audio_dir$'*.wav
-all = Get number of strings
-iter = 0
+number_of_files = Get number of strings
 
-for ifile to all
+Read Strings from raw text file... 'out_list_dir$'full-review.txt
+Read Strings from raw text file... 'out_list_dir$'flagged-review.txt
+
+for i_file to number_of_files
 	select Strings list
-	soundname$ = Get string... ifile
+	soundname$ = Get string... i_file
 	name$ = soundname$-".wav"
 	Read from file... 'audio_dir$''name$'.wav
-
-	# Read in TextGrid
-	select Sound 'name$'
 	Read from file... 'tg_dir$''name$'.TextGrid
 
 	# Now bring up the editor to work on fixing the boundaries
@@ -45,31 +46,50 @@ for ifile to all
 	select Sound 'name$'
 	plus TextGrid 'name$'
 	Edit
-		#pause Please Edit TextGrid
 		beginPause: "Edit Text Grid"
 			comment: "Please adjust the boundaries on the TextGrid."
-		clicked = endPause: "Quit", "Save & Continue", 2, 1
+		clicked = endPause: "Quit", "Skip", "Done", "Flag", 3, 1
 		if clicked = 1
 					endeditor
 					select all
 					Remove
 					exitScript ()
+		elsif clicked = 2
+					select TextGrid 'name$'
+					plus Sound 'name$'
+					Remove
+		elsif clicked = 3
+					# Now save the result
+					select TextGrid 'name$'
+					Write to text file... 'out_tg_dir$''name$'.TextGrid
+					Remove
+					select Sound 'name$'
+					Write to WAV file... 'out_audio_dir$''name$'.wav
+					Remove
+					# Now add filename to full review file
+					select Strings full-review
+					Insert string... 0 'name$'.wav
+					Save as raw text file... 'out_list_dir$'full-review.txt
+					# Delete file
+					filedelete 'audio_dir$''name$'.wav
+		elsif clicked = 4
+					# Now save the result
+					select TextGrid 'name$'
+					Write to text file... 'out_tg_dir$''name$'.TextGrid
+					Remove
+					select Sound 'name$'
+					Write to WAV file... 'out_audio_dir$''name$'.wav
+					Remove
+					# Write filename to flagged review file
+					select Strings flagged-review
+					Insert string... 0 'name$'.wav
+					Save as raw text file... 'out_list_dir$'flagged-review.txt
+					# Delete file
+					filedelete 'audio_dir$''name$'.wav
 		endif
-    endeditor
+	endeditor
 
-	# Now save the result
-	select TextGrid 'name$'
-	Write to text file... 'out_tg_dir$''name$'.TextGrid
-	select Sound 'name$'
-	Write to WAV file... 'out_audio_dir$''name$'.wav
-	filedelete 'audio_dir$''name$'.wav
-	iter = iter + 1
-
-# Clear the lists
-select all
-minus Strings list
-Remove
 endfor
 
-select Strings list
+select all
 Remove

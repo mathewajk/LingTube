@@ -16,37 +16,67 @@ form Modify textgrids
 	sentence audio_dir	replace_me_with_out_audpath
 	comment Source Textgrid Directory
 	sentence tg_dir	replace_me_with_out_tgpath
+	comment Review List Filename
+	sentence file_list replace_me_with_out_file
 endform
 
-Create Strings as file list... list 'audio_dir$'*.wav
+if fileReadable: file_list$
+	# Read the text file and put it to the string file$
+	Read Strings from raw text file... 'file_list$'
+	Rename... review_list_in
+	Copy... review_list_out
+endif
+
+list_index = 1
+
 number_of_files = Get number of strings
-for x from 1 to number_of_files
-     select Strings list
-     current_file$ = Get string... x
-		 #basename$ = current_file$ - ".wav"
-		 #printline 'basename$'
-     Read from file... 'audio_dir$''current_file$'
-     object_name$ = selected$ ("Sound")
-     Read from file... 'tg_dir$''object_name$'.TextGrid
-     plus Sound 'object_name$'
+for i_file to number_of_files
+     select Strings review_list_in
+     soundname$ = Get string... i_file
+		 name$ = soundname$-".wav"
+	 	 Read from file... 'audio_dir$''name$'.wav
+     Read from file... 'tg_dir$''name$'.TextGrid
+
+		 select Sound 'name$'
+	 	 plus TextGrid 'name$'
      Edit
 		 beginPause: "Edit Text Grid"
-			 comment: "Make any changes then continue."
-		 clicked = endPause: "Quit", "Save & Continue", 2, 1
+			 comment: "Make any changes then click 'Done' to save, remove file from list and continue. If you need to return to this file later, click 'Keep' to save progress and continue."
+		 clicked = endPause: "Quit", "Skip", "Done", "Keep", 3, 1
 		 if clicked = 1
 					 endeditor
 					 select all
 					 Remove
 					 exitScript ()
+		 elsif clicked = 2
+					 select TextGrid 'name$'
+					 plus Sound 'name$'
+					 Remove
+					 list_index = list_index + 1
+		 elsif clicked = 3
+					 # Now save the result
+					 select TextGrid 'name$'
+					 Write to text file... 'out_tg_dir$''name$'.TextGrid
+					 Remove
+					 select Sound 'name$'
+					 Remove
+					 # Now remove filename from review file
+					 select Strings review_list_out
+					 Remove string... list_index
+					 Save as raw text file... 'file_list$'
+		 elsif clicked = 4
+					 # Now save the result
+					 select TextGrid 'name$'
+					 Write to text file... 'out_tg_dir$''name$'.TextGrid
+					 Remove
+					 select Sound 'name$'
+					 Remove
+					 list_index = list_index + 1
 		 endif
-     minus Sound 'object_name$'
-     Write to text file... 'tg_dir$''object_name$'.TextGrid
-     select all
-     minus Strings list
-     Remove
+		 endeditor
 endfor
 
-select Strings list
+select all
 Remove
 clearinfo
 printline TextGrids have been reviewed for files in 'audio_dir$'.

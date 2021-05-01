@@ -80,25 +80,36 @@ def main(args):
 
             video_script_fp = path.join(script_path, '{0}_{1}.praat'.format(mode, video_id))
 
-            path_to_audio = path.join("..", "..", audio_path, "")
-            path_to_tgs = path.join("..", "..", tg_path, "")
-            path_to_out_audio = path.join("..", "..", out_audio_path, "")
-            path_to_out_tgs = path.join("..", "..", out_tg_path, "")
+            #path_to_audio = r"..\\..\\corpus\\aligned_audio\\kor\\adjusted_corpus\\kchoi_UCZ59VSFJKWLwmQhodEsVerA\\kchoi_UCZ59VSFJKWLwmQhodEsVerA_CUDd1EzFRh8\queue\\"
+            path_to_audio = path.join("..", "..", audio_path, "").encode('unicode_escape').decode()
+            path_to_tgs = path.join("..", "..", tg_path, "").encode('unicode_escape').decode()
+            path_to_out_audio = path.join("..", "..", out_audio_path, "").encode('unicode_escape').decode()
+            path_to_out_tgs = path.join("..", "..", out_tg_path, "").encode('unicode_escape').decode()
 
             if not path.exists(video_script_fp):
                 with open(base_script_fp, "rb") as file:
+                    print('\nOpened file '+base_script_fp)
                     contents = str(file.read(), 'UTF-8')
-                    contents = sub("replace_me_with_audpath", path_to_audio, contents)
-                    contents = sub("replace_me_with_tgpath", path_to_tgs, contents)
-                    contents = sub("replace_me_with_out_audpath", path_to_out_audio, contents)
-                    contents = sub("replace_me_with_out_tgpath", path_to_out_tgs, contents)
+                    contents = sub(r"replace_me_with_audpath", (path_to_audio), contents)
+                    contents = sub(r"replace_me_with_tgpath", (path_to_tgs), contents)
+                    contents = sub(r"replace_me_with_out_audpath", (path_to_out_audio), contents)
+                    contents = sub(r"replace_me_with_out_tgpath", (path_to_out_tgs), contents)
 
                 with open(video_script_fp, "w") as file:
                     file.write(contents)
+                    print('Created file '+video_script_fp)
 
-            subprocess.run(['open', video_script_fp], check=True)
+            print('Ready to run: '+video_script_fp)
+            try:
+                subprocess.run(['open', video_script_fp], check=True)
+            except FileNotFoundError:
+                try:
+                    print('Using subprocess.Popen')
+                    subprocess.Popen(['praat', video_script_fp], shell=True)
+                except:
+                    print('Failed to open script in Praat')
 
-            print('\nSuccessfully launched Praat for: {0}'.format(video_id))
+            print('\nLaunched Praat for: {0}'.format(video_id))
             print('Run the script in Praat now.')
 
             print('\nType "next" to move on to the next video. To quit, type "quit".\n')

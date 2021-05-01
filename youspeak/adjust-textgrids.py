@@ -25,8 +25,11 @@ def open_praat_script (args, video_info):
         instructions.config(text="Initializing directory...")
         for fn in [fn for fn in listdir(queue_path) if not fn.startswith('.')]:
             name, ext = path.splitext(fn)
-            shutil.copy(path.join(aligned_path, video_id, name+'.TextGrid'),
-                    path.join(queue_path, name+'.TextGrid'))
+            try:
+                shutil.copy(path.join(aligned_path, video_id, name+'.TextGrid'),
+                        path.join(queue_path, name+'.TextGrid'))
+            except FileNotFoundError:
+                print('No aligned TextGrid for: {0}'.format(fn))
     if not (path.exists(out_full_fp) and path.exists(out_flag_fp)):
         with open(out_full_fp, "w") as full_file, open(out_flag_fp, "w") as flag_file:
             print('\nInitialized directory for: {0}'.format(video_id))

@@ -1,17 +1,15 @@
-################################################################
-# This is a script that automatically brings up a TextGrid for
-# marking boundaries. The 'outdir' - the directory to where the
-# files are written must be different from the text grid source
-# directory or else the progam will keep bringing up the same
-# files if you don't finish in one session. A text grid is only
-# saved if you click 'continue'.
+#########################################################################
+# This is a script that automatically brings up a Sound and
+# TextGrid for adjusting boundaries after forced alignment.
+# It is a component of adjust-textgrids.py in LingTube/YouSpeak.
 # -------------------------------------------------------------
-# Modified by Lauretta Cheng - UM - Apr 2021
-# Original by Grant McGuire - UCSC - July 2011
-################################################################
+# Lauretta Cheng, 2021
+# Based on scripts by Grant McGuire, Katherine Crosswhite, Mark Antoniou
+#########################################################################
 
-# Be sure not to forget the slash (Windows: backslash, OSX: forward
-# slash)  at the end of the directory name.
+# Compatible with both Windows and OSX
+# Requires the slash at the end of the directory name.
+# (Windows: backslash, OSX: forward slash)
 
 form Modify textgrids
 	comment Source Audio Directory

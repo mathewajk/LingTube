@@ -1,16 +1,16 @@
-################################################################
+#########################################################################
 # This is a script that automatically brings up a Sound and
 # TextGrid for reviewing/changing the boundaries or labels.
-# marking boundaries.
-# **MAC VERSION**
+# It is a component of adjust-textgrids.py in LingTube/YouSpeak.
 # -------------------------------------------------------------
-# Modified by Lauretta Cheng, 2021
-# Modified by Mark Antoniou, 2010
-# Original by Katherine Crosswhite
-################################################################
+# Lauretta Cheng, 2021
+# Based on scripts by Grant McGuire, Katherine Crosswhite, Mark Antoniou
+#########################################################################
 
-# Be sure not to forget the slash (Windows: backslash, OSX: forward
-# slash)  at the end of the directory name.
+# Compatible with both Windows and OSX
+# Requires the slash at the end of the directory name.
+# (Windows: backslash, OSX: forward slash)
+
 form Modify textgrids
 	comment Source Audio Directory
 	sentence audio_dir	replace_me_with_out_audpath

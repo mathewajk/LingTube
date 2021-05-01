@@ -12,15 +12,109 @@ except ImportError:
     import tkinter as tk  # Python3
 from tkinter.messagebox import showinfo
 from tkinter.filedialog import askopenfilename
+from functools import partial
+
+
+def open_praat_script (args, video_info):
+
+    video_id, original_path, audio_path, tg_path, out_audio_path, out_tg_path, out_review_path, full_status, flag_status = video_info[i]
+
+    global video_script_fp
+    video_script_fp = path.join(script_path, '{0}_{1}.praat'.format(mode, video_id))
+
+    path_to_audio = path.join("..", "..", audio_path, "").encode('unicode_escape').decode()
+    path_to_tgs = path.join("..", "..", tg_path, "").encode('unicode_escape').decode()
+    path_to_out_audio = path.join("..", "..", out_audio_path, "").encode('unicode_escape').decode()
+    path_to_out_tgs = path.join("..", "..", out_tg_path, "").encode('unicode_escape').decode()
+    path_to_out_lists = path.join("..", "..", out_review_path, "").encode('unicode_escape').decode()
+
+    if args.review:
+        review_category = review_type.get()
+        if review_category == 'Full' and full_status == 0:
+            instructions.config(text="No files to be reviewed in: Full")
+            return 0
+        elif review_category == 'Flagged' and flag_status == 0:
+            instructions.config(text="No files to be reviewed in: Flagged")
+            return 0
+
+    if not path.exists(video_script_fp):
+        with open(base_script_fp, "rb") as file:
+            # print('\nOpened file '+base_script_fp)
+            contents = str(file.read(), 'UTF-8')
+            contents = sub(r"replace_me_with_audpath", (path_to_audio), contents)
+            contents = sub(r"replace_me_with_tgpath", (path_to_tgs), contents)
+            contents = sub(r"replace_me_with_out_audpath", (path_to_out_audio), contents)
+            contents = sub(r"replace_me_with_out_tgpath", (path_to_out_tgs), contents)
+            contents = sub(r"replace_me_with_out_listpath", (path_to_out_lists), contents)
+            if args.review:
+                if review_category == 'Flagged':
+                    contents = sub(r"replace_me_with_out_file", (path_to_out_lists+r'flagged-review.txt'), contents)
+                else:
+                    contents = sub(r"replace_me_with_out_file", (path_to_out_lists+r'full-review.txt'), contents)
+
+        with open(video_script_fp, "w") as file:
+            file.write(contents)
+            # print('Created file '+video_script_fp)
+
+    try:
+        subprocess.run(['open', video_script_fp], check=True)
+    except FileNotFoundError:
+        try:
+            # print('Using subprocess.Popen')
+            subprocess.Popen(['praat', video_script_fp], shell=True)
+        except:
+            print('Failed to open script in Praat')
+
+    print('\nLaunched: {0}. {1}'.format(i, video_id))
+
+    instructions.config(text="Ready! Run the script in Praat now.")
+
+def next_video (args, video_info):
+    global i
+
+    try:
+        remove(video_script_fp)
+    except FileNotFoundError:
+        print('\nSkipped: {0}. {1}'.format(i, video_info[i][0]))
+    except NameError:
+        print('\nSkipped: {0}. {1}'.format(i, video_info[i][0]))
+        # print('\nPlease run Open to begin with the first video.')
+        # return 1
+
+    i += 1
+
+    if i >= len(video_info):
+        sys.exit('\nNo more videos to process in {0} mode.'.format(mode))
+
+    display.config(text="{0}: {1}".format(video_info[i][0].split('_')[0], video_info[i][0].split('_')[2]))
+    if args.review:
+        review_type.set("Full")
+        instructions.config(text="Select review type: 'Full' or 'Flagged'.\nThen, click 'Open' to start.")
+    else:
+        instructions.config(text="Click 'Open' to start.")
+
+def quit_program ():
+    try:
+        remove(video_script_fp)
+    except:
+        pass
+    sys.exit('\nSafely quit program!\n')
 
 def main(args):
+
+    global mode
+    global script_path
+    global base_script_fp
 
     mode = 'adjust-alignment'
     if args.review:
         mode = 'review-alignment'
 
+    if args.reset:
+        print('\n------ RESET MODE ---------')
+        print('\n**WARNING: This is a destructive operation. All progress will be lost.**')
+
     root = tk.Tk()
-    root.withdraw()
 
     script_path = path.join("resources", "scripts")
     base_script_fp = path.join(script_path, mode+".praat")
@@ -45,6 +139,7 @@ def main(args):
     else:
         channel_list = [channel_id for channel_id in listdir(path.join(aligned_audio_base, "original_corpus")) if not channel_id.startswith('.')]
 
+    video_info = []
     for channel_id in channel_list:
         original_path = path.join(aligned_audio_base, "original_corpus", channel_id)
         aligned_path = path.join(aligned_audio_base, "aligned_corpus", channel_id)
@@ -54,81 +149,123 @@ def main(args):
 
         for video_id in video_list:
 
-            tg_path = path.join(aligned_path, video_id)
             audio_path = path.join(adjusted_path, video_id, "queue")
-
-            if not args.review:
-                # Move audio files to queue if not already there
-                if not len([fn for fn in listdir(audio_path) if not fn.startswith('.')]):
-                    for fn in listdir(path.join(original_path, video_id)):
-                        if path.splitext(fn)[1]=='.wav':
-                            shutil.move(path.join(original_path, video_id, fn),
-                                        path.join(audio_path, fn))
+            tg_path = path.join(aligned_path, video_id)
 
             out_audio_path = path.join(adjusted_path, video_id, "audio")
             out_tg_path = path.join(adjusted_path, video_id, "textgrids")
 
-            if args.reset:
-                for fn in listdir(out_audio_path):
-                    shutil.move(path.join(out_audio_path, fn), path.join(audio_path, fn))
-                for fn in listdir(out_tg_path):
-                    remove(path.join(out_tg_path, fn))
-                continue
+            out_review_path = path.join(adjusted_path, video_id)
+            out_full_fp = path.join(out_review_path,  "full-review.txt")
+            out_flag_fp = path.join(out_review_path, "flagged-review.txt")
 
-            if args.move:
-                continue
+            full_status = 0
+            flag_status = 0
 
-            video_script_fp = path.join(script_path, '{0}_{1}.praat'.format(mode, video_id))
+            if not args.review:
+                # Move audio files to queue if both queue and outdir are empty
+                if not len([fn for fn in listdir(audio_path) if not fn.startswith('.')]) and not len([fn for fn in listdir(out_audio_path) if not fn.startswith('.')]):
+                    for fn in listdir(path.join(original_path, video_id)):
+                        if path.splitext(fn)[1]=='.wav':
+                            shutil.move(path.join(original_path, video_id, fn),
+                                        path.join(audio_path, fn))
+                    with open(out_full_fp, "w") as full_file, open(out_flag_fp, "w") as flag_file:
+                        print("Moved audio files to queue and created review files for: {0}".format(video_id))
 
-            #path_to_audio = r"..\\..\\corpus\\aligned_audio\\kor\\adjusted_corpus\\kchoi_UCZ59VSFJKWLwmQhodEsVerA\\kchoi_UCZ59VSFJKWLwmQhodEsVerA_CUDd1EzFRh8\queue\\"
-            path_to_audio = path.join("..", "..", audio_path, "").encode('unicode_escape').decode()
-            path_to_tgs = path.join("..", "..", tg_path, "").encode('unicode_escape').decode()
-            path_to_out_audio = path.join("..", "..", out_audio_path, "").encode('unicode_escape').decode()
-            path_to_out_tgs = path.join("..", "..", out_tg_path, "").encode('unicode_escape').decode()
+                # Move all audio files in outdir back to queue (i.e,, regardless of status, revert to full queue, empty outdir)
+                if args.reset:
+                    print("\nReset audio files back to queue and clear review files for:\n\n{0}? (y/n)".format(video_id))
+                    reset_files = None
+                    while reset_files not in ['y', 'n']:
+                        reset_files = input()
+                    if reset_files == 'y':
+                        for fn in listdir(out_audio_path):
+                            shutil.move(path.join(out_audio_path, fn), path.join(audio_path, fn))
+                        for fn in listdir(out_tg_path):
+                            remove(path.join(out_tg_path, fn))
+                        with open(out_full_fp, "w") as full_file, open(out_flag_fp, "w") as flag_file:
+                            print('Reset complete!')
+                    else:
+                        print('No reset.')
+                    print('\n----------------------------')
 
-            if not path.exists(video_script_fp):
-                with open(base_script_fp, "rb") as file:
-                    print('\nOpened file '+base_script_fp)
-                    contents = str(file.read(), 'UTF-8')
-                    contents = sub(r"replace_me_with_audpath", (path_to_audio), contents)
-                    contents = sub(r"replace_me_with_tgpath", (path_to_tgs), contents)
-                    contents = sub(r"replace_me_with_out_audpath", (path_to_out_audio), contents)
-                    contents = sub(r"replace_me_with_out_tgpath", (path_to_out_tgs), contents)
+                # Skip adding video to list if in adjust mode when queue is empty but outdir is full (not empty)
+                if not len([fn for fn in listdir(audio_path) if not fn.startswith('.')]) and len([fn for fn in listdir(out_audio_path) if not fn.startswith('.')]):
+                    continue
 
-                with open(video_script_fp, "w") as file:
-                    file.write(contents)
-                    print('Created file '+video_script_fp)
+            elif args.review:
+                if args.reset:
+                    print('No resetting available when in review mode.')
 
-            print('Ready to run: '+video_script_fp)
-            try:
-                subprocess.run(['open', video_script_fp], check=True)
-            except FileNotFoundError:
-                try:
-                    print('Using subprocess.Popen')
-                    subprocess.Popen(['praat', video_script_fp], shell=True)
-                except:
-                    print('Failed to open script in Praat')
+                with open(out_full_fp, "r") as full_file, open(out_flag_fp, "r") as flag_file:
+                    if len(full_file.read()):
+                        full_status = 1
+                    if len(flag_file.read()):
+                        flag_status = 1
 
-            print('\nLaunched Praat for: {0}'.format(video_id))
-            print('Run the script in Praat now.')
+                # Skip adding video to list in review mode if both review list files are empty
+                if full_status == 0 and flag_status == 0:
+                    continue
 
-            print('\nType "next" to move on to the next video. To quit, type "quit".\n')
-            next_video = None
-            while next_video not in ['next', 'quit']:
-                next_video = input()
-                remove(video_script_fp)
-                if next_video == 'quit':
-                    sys.exit('\nSafely quit program!\n')
+            video_info.append((video_id, original_path, audio_path, tg_path, out_audio_path, out_tg_path, out_review_path, full_status, flag_status))
+
+    # If all files are completed, exit program
+    if len(video_info) == 0:
+        sys.exit('\nNo more videos to process in {0} mode.'.format(mode))
+    else:
+        print('\nNumber of videos remaining: {0}'.format(len(video_info)))
+        for idx, info in enumerate(video_info):
+            print('{0}. {1}'.format(idx, info[0]))
+
+        global i
+        i = 0
+
+
+    # Pop-up Window
+    root.update()
+    root.title("Adjust TextGrids")
+    frame = tk.Frame(root)
+    frame.grid(row=8, column=8, padx=10, pady=10)
+
+    global display
+    display = tk.Label(frame, text="")
+    display.grid(row=0, column=0, columnspan=3)
+    display.config(text="{0}: {1}".format(video_info[i][0].split('_')[0], video_info[i][0].split('_')[2]))
+
+    tk.Button(frame, text= "  Quit  ", command=quit_program, bg="grey").grid(row=1, column=0)
+    tk.Button(frame, text="   Open   ", command=partial(open_praat_script, args, video_info), bg="grey").grid(row=1, column=1)
+    tk.Button(frame, text="   Next   ", command=partial(next_video, args, video_info), bg="grey").grid(row=1, column=2)
+
+    if args.review:
+        global review_type
+        # tk.Label(frame, text="Review Type: ").grid(row = 2, column = 0)
+        review_type = tk.StringVar()
+        review_choices = {"Full", "Flagged"}
+        review_type.set("Full")
+        dropdown = tk.OptionMenu(frame, review_type, *review_choices)
+        dropdown.grid(row=2, column=1, columnspan=1, sticky='S')
+
+    # tk.Label(frame, text="...").grid(row = 3, column = 0, columnspan=3)
+
+    global instructions
+    instructions = tk.Label(frame, text="")
+    instructions.grid(row=4, column=0, columnspan=3)
+    if args.review:
+        instructions.config(text="Select review type: 'Full' or 'Flagged'.\nThen, click 'Open' to start.")
+    else:
+        instructions.config(text="Click 'Open' to start.")
+
+    root.mainloop()
+
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Open Praat scripts for adjusting force-aligned textgrids.')
+    parser = argparse.ArgumentParser(description='Open Praat scripts for adjusting and reviewing force-aligned textgrids.')
 
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: adjusted_corpus/$group)')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
     parser.add_argument('--review', '-r', default=None,  action='store_true', help='run in review mode to check adjusted textgrids')
-    parser.add_argument('--move', '-m', default=None,  action='store_true', help='run in move mode to only move sound files to queue')
     parser.add_argument('--reset', default=None,  action='store_true', help='run in reset mode to only clear progress (for testing purposes)')
 
     args = parser.parse_args()

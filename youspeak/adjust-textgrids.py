@@ -119,7 +119,7 @@ def main(args):
     script_path = path.join("resources", "scripts")
     base_script_fp = path.join(script_path, mode+".praat")
     if not path.exists(base_script_fp):
-        showinfo('Window', "Go to LingTube > youspeak and select the following file:\n\n{0}.praat".format(mode))
+        showinfo('Window', "Go to LingTube > youspeak > praat. Select the following file:\n\n{0}.praat".format(mode))
         script_fp = askopenfilename()
         script_fn = path.basename(script_fp)
         if not path.exists(script_path):

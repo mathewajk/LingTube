@@ -17,16 +17,14 @@ from functools import partial
 
 def open_praat_script (args, video_info):
 
-    video_id, original_path, audio_path, tg_path, out_audio_path, out_tg_path, out_review_path, full_status, flag_status = video_info[i]
+    video_id, video_path, full_status, flag_status = video_info[i]
 
     global video_script_fp
-    video_script_fp = path.join(script_path, '{0}_{1}.praat'.format(mode, video_id))
+    video_script_fp = path.join(video_path, '{0}_{1}.praat'.format(mode, video_id))
 
-    path_to_audio = path.join("..", "..", audio_path, "").encode('unicode_escape').decode()
-    path_to_tgs = path.join("..", "..", tg_path, "").encode('unicode_escape').decode()
-    path_to_out_audio = path.join("..", "..", out_audio_path, "").encode('unicode_escape').decode()
-    path_to_out_tgs = path.join("..", "..", out_tg_path, "").encode('unicode_escape').decode()
-    path_to_out_lists = path.join("..", "..", out_review_path, "").encode('unicode_escape').decode()
+    path_to_queue = path.join("queue", "").encode('unicode_escape').decode()
+    path_to_out_tgs = path.join("textgrids", "").encode('unicode_escape').decode()
+    path_to_out_audio = path.join("audio", "").encode('unicode_escape').decode()
 
     if args.review:
         review_category = review_type.get()
@@ -41,16 +39,16 @@ def open_praat_script (args, video_info):
         with open(base_script_fp, "rb") as file:
             # print('\nOpened file '+base_script_fp)
             contents = str(file.read(), 'UTF-8')
-            contents = sub(r"replace_me_with_audpath", (path_to_audio), contents)
-            contents = sub(r"replace_me_with_tgpath", (path_to_tgs), contents)
+            contents = sub(r"replace_me_with_audpath", (path_to_queue), contents)
+            contents = sub(r"replace_me_with_tgpath", (path_to_queue), contents)
             contents = sub(r"replace_me_with_out_audpath", (path_to_out_audio), contents)
             contents = sub(r"replace_me_with_out_tgpath", (path_to_out_tgs), contents)
-            contents = sub(r"replace_me_with_out_listpath", (path_to_out_lists), contents)
+            contents = sub(r"replace_me_with_out_listpath", "", contents)
             if args.review:
                 if review_category == 'Flagged':
-                    contents = sub(r"replace_me_with_out_file", (path_to_out_lists+r'flagged-review.txt'), contents)
+                    contents = sub(r"replace_me_with_out_file", r'flagged-review.txt', contents)
                 else:
-                    contents = sub(r"replace_me_with_out_file", (path_to_out_lists+r'full-review.txt'), contents)
+                    contents = sub(r"replace_me_with_out_file", r'full-review.txt', contents)
 
         with open(video_script_fp, "w") as file:
             file.write(contents)
@@ -78,8 +76,6 @@ def next_video (args, video_info):
         print('\nSkipped: {0}. {1}'.format(i, video_info[i][0]))
     except NameError:
         print('\nSkipped: {0}. {1}'.format(i, video_info[i][0]))
-        # print('\nPlease run Open to begin with the first video.')
-        # return 1
 
     i += 1
 
@@ -149,30 +145,31 @@ def main(args):
 
         for video_id in video_list:
 
-            audio_path = path.join(adjusted_path, video_id, "queue")
-            tg_path = path.join(aligned_path, video_id)
-
+            queue_path = path.join(adjusted_path, video_id, "queue")
             out_audio_path = path.join(adjusted_path, video_id, "audio")
             out_tg_path = path.join(adjusted_path, video_id, "textgrids")
 
-            out_review_path = path.join(adjusted_path, video_id)
-            out_full_fp = path.join(out_review_path,  "full-review.txt")
-            out_flag_fp = path.join(out_review_path, "flagged-review.txt")
+            video_path = path.join(adjusted_path, video_id)
+            out_full_fp = path.join(video_path,  "full-review.txt")
+            out_flag_fp = path.join(video_path, "flagged-review.txt")
 
             full_status = 0
             flag_status = 0
 
             if not args.review:
-                # Move audio files to queue if both queue and outdir are empty
-                if not len([fn for fn in listdir(audio_path) if not fn.startswith('.')]) and not len([fn for fn in listdir(out_audio_path) if not fn.startswith('.')]):
+                # Move files to queue if both queue and outdir are empty
+                if not len([fn for fn in listdir(queue_path) if not fn.startswith('.')]) and not len([fn for fn in listdir(out_audio_path) if not fn.startswith('.')]):
                     for fn in listdir(path.join(original_path, video_id)):
-                        if path.splitext(fn)[1]=='.wav':
+                        name, ext = path.splitext(fn)
+                        if ext =='.wav':
                             shutil.move(path.join(original_path, video_id, fn),
-                                        path.join(audio_path, fn))
+                                        path.join(queue_path, fn))
+                            shutil.copy(path.join(aligned_path, video_id, name+'.TextGrid'),
+                                        path.join(queue_path, name+'.TextGrid'))
                     with open(out_full_fp, "w") as full_file, open(out_flag_fp, "w") as flag_file:
-                        print("Moved audio files to queue and created review files for: {0}".format(video_id))
+                        print("Moved aligned files to queue and created review files for: {0}".format(video_id))
 
-                # Move all audio files in outdir back to queue (i.e,, regardless of status, revert to full queue, empty outdir)
+                # Move all files in outdir back to queue (i.e,, regardless of status, revert to full queue, empty outdir)
                 if args.reset:
                     print("\nReset audio files back to queue and clear review files for:\n\n{0}? (y/n)".format(video_id))
                     reset_files = None
@@ -180,9 +177,10 @@ def main(args):
                         reset_files = input()
                     if reset_files == 'y':
                         for fn in listdir(out_audio_path):
-                            shutil.move(path.join(out_audio_path, fn), path.join(audio_path, fn))
+                            shutil.move(path.join(out_audio_path, fn), path.join(queue_path, fn))
                         for fn in listdir(out_tg_path):
-                            remove(path.join(out_tg_path, fn))
+                            shutil.move(path.join(out_tg_path, fn), path.join(queue_path, fn))
+                            # remove(path.join(out_tg_path, fn))
                         with open(out_full_fp, "w") as full_file, open(out_flag_fp, "w") as flag_file:
                             print('Reset complete!')
                     else:
@@ -190,7 +188,7 @@ def main(args):
                     print('\n----------------------------')
 
                 # Skip adding video to list if in adjust mode when queue is empty but outdir is full (not empty)
-                if not len([fn for fn in listdir(audio_path) if not fn.startswith('.')]) and len([fn for fn in listdir(out_audio_path) if not fn.startswith('.')]):
+                if not len([fn for fn in listdir(queue_path) if not fn.startswith('.')]) and len([fn for fn in listdir(out_audio_path) if not fn.startswith('.')]):
                     continue
 
             elif args.review:
@@ -207,7 +205,7 @@ def main(args):
                 if full_status == 0 and flag_status == 0:
                     continue
 
-            video_info.append((video_id, original_path, audio_path, tg_path, out_audio_path, out_tg_path, out_review_path, full_status, flag_status))
+            video_info.append((video_id, video_path, full_status, flag_status))
 
     # If all files are completed, exit program
     if len(video_info) == 0:

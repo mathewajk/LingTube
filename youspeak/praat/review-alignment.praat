@@ -41,7 +41,7 @@ for i_file to number_of_files
 	 	 plus TextGrid 'name$'
      Edit
 		 beginPause: "Edit Text Grid"
-			 comment: "Make any changes then click 'Done' to save, remove file from list and continue. If you need to return to this file later, click 'Keep' to save progress and continue."
+			 comment: "Click 'Done' to save and continue. Click 'Keep' if need to return to this file later."
 		 clicked = endPause: "Quit", "Skip", "Done", "Keep", 3, 1
 		 if clicked = 1
 					 endeditor
@@ -56,7 +56,7 @@ for i_file to number_of_files
 		 elsif clicked = 3
 					 # Now save the result
 					 select TextGrid 'name$'
-					 Write to text file... 'out_tg_dir$''name$'.TextGrid
+					 Write to text file... 'tg_dir$''name$'.TextGrid
 					 Remove
 					 select Sound 'name$'
 					 Remove
@@ -67,7 +67,7 @@ for i_file to number_of_files
 		 elsif clicked = 4
 					 # Now save the result
 					 select TextGrid 'name$'
-					 Write to text file... 'out_tg_dir$''name$'.TextGrid
+					 Write to text file... 'tg_dir$''name$'.TextGrid
 					 Remove
 					 select Sound 'name$'
 					 Remove

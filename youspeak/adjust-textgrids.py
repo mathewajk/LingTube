@@ -4,6 +4,7 @@ import argparse
 from os import listdir, makedirs, path, remove
 import shutil
 import subprocess
+from glob import glob
 from re import sub
 import sys
 try:
@@ -17,8 +18,20 @@ from functools import partial
 
 def open_praat_script (args, video_info):
 
-    video_id, video_path, full_status, flag_status = video_info[i]
+    video_id, aligned_path, queue_path, video_path, out_full_fp, out_flag_fp, full_status, flag_status = video_info[i]
 
+    # Initialize video directory
+    if not glob(path.join(video_path, "**", "*.TextGrid"), recursive=True):
+        instructions.config(text="Initializing directory...")
+        for fn in [fn for fn in listdir(queue_path) if not fn.startswith('.')]:
+            name, ext = path.splitext(fn)
+            shutil.copy(path.join(aligned_path, video_id, name+'.TextGrid'),
+                    path.join(queue_path, name+'.TextGrid'))
+    if not (path.exists(out_full_fp) and path.exists(out_flag_fp)):
+        with open(out_full_fp, "w") as full_file, open(out_flag_fp, "w") as flag_file:
+            print('\nInitialized directory for: {0}'.format(video_id))
+
+    # Start regular process
     global video_script_fp
     video_script_fp = path.join(video_path, '{0}_{1}.praat'.format(mode, video_id))
 
@@ -35,24 +48,26 @@ def open_praat_script (args, video_info):
             instructions.config(text="No files to be reviewed in: Flagged")
             return 0
 
-    if not path.exists(video_script_fp):
-        with open(base_script_fp, "rb") as file:
-            # print('\nOpened file '+base_script_fp)
-            contents = str(file.read(), 'UTF-8')
-            contents = sub(r"replace_me_with_audpath", (path_to_queue), contents)
-            contents = sub(r"replace_me_with_tgpath", (path_to_queue), contents)
-            contents = sub(r"replace_me_with_out_audpath", (path_to_out_audio), contents)
-            contents = sub(r"replace_me_with_out_tgpath", (path_to_out_tgs), contents)
-            contents = sub(r"replace_me_with_out_listpath", "", contents)
-            if args.review:
-                if review_category == 'Flagged':
-                    contents = sub(r"replace_me_with_out_file", r'flagged-review.txt', contents)
-                else:
-                    contents = sub(r"replace_me_with_out_file", r'full-review.txt', contents)
+    if path.exists(video_script_fp):
+        remove(video_script_fp)
 
-        with open(video_script_fp, "w") as file:
-            file.write(contents)
-            # print('Created file '+video_script_fp)
+    with open(base_script_fp, "rb") as file:
+        # print('\nOpened file '+base_script_fp)
+        contents = str(file.read(), 'UTF-8')
+        contents = sub(r"replace_me_with_audpath", (path_to_queue), contents)
+        contents = sub(r"replace_me_with_tgpath", (path_to_queue), contents)
+        contents = sub(r"replace_me_with_out_audpath", (path_to_out_audio), contents)
+        contents = sub(r"replace_me_with_out_tgpath", (path_to_out_tgs), contents)
+        contents = sub(r"replace_me_with_out_listpath", "", contents)
+        if args.review:
+            if review_category == 'Flagged':
+                contents = sub(r"replace_me_with_out_file", r'flagged-review.txt', contents)
+            else:
+                contents = sub(r"replace_me_with_out_file", r'full-review.txt', contents)
+
+    with open(video_script_fp, "w") as file:
+        file.write(contents)
+        # print('Created file '+video_script_fp)
 
     try:
         subprocess.run(['open', video_script_fp], check=True)
@@ -111,6 +126,7 @@ def main(args):
         print('\n**WARNING: This is a destructive operation. All progress will be lost.**')
 
     root = tk.Tk()
+    root.withdraw()
 
     script_path = path.join("resources", "scripts")
     base_script_fp = path.join(script_path, mode+".praat")
@@ -164,14 +180,11 @@ def main(args):
                         if ext =='.wav':
                             shutil.move(path.join(original_path, video_id, fn),
                                         path.join(queue_path, fn))
-                            shutil.copy(path.join(aligned_path, video_id, name+'.TextGrid'),
-                                        path.join(queue_path, name+'.TextGrid'))
-                    with open(out_full_fp, "w") as full_file, open(out_flag_fp, "w") as flag_file:
-                        print("Moved aligned files to queue and created review files for: {0}".format(video_id))
+                    print("Moved aligned files to queue for: {0}".format(video_id))
 
                 # Move all files in outdir back to queue (i.e,, regardless of status, revert to full queue, empty outdir)
                 if args.reset:
-                    print("\nReset audio files back to queue and clear review files for:\n\n{0}? (y/n)".format(video_id))
+                    print("\nReset files back to queue and delete review files for:\n\n{0}? (y/n)".format(video_id))
                     reset_files = None
                     while reset_files not in ['y', 'n']:
                         reset_files = input()
@@ -179,10 +192,20 @@ def main(args):
                         for fn in listdir(out_audio_path):
                             shutil.move(path.join(out_audio_path, fn), path.join(queue_path, fn))
                         for fn in listdir(out_tg_path):
-                            shutil.move(path.join(out_tg_path, fn), path.join(queue_path, fn))
-                            # remove(path.join(out_tg_path, fn))
-                        with open(out_full_fp, "w") as full_file, open(out_flag_fp, "w") as flag_file:
-                            print('Reset complete!')
+                            if path.splitext(fn)[-1] == '.TextGrid':
+                                remove(path.join(out_tg_path, fn))
+                        for fn in listdir(queue_path):
+                            if path.splitext(fn)[-1] == '.TextGrid':
+                                remove(path.join(queue_path, fn))
+                        try:
+                            remove(out_full_fp)
+                        except:
+                            pass
+                        try:
+                            remove(out_flag_fp)
+                        except:
+                            pass
+                        print('Reset complete!')
                     else:
                         print('No reset.')
                     print('\n----------------------------')
@@ -194,18 +217,18 @@ def main(args):
             elif args.review:
                 if args.reset:
                     print('No resetting available when in review mode.')
-
-                with open(out_full_fp, "r") as full_file, open(out_flag_fp, "r") as flag_file:
-                    if len(full_file.read()):
-                        full_status = 1
-                    if len(flag_file.read()):
-                        flag_status = 1
+                if path.exists(out_full_fp) and path.exists(out_flag_fp):
+                    with open(out_full_fp, "r") as full_file, open(out_flag_fp, "r") as flag_file:
+                        if len(full_file.read()):
+                            full_status = 1
+                        if len(flag_file.read()):
+                            flag_status = 1
 
                 # Skip adding video to list in review mode if both review list files are empty
                 if full_status == 0 and flag_status == 0:
                     continue
 
-            video_info.append((video_id, video_path, full_status, flag_status))
+            video_info.append((video_id, aligned_path,  queue_path, video_path, out_full_fp, out_flag_fp, full_status, flag_status))
 
     # If all files are completed, exit program
     if len(video_info) == 0:
@@ -220,6 +243,7 @@ def main(args):
 
 
     # Pop-up Window
+    root.deiconify()
     root.update()
     root.title("Adjust TextGrids")
     frame = tk.Frame(root)

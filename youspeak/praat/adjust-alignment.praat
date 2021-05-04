@@ -38,6 +38,7 @@ for i_file to number_of_files
 	name$ = soundname$-".wav"
 	Read from file... 'audio_dir$''name$'.wav
 	Read from file... 'tg_dir$''name$'.TextGrid
+	Insert interval tier... 3 utterance - issues
 
 	# Now bring up the editor to work on fixing the boundaries
 

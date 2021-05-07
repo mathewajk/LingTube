@@ -177,13 +177,16 @@ def main(args):
 
             if not args.review:
                 # Move files to queue if both queue and outdir are empty
-                if not len([fn for fn in listdir(queue_path) if not fn.startswith('.')]) and not len([fn for fn in listdir(out_audio_path) if not fn.startswith('.')]):
-                    for fn in listdir(path.join(original_path, video_id)):
-                        name, ext = path.splitext(fn)
-                        if ext =='.wav':
-                            shutil.move(path.join(original_path, video_id, fn),
-                                        path.join(queue_path, fn))
-                    print("Moved aligned files to queue for: {0}".format(video_id))
+                try:
+                    if not len([fn for fn in listdir(queue_path) if not fn.startswith('.')]) and not len([fn for fn in listdir(out_audio_path) if not fn.startswith('.')]):
+                        for fn in listdir(path.join(original_path, video_id)):
+                            name, ext = path.splitext(fn)
+                            if ext =='.wav':
+                                shutil.move(path.join(original_path, video_id, fn),
+                                            path.join(queue_path, fn))
+                        print("Moved aligned files to queue for: {0}".format(video_id))
+                except FileNotFoundError:
+                    print('No adjusted_corpus directory for: {0}'.format(video_id))
 
                 # Move all files in outdir back to queue (i.e,, regardless of status, revert to full queue, empty outdir)
                 if args.reset:
@@ -214,7 +217,10 @@ def main(args):
                     print('\n----------------------------')
 
                 # Skip adding video to list if in adjust mode when queue is empty but outdir is full (not empty)
-                if not len([fn for fn in listdir(queue_path) if not fn.startswith('.')]) and len([fn for fn in listdir(out_audio_path) if not fn.startswith('.')]):
+                try:
+                    if not len([fn for fn in listdir(queue_path) if not fn.startswith('.')]) and len([fn for fn in listdir(out_audio_path) if not fn.startswith('.')]):
+                        continue
+                except:
                     continue
 
             elif args.review:

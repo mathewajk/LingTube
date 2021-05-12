@@ -301,12 +301,12 @@ def process_videos(channels_fn, cutoff=-1, group=None, noscrape=False, screen=Fa
 
 def handle_single(args):
     """Wrapper for scraping a single channel"""
-    process_channel(args.channel, args.cutoff, args.group, args.screen)
+    process_channel(args.channel, args.cutoff, args.group, False, args.screen)
 
 
 def handle_multiple(args):
     """Wrapper for scraping multiple channels"""
-    process_channels(args.file, args.cutoff, args.group, args.screen)
+    process_channels(args.file, args.cutoff, args.group, False, args.screen)
 
 
 def handle_video(args):

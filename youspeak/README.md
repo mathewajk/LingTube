@@ -9,9 +9,13 @@ Tools for processing audio speech data from YouTube.
 
 ## Dependencies
 
-Dependencies are provided in the `requirements/` folder. To install, from the LingTube main directory, run
+Most dependencies are provided in the `requirements/` folder. To install, from the LingTube main directory, run
 
 `pip install -r requirements/youspeak.txt`
+
+For the scripts that rely on [pydub](https://github.com/jiaaro/pydub), you will also need to download `ffmpeg` separately, following the instructions [here](https://github.com/jiaaro/pydub#getting-ffmpeg-set-up).  If you are on MacOS and using Homebrew, you can run
+
+`brew install ffmpeg`
 
 For the scripts requiring `parselmouth-praat`, the Praat application is required. It can be downloaded from the [Praat website](https://www.fon.hum.uva.nl/praat/).  If you are on MacOS and using Homebrew, simply run
 

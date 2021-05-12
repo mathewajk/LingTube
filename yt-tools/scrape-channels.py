@@ -166,8 +166,9 @@ def process_channel(url, cutoff=-1, group=None, driver=None, noscrape=False, scr
     :param group:  Folder name to group channels under
     """
 
+    punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
     channel_id = url.split('/')[-1]
-    info = {"ChannelID": channel_id}
+    info = {"ChannelID": channel_id, "SafeChannelID": sub(punc_and_whitespace, "", channel_id)}
 
     logging.info("Gathering videos from channel ID: " + channel_id)
 

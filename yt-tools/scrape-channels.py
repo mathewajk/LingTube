@@ -112,7 +112,7 @@ def save_info_and_videos(links, info, group=None, noscrape=False, screen=False):
     if not path.exists(url_out_dir):
         makedirs(url_out_dir)
 
-    videos_out_fn = "{0}_{1}_videos.txt".format(safe_channel_name, info["SafeChannelID"])
+    videos_out_fn = "{0}_{1}_videos.txt".format(info["SafeChannelName"], info["SafeChannelID"])
 
     videos_out_fn = path.join(url_out_dir, videos_out_fn)
 

@@ -300,12 +300,12 @@ def process_videos(channels_fn, cutoff=-1, group=None, noscrape=False, screen=Fa
 
 def handle_single(args):
     """Wrapper for scraping a single channel"""
-    process_channel(args.channel, args.cutoff, args.group, args.noscrape, args.screen)
+    process_channel(args.channel, args.cutoff, args.group, args.screen)
 
 
 def handle_multiple(args):
     """Wrapper for scraping multiple channels"""
-    process_channels(args.file, args.cutoff, args.group, args.noscrape, args.screen)
+    process_channels(args.file, args.cutoff, args.group, args.screen)
 
 
 def handle_video(args):
@@ -325,7 +325,6 @@ if __name__ == '__main__':
     channel_parser.add_argument('channel', type=str, help='URL pointing to the channel\'s main page, e.g. https://www.youtube.com/c/ChannelNameHere')
     channel_parser.add_argument('-g', '--group', default=None, metavar='NAME', type=str, help='grouping for the output files (will create a subfolder: screened_urls/$group)')
     channel_parser.add_argument('--cutoff', type=int, default=-1, help='maximum number of times to scroll the page when scraping')
-    channel_parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
     channel_parser.add_argument('--screen',         action='store_true', default=False, help='download files for screening purposes')
     channel_parser.add_argument('-l', '--log', action='store_true', default=False, help='log events to file')
 
@@ -334,7 +333,6 @@ if __name__ == '__main__':
     list_parser.add_argument('file', type=str, help='file containing a newline-separated list of channel URLs (e.g. https://www.youtube.com/c/Channel1NameHere\\n https://www.youtube.com/c/Channel2NameHere\\n)')
     list_parser.add_argument('-g', '--group', default=None, metavar='NAME', type=str, help='grouping for the output files (will create a subfolder: screened_urls/$group)')
     list_parser.add_argument('--cutoff', type=int, default=-1, help='maximum number of times to scroll the page when scraping')
-    list_parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
     list_parser.add_argument('--screen',         action='store_true', default=False, help='download files for screening purposes')
     list_parser.add_argument('-l', '--log', action='store_true', default=False, help='log events to file')
 

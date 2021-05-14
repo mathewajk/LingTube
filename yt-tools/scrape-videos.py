@@ -180,7 +180,7 @@ def write_metadata(video, yt_id, caption_list, log_writer, url, channel_name="",
     log_writer.writerow(metadata)
 
 
-def process_video(video, channel_dict, log_writer, channel_name=None, channel_id=None, url=None, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, include_title=False, overwrite=False):
+def process_video(video, yt_id, channel_dict, log_writer, channel_name=None, channel_id=None, url=None, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, include_title=False, overwrite=False):
     """Download captions, audio (optional), and metadata for a given video.
 
     :param video: The YouTube object to process
@@ -199,26 +199,6 @@ def process_video(video, channel_dict, log_writer, channel_name=None, channel_id
     if video.author not in channel_dict.keys():
         channel_dict.update({video.author: 0})
     channel_dict[video.author] = channel_dict[video.author] + 1
-
-    punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-    yt_id = sub(punc_and_whitespace, '',
-                    findall(r".+watch\?v=(.+)\b", url)[0])
-
-    if screen:
-        out_path = path.join("corpus", "unscreened_urls", "subtitles")
-        if group:
-            out_path = path.join("corpus", "unscreened_urls", group, "subtitles")
-    else:
-        out_path = path.join("corpus", "raw_subtitles")
-        if group:
-            out_path = path.join(out_path, group)
-
-    # Check if yt_id already exists in some file; skip download if so
-
-    if not overwrite:
-        files = glob(path.join(out_path, "**", "*{0}*".format(yt_id)), recursive=True)
-        if files:
-            return channel_dict
 
     caption_list = write_captions_by_language(video, yt_id, channel_name, channel_id, language, group, screen, include_auto, convert_srt, include_title)
 
@@ -268,6 +248,18 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
     if overwrite:
         write_type = 'w'
 
+    if screen:
+        out_path = path.join("corpus", "unscreened_urls", "subtitles")
+        if group:
+            out_path = path.join("corpus", "unscreened_urls", group, "subtitles")
+        out_audio_path = None
+    else:
+        out_path = path.join("corpus", "raw_subtitles")
+        out_audio_path = path.join("corpus", "raw_audio")
+        if group:
+            out_path = path.join(out_path, group)
+            out_audio_path = path.join(out_audio_path, group)
+
     with open(urls_path, "r") as urls_in, open(log_fp, write_type) as log_out:
 
         # Prepare writer for writing video data
@@ -299,6 +291,20 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
                 logging.critical("Invalid file format")
                 exit(2)
 
+            punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
+            yt_id = sub(punc_and_whitespace, '',
+                            findall(r".+watch\?v=(.+)\b", url)[0])
+
+            # Check if yt_id already exists in some file; skip download if so
+
+            if not overwrite:
+                files = glob(path.join(out_path, "**", "*{0}*".format(yt_id)), recursive=True)
+                if out_audio_path:
+                    audio_files = glob(path.join(out_audio_path, "**", "*{0}*".format(yt_id)), recursive=True)
+                    files = files + audio_files
+                if files:
+                    continue
+
             # Try to load the video
             try:
                 video = YouTube(url)
@@ -312,7 +318,7 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
             #     logging.critical("Video {0}: An unexpected error occured ({1})".format(video_count, url))
             #     continue
 
-            process_video(video, channel_dict, log_writer, channel_name, channel_id, url, language, group, screen, include_audio, include_auto, convert_srt, overwrite)
+            process_video(video, yt_id, channel_dict, log_writer, channel_name, channel_id, url, language, group, screen, include_audio, include_auto, convert_srt, overwrite)
 
             if limit_to != -1 and video_count == resume_from + limit_to:
                 print("{0}: Limit reached".format(urls_path))

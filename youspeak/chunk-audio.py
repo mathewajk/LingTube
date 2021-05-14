@@ -6,7 +6,11 @@ from glob import glob
 import pandas as pd
 import parselmouth
 from parselmouth.praat import call, run_file
-
+import tempfile
+import ffmpeg
+import librosa
+import torch
+from samplecnn import SampleCNN
 
 def get_silence_threshold(sound, lower_quantile):
     """ Calculates silence threshold per sound interval for chunking.
@@ -101,8 +105,78 @@ def save_chunks(chunk_sound, out_path, video_id):
 
     return {'filename': chunk_fn, 'video_id': video_id, 'start_time': chunk_start_ms, 'end_time': chunk_end_ms, 'duration': chunk_duration}
 
+# Music discriminator based on samplecnn-speech-detection
+# Copyright (c) 2019 F. Moukayed (Κοτσάμπ)
+# https://github.com/fmqa/samplecnn-speech-detection
+def detect_music(audiofile, sound, alpha):
+    youspeak_path = path.dirname(path.realpath(__file__))
+    model_path = path.join(youspeak_path, "models", "model-gztan-speech-music-20000.pth")
 
-def process_soundfile(fn, audio_path, chunk_path, overwrite=False, textgrid_only=False):
+    with tempfile.TemporaryDirectory(suffix="-discriminator") as tmpdir:
+        textgrid = call(sound, 'To TextGrid', 'music music-by-sec', '')
+
+        # Convert input to proper format (16 kHz, mono)
+        output = path.join(tmpdir, "16khz.wav")
+        (
+            ffmpeg.input(audiofile)
+                  .output(output, format="wav", acodec="pcm_s16le", ac=1, ar="16k")
+                  .overwrite_output()
+                  .run()
+        )
+        # Instantiate CNN
+        net = SampleCNN()
+        net.load_state_dict(torch.load(model_path))
+        net.eval()
+        count_list = []
+        with torch.no_grad():
+            # Iterate through frames
+            for sec, frame in enumerate(map(torch.Tensor, librosa.core.stream(output, 1, 59049, 16000, fill_value=0))):
+                y = net(frame.reshape(1, -1))
+                y = y.item()
+
+                if sec == 0:
+                    if y > args.alpha:
+                        y_status = current_status = 'speech'
+                    else:
+                        y_status = current_status = 'music'
+                    call(textgrid, 'Set interval text', 1, 1, current_status)
+                elif current_status == 'speech':
+                    if y < args.alpha:
+                        y_status = 'music'
+                    else:
+                        y_status = current_status
+                elif current_status == 'music':
+                    if y > (1 - args.alpha):
+                        y_status = 'speech'
+                    else:
+                        y_status = current_status
+
+                try:
+                    call(textgrid, 'Insert boundary', 2, sec)
+                except:
+                    pass
+                interval_num = call(textgrid, 'Get interval at time', 2, sec)
+                call(textgrid, 'Set interval text', 2, interval_num, '{0} ({1})'.format('speech' if y > alpha else 'music', round(y,3)))
+
+                if not y_status == current_status:
+                    count_list.append((sec, y))
+                else:
+                    count_list = []
+
+                if len(count_list) == 4:
+                    current_status = y_status
+                    # print('Insert boundary at time: {0}'.format(count_list[0][0]))
+                    try:
+                        call(textgrid, 'Insert boundary', 1, count_list[0][0])
+                    except:
+                        pass
+                    interval_num = call(textgrid, 'Get interval at time', 1, count_list[0][0])
+                    call(textgrid, 'Set interval text', 1, interval_num, current_status)
+
+        return textgrid
+
+
+def process_soundfile(fn, audio_path, chunk_path, alpha, overwrite=False, textgrid_only=False):
 
     video_id, ext = path.splitext(fn)
 
@@ -139,13 +213,12 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, textgrid_only
         print('\nCURRENT FILE: {0}'.format(fn))
 
         tg_fn = path.join(tg_path, video_id+'.TextGrid')
-        tg_fn_cor = path.join(tg_path, video_id+'_corrected.TextGrid')
-
         wav_fn = path.join(audio_path, fn)
         sound = parselmouth.Sound(wav_fn).convert_to_mono()
 
-        if path.exists(tg_fn_cor):
-            textgrid = parselmouth.read(tg_fn_cor)
+        if path.exists(tg_fn) and not overwrite:
+            print('Chunking speech from existing TextGrid...')
+            textgrid = parselmouth.read(tg_fn)
             extracted_sounds = call([sound, textgrid],
                                     'Extract intervals where',
                                     1, True, 'is equal to', 'speech')
@@ -156,16 +229,35 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, textgrid_only
             output_df.to_csv(log_file, mode='a', index=False, header=False)
             return 2
 
-        print('First pass chunking in progress...')
-        # Use a more conservative 0.5 sec silence to get larger chunks
+        print('Music detection in progress...')
+        base_textgrid = detect_music(wav_fn, sound, alpha)
+        #base_textgrid.save(path.join(tg_path, video_id+'_music.TextGrid'))
 
-        sil_duration = 0.25
-        quantile = 0.05
-        (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile)
+        n_ints = call(base_textgrid, 'Count intervals where',
+                            1, 'is equal to', 'speech')
 
-        while n_ints <= 1:
-            quantile += 0.025
-            (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile)
+        extracted_speech = call([sound, base_textgrid],
+                                'Extract intervals where',
+                                1, True, 'is equal to', 'speech')
+
+        call(base_textgrid, 'Duplicate tier', 1, 1, 'silences')
+        call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'speech', '', 'literals')
+
+        if n_ints <=1:
+            extracted_sounds_1 = [extracted_speech]
+        else:
+            extracted_sounds_1 = extracted_speech
+
+        # print('First pass chunking in progress...')
+        # # Use a more conservative 0.5 sec silence to get larger chunks
+        #
+        # sil_duration = 0.25
+        # quantile = 0.05
+        # (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(extracted_speech, sil_duration, quantile)
+        #
+        # while n_ints <= 1:
+        #     quantile += 0.025
+        #     (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(extracted_speech, sil_duration, quantile)
 
         print('Second pass chunking in progress...')
         counter = -1
@@ -199,11 +291,13 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, textgrid_only
                     try:
                         call(base_textgrid, 'Insert boundary', 1, subsound_start)
                     except:
-                        print('\nNo boundary inserted at time {0}.'.format(subsound_start)
+                        pass
+                        # print('\nNo boundary inserted at time {0}.'.format(subsound_start))
                     try:
                         call(base_textgrid, 'Insert boundary', 1, subsound_end)
                     except:
-                        print('\nNo boundary inserted at time {0}.'.format(subsound_end)
+                        pass
+                        # print('\nNo boundary inserted at time {0}.'.format(subsound_end))
 
                     interval_num = call(base_textgrid, 'Get interval at time', 1, subsound_start)
                     call(base_textgrid, 'Set interval text', 1, interval_num, 'speech')
@@ -227,7 +321,7 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, textgrid_only
             output_df.to_csv(log_file, mode='a', index=False, header=False)
 
         # Save second-pass TextGrid
-        call(base_textgrid, 'Replace interval texts', 1, 1, 0, '', 'silence', 'Literals')
+        call(base_textgrid, 'Replace interval texts', 1, 1, 0, '', 'silence', 'literals')
         base_textgrid.save(tg_fn)
 
 def main(args):
@@ -243,9 +337,9 @@ def main(args):
         if path.isdir(path.join(audio_path, dir_element)):
             channel_audio_path = path.join(audio_path, dir_element)
             for fn in listdir(channel_audio_path):
-                process_soundfile(fn, channel_audio_path, chunk_path, args.overwrite, args.textgrid_only)
+                process_soundfile(fn, channel_audio_path, chunk_path, args.alpha, args.overwrite, args.textgrid_only)
         else:
-            process_soundfile(dir_element, audio_path, chunk_path, args.overwrite, args.textgrid_only)
+            process_soundfile(dir_element, audio_path, chunk_path, args.alpha, args.overwrite, args.textgrid_only)
 
     out_message = path.join(chunk_path, "audio", "chunking", "README.md")
     with open(out_message, 'w') as file:
@@ -257,6 +351,7 @@ if __name__ == '__main__':
 
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
+    parser.add_argument('--alpha', '-a', default=0.1, type=float, help='Cutoff point to detect as music  (0-1), where 0=music and 1=speech')
     parser.add_argument('--textgrid_only', '-tg', action='store_true', default=False, help='only output textgrid with detected speech; no chunked sound files will be saved')
     parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
 

@@ -177,7 +177,7 @@ def detect_music(audiofile, sound, alpha):
         return textgrid
 
 
-def process_soundfile(fn, audio_path, chunk_path, alpha, overwrite=False, textgrid_only=False):
+def process_soundfile(fn, audio_path, chunk_path, alpha, overwrite=False, textgrid_only=False, music_detection=False):
 
     video_id, ext = path.splitext(fn)
 
@@ -240,37 +240,40 @@ def process_soundfile(fn, audio_path, chunk_path, alpha, overwrite=False, textgr
             output_df.to_csv(log_file, mode='a', index=False, header=False)
             return 3
 
-        print('Music detection in progress...')
-        base_textgrid = detect_music(wav_fn, sound, alpha)
-        #base_textgrid.save(path.join(tg_path, video_id+'_music.TextGrid'))
+        if music_detection:
+            print('Music detection in progress...')
+            base_textgrid = detect_music(wav_fn, sound, alpha)
+            #base_textgrid.save(path.join(tg_path, video_id+'_music.TextGrid'))
 
-        n_ints = call(base_textgrid, 'Count intervals where',
-                            1, 'is equal to', 'speech')
+            n_ints = call(base_textgrid, 'Count intervals where',
+                                1, 'is equal to', 'speech')
 
-        extracted_speech = call([sound, base_textgrid],
-                                'Extract intervals where',
-                                1, True, 'is equal to', 'speech')
+            extracted_speech = call([sound, base_textgrid],
+                                    'Extract intervals where',
+                                    1, True, 'is equal to', 'speech')
 
-        call(base_textgrid, 'Duplicate tier', 1, 1, 'silences')
-        call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'speech', '', 'literals')
+            call(base_textgrid, 'Duplicate tier', 1, 1, 'speech')
+            call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'speech', '', 'literals')
 
-        if n_ints <=1:
-            extracted_sounds_1 = [extracted_speech]
+            if n_ints <=1:
+                extracted_sounds_1 = [extracted_speech]
+            else:
+                extracted_sounds_1 = extracted_speech
+
         else:
-            extracted_sounds_1 = extracted_speech
+            print('First pass chunking in progress...')
+            # Use a more conservative 0.5 sec silence to get larger chunks
 
-        # print('First pass chunking in progress...')
-        # # Use a more conservative 0.5 sec silence to get larger chunks
-        #
-        # sil_duration = 0.25
-        # quantile = 0.05
-        # (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(extracted_speech, sil_duration, quantile)
-        #
-        # while n_ints <= 1:
-        #     quantile += 0.025
-        #     (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(extracted_speech, sil_duration, quantile)
+            sil_duration = 0.25
+            quantile = 0.05
+            (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile)
 
-        print('Second pass chunking in progress...')
+            while n_ints <= 1:
+                quantile += 0.025
+                (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile)
+
+            call(base_textgrid, 'Duplicate tier', 1, 1, 'speech')
+            call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'silence', '', 'Regular Expressions')
         counter = -1
         sil_duration = 0.1
         quantile = 0.025
@@ -343,18 +346,28 @@ def main(args):
         chunk_path = path.join('corpus','chunked_audio', args.group)
         audio_path = path.join('corpus','raw_audio', args.group, "wav")
 
-    for dir_element in listdir(audio_path):
+    if args.video:
+        fn = args.video+'.wav'
+        channel_id = args.video.rsplit('_',1)[0]
+        channel_audio_path = path.join(audio_path, channel_id)
+        process_soundfile(fn, channel_audio_path, chunk_path, args.alpha, args.overwrite, args.textgrid_only, args.music_detection)
 
-        if path.isdir(path.join(audio_path, dir_element)):
-            channel_audio_path = path.join(audio_path, dir_element)
+    elif args.channel and not args.video:
+        channel_list = [args.channel]
+    elif not args.channel and not args.video:
+        channel_list = [dir_element for dir_element in listdir(audio_path) if path.isdir(path.join(audio_path, dir_element))]
+
+    if not args.video:
+        for channel_id in channel_list:
+            channel_audio_path = path.join(audio_path, channel_id)
             for fn in listdir(channel_audio_path):
-                process_soundfile(fn, channel_audio_path, chunk_path, args.alpha, args.overwrite, args.textgrid_only)
-        else:
-            process_soundfile(dir_element, audio_path, chunk_path, args.alpha, args.overwrite, args.textgrid_only)
+                process_soundfile(fn, channel_audio_path, chunk_path, args.alpha, args.overwrite, args.textgrid_only, args.music_detection)
+
 
     out_message = path.join(chunk_path, "audio", "chunking", "README.md")
-    with open(out_message, 'w') as file:
-        file.write('Channel folders for chunked audio files (with sub-folders for each original video source) go here.')
+    if path.exists(path.join(chunk_path, "audio", "chunking")) and not path.exists(out_message):
+        with open(out_message, 'w') as file:
+            file.write('Channel folders for chunked audio files (with sub-folders for each original video source) go here.')
 
 if __name__ == '__main__':
 
@@ -362,8 +375,11 @@ if __name__ == '__main__':
 
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
-    parser.add_argument('--alpha', '-a', default=0.1, type=float, help='Cutoff point to detect as music  (0-1), where 0=music and 1=speech')
+    parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
+    parser.add_argument('--video', '-v', default=None, type=str, help='run on files for a video id; if unspecified, goes through all videos in order')
     parser.add_argument('--textgrid_only', '-tg', action='store_true', default=False, help='only output textgrid with detected speech; no chunked sound files will be saved')
+    parser.add_argument('--music_detection', '-md', action='store_true', default=False, help='run music detection as first pass chunking (beta version)')
+    parser.add_argument('--alpha', '-a', default=0.1, type=float, help='Cutoff point to detect as music  (0-1), where 0=music and 1=speech')
     parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
 
     args = parser.parse_args()

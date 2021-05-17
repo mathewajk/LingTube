@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
-from os import path, listdir, makedirs
+from os import path, listdir, makedirs, remove
 from glob import glob
 import pandas as pd
+from shutil import rmtree
 import parselmouth
 from parselmouth.praat import call, run_file
 import tempfile
@@ -187,10 +188,24 @@ def process_soundfile(fn, audio_path, chunk_path, alpha, overwrite=False, textgr
         tg_path = path.join(chunk_path, "textgrids", "chunking", channel_id, video_id)
         log_path = path.join(chunk_path, "logs", "chunking", channel_id)
 
+        # Check overwrite status
         if path.isdir(sound_path) and not overwrite:
             existing_files = glob(path.join(sound_path, "**", "*{0}*".format(video_id)), recursive=True)
             if existing_files:
                 return 1
+        elif path.isdir(sound_path) and overwrite:
+            shutil.rmtree(sound_path)
+
+        tg_fn = path.join(tg_path, video_id+'.TextGrid')
+        if textgrid_only:
+            if path.exists(tg_fn) and not overwrite:
+                return 2
+            elif path.exists(tg_fn) and overwrite:
+                remove(tg_fn)
+
+        # Start process
+        if not path.exists(tg_path):
+            makedirs(tg_path)
 
         if not textgrid_only:
             # Create log file
@@ -206,17 +221,13 @@ def process_soundfile(fn, audio_path, chunk_path, alpha, overwrite=False, textgr
             if not path.exists(sound_path):
                 makedirs(sound_path)
 
-        if not path.exists(tg_path):
-            makedirs(tg_path)
-
         # Start audio processing
         print('\nCURRENT FILE: {0}'.format(fn))
 
-        tg_fn = path.join(tg_path, video_id+'.TextGrid')
         wav_fn = path.join(audio_path, fn)
         sound = parselmouth.Sound(wav_fn).convert_to_mono()
 
-        if path.exists(tg_fn) and not overwrite:
+        if path.exists(tg_fn):
             print('Chunking speech from existing TextGrid...')
             textgrid = parselmouth.read(tg_fn)
             extracted_sounds = call([sound, textgrid],
@@ -227,7 +238,7 @@ def process_soundfile(fn, audio_path, chunk_path, alpha, overwrite=False, textgr
                 output_df = output_df.append(log_entry, ignore_index=True)
             output_df = output_df.sort_values(by=["start_time"])
             output_df.to_csv(log_file, mode='a', index=False, header=False)
-            return 2
+            return 3
 
         print('Music detection in progress...')
         base_textgrid = detect_music(wav_fn, sound, alpha)

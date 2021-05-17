@@ -274,68 +274,86 @@ def process_soundfile(fn, audio_path, chunk_path, alpha, overwrite=False, textgr
 
             call(base_textgrid, 'Duplicate tier', 1, 1, 'speech')
             call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'silence', '', 'Regular Expressions')
+
+        print('Iterative chunking in progress...')
         counter = -1
-        sil_duration = 0.1
+        stage = -1
         quantile = 0.025
+        sil_duration = 0.3
+        duration_cutoff = [5, 7.5, 7.5, 10, 15, 15, -1]
+
         while len(extracted_sounds_1) > 0:
             counter += 1
-            # print('Counter: {0}'.format(counter))
-            # print(len(extracted_sounds_1))
 
-            if counter > 0 and counter % 1 == 0:
-                if not counter % 5 == 0:
-                    sil_duration += 0.05
-                    # print('Duration: {0}'.format(sil_duration))
-            if counter > 0 and counter % 5 == 0:
-                sil_duration = 0.1
-                # print('Duration: {0}'.format(sil_duration))
-                quantile += 0.025
-                # print('Quantile: {0}'.format(quantile))
+            # TESTER
+            # call(base_textgrid, 'Duplicate tier', 1, 1, 'silences-{0}'.format(counter))
+            # call(base_textgrid, 'Replace interval texts', 1, 1, 0, '.*', '', 'Regular Expressions')
+            # base_textgrid.save(tg_fn)
+
+            if counter % 5 == 0:
+                stage +=1
+                print('* Stage: {0}'.format(stage))
+                if stage < 3:
+                    sil_duration -= 0.05
+                else:
+                    sil_duration -= 0.025
+
+            current_cutoff = duration_cutoff[stage]
+
+            # TESTER
+            # print('Counter: {0}'.format(counter))
+            # print('Duration: {0}'.format(sil_duration))
 
             for subsound in extracted_sounds_1:
                 duration = subsound.get_total_duration()
-                if duration <= 10:
+
+                if duration <= current_cutoff or stage == 6:
                     if not textgrid_only:
                         log_entry = save_chunks(subsound, sound_path, video_id)
                         output_df = output_df.append(log_entry, ignore_index=True)
 
-                    # Add boundary to base_textgrid
-                    subsound_start = subsound.get_start_time()
-                    subsound_end = subsound.get_end_time()
-                    try:
-                        call(base_textgrid, 'Insert boundary', 1, subsound_start)
-                    except:
-                        pass
-                        # print('\nNo boundary inserted at time {0}.'.format(subsound_start))
-                    try:
-                        call(base_textgrid, 'Insert boundary', 1, subsound_end)
-                    except:
-                        pass
-                        # print('\nNo boundary inserted at time {0}.'.format(subsound_end))
-
-                    interval_num = call(base_textgrid, 'Get interval at time', 1, subsound_start)
-                    call(base_textgrid, 'Set interval text', 1, interval_num, 'speech')
-
                     extracted_sounds_1.remove(subsound)
-                else:
-                    n_ints = -1
-                    sub_quantile = 0.025
-                    while n_ints <= 1:
-                        (subtextgrid, extracted_subsounds, n_ints) = chunk_sound(subsound, sil_duration, sub_quantile)
 
-                        if n_ints > 1:
-                            extracted_sounds_1.remove(subsound)
-                            extracted_sounds_1 = extracted_sounds_1 + extracted_subsounds
-                            break
-                        else:
-                            sub_quantile += 0.025
+                else:
+                    (subtextgrid, extracted_subsounds, n_ints) = chunk_sound(subsound, sil_duration, quantile)
+
+                    if n_ints > 1:
+                        extracted_sounds_1.remove(subsound)
+                        extracted_sounds_1 = extracted_sounds_1 + extracted_subsounds
+
+                        for subsound in extracted_subsounds:
+                            subsound_start = subsound.get_start_time()
+                            subsound_end = subsound.get_end_time()
+                            try:
+                                call(base_textgrid, 'Insert boundary', 1, subsound_start)
+                                # print(subsound_start)
+                            except:
+                                pass
+                                # print('\nNo boundary inserted at time {0}.'.format(subsound_start))
+                            try:
+                                call(base_textgrid, 'Insert boundary', 1, subsound_end)
+                                # print(subsound_end)
+                            except:
+                                pass
+                                # print('\nNo boundary inserted at time {0}.'.format(subsound_end))
+
+                            interval_num = call(base_textgrid, 'Get interval at time', 1, subsound_start)
+                            call(base_textgrid, 'Set interval text', 1, interval_num, 'speech')
+
+                            # TESTER
+                            # base_textgrid.save(tg_fn)
+
+                    elif n_ints == 0:
+                        print('No sounds extracted.')
+                    elif n_ints == 1:
+                        extracted_sounds_1.remove(subsound)
+                        extracted_sounds_1.append(extracted_subsounds)
 
         if not textgrid_only:
             output_df = output_df.sort_values(by=["start_time"])
             output_df.to_csv(log_file, mode='a', index=False, header=False)
 
         # Save second-pass TextGrid
-        call(base_textgrid, 'Replace interval texts', 1, 1, 0, '', 'silence', 'literals')
         base_textgrid.save(tg_fn)
 
 def main(args):

@@ -182,7 +182,7 @@ def get_transcription (subtitles, row):
     row_timerange = range(row['start_time']-1000, row['end_time']+1000)
     subtitle_match = subtitles[(subtitles["start_time"].isin(row_timerange)) |
                               (subtitles["end_time"].isin(row_timerange))]
-    subtitle_text = ' '.join([line for line in subtitle_match["transcription"]])
+    subtitle_text = ' '.join([str(line) for line in subtitle_match["transcription"]])
     return subtitle_text
 
 def insert_transcript (subtitles):

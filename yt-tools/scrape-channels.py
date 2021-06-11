@@ -175,12 +175,14 @@ def process_channel(url, cutoff=-1, group=None, driver=None, noscrape=False, scr
     # Run the webdriver
     # TODO: Repetitive for legacy reasons
     if driver:
+        # print("Get about")
         info.update(get_info(driver, url + "/about"))
         sleep(1)
 
         links = get_links(driver, url + "/videos", cutoff)
     else:
         with webdriver.Firefox() as driver:
+            # print("Get about")
 
             info.update(get_info(driver, url + "/about"))
             sleep(1)
@@ -203,9 +205,14 @@ def process_video(url, videos_path, cutoff=-1, group=None, driver=None, noscrape
 
     try:
         WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'ytd-channel-name')))
+
+        sleep(2)
+
         channel_url = driver.find_element(By.CLASS_NAME, "ytd-channel-name").find_element(By.TAG_NAME, 'a').get_attribute('href')
         logging.info("Gathering information from channel: " + channel_url)
+
     except:
+        # print("Could not locate element")
         return
 
     punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
@@ -215,6 +222,7 @@ def process_video(url, videos_path, cutoff=-1, group=None, driver=None, noscrape
     # Run the webdriver
     # TODO: Repetitive for legacy reasons
     if driver:
+        # print("Get about")
         info.update(get_info(driver, channel_url + "/about"))
         sleep(1)
 
@@ -227,6 +235,7 @@ def process_video(url, videos_path, cutoff=-1, group=None, driver=None, noscrape
     else:
         with webdriver.Firefox() as driver:
 
+            # print("Get about")
             info.update(get_info(driver, channel_url + "/about"))
             sleep(1)
 
@@ -350,7 +359,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if(args.log):
-        logging.basicConfig(filename=(args.channel + '_scrape.log'), level=logging.DEBUG)
+        logging.basicConfig(filename=('scrape.log'), level=logging.DEBUG)
 
     logging.info("Call: {0}".format(args))
     logging.info("BEGIN YT SCRAPE\n----------")

@@ -170,7 +170,7 @@ def combine_funcs(*funcs):
 def clear():
     usable.set(0)
     bg_music.set(0)
-    bg_music.set(0)
+    bg_noise.set(0)
     other_voice.set(0)
     only_music.set(0)
     only_noise.set(0)

@@ -192,9 +192,9 @@ def insert_transcript (subtitles):
     subtitle_text = get_transcription(subtitles, row)
     pre_subtitle_text = get_transcription(subtitles, pre_row)
 
-    if not idx == df.index[-1]:
-        post_row = df.iloc[idx+1]
-        post_subtitle_text = get_transcription(subtitles, post_row)
+    # if not idx == df.index[-1]:
+    #     post_row = df.iloc[idx+1]
+    #     post_subtitle_text = get_transcription(subtitles, post_row)
 
     # TODO: See if can add remaining sections of the previous line to the next line if not there
 
@@ -247,8 +247,8 @@ def insert_transcript (subtitles):
         except:
             print('Error, no trimming.\n')
 
-    if not idx == df.index[-1]:
-        subtitle_text = '{0} {1}'.format(subtitle_text, post_subtitle_text.strip())
+    # if not idx == df.index[-1]:
+    #     subtitle_text = '{0} {1}'.format(subtitle_text, post_subtitle_text.strip())
     print(subtitle_text+'\n')
     transcript.insert("1.0", subtitle_text)
 

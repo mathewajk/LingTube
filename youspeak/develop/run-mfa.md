@@ -62,10 +62,16 @@ mfa align -t
 
 **Drag in folders:**
 * mfa_aligner
-* original_corpus/channel
+* original_corpus(/channel)
 
 **Paste in:**
-resources/aligner/english_full.dict ~/Documents/MFA/pretrained_models/acoustic/english.zip
+resources/aligner/english_guava.dict ~/Documents/MFA/pretrained_models/acoustic/english.zip
 
 **Drag in folders**
-* aligned_corpus/channel
+* aligned_corpus(/channel)
+
+**Type in flags:**
+-c -s 7
+
+**Example for copying**
+mfa align -t corpus/aligned_audio/chi/mfa_aligner corpus/aligned_audio/chi/original_corpus resources/aligner/english_guava.dict ~/Documents/MFA/pretrained_models/acoustic/english.zip corpus/aligned_audio/chi/aligned_corpus -c -s 7

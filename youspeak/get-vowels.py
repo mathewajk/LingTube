@@ -45,7 +45,7 @@ def main(args):
     if not args.channel == None:
         channel_list = [args.channel]
     else:
-        channel_list = [channel_id for channel_id in listdir(path.join(aligned_audio_base, "aligned_corpus")) if not channel_id.startswith('.')]
+        channel_list = [channel_id for channel_id in listdir(path.join(aligned_audio_base, "aligned_corpus")) if not channel_id.startswith('.') and not channel_id.endswith('.txt')]
 
     for ch_i, channel_id in enumerate(channel_list):
         print('\nChannel {0} of {1}: {2} ...'.format(ch_i+1, len(channel_list), channel_id))

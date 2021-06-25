@@ -17,16 +17,16 @@ mfa validate -t [temp_alignment_folder] corpus_directory dictionary_path [option
 ## Steps
 **Type in:**
 
-mfa validate -t /Users/laurettacheng/Documents/UM/UM_Research/anANAs/GUAva/corpus/aligned_audio/*GROUP*/mfa_aligner
+mfa validate -t corpus/aligned_audio/*GROUP*/mfa_aligner
 
 **Drag in folders:**
 * original_corpus(/channel)
 
 **Paste in:**
-resources/aligner/english_guava.dict --ignore_acoustics
+resources/aligner/english_guava.dict --ignore_acoustics -c -s 7
 
 **Example for copying**
-mfa validate -t ~/Documents/UM/UM_Research/anANAs/GUAva/corpus/aligned_audio/GROUP/mfa_aligner ~/Documents/UM/UM_Research/anANAs/GUAva/corpus/aligned_audio/GROUP/original_corpus resources/aligner/english_guava.dict --ignore_acoustics
+mfa validate -t corpus/aligned_audio/fil/mfa_aligner corpus/aligned_audio/fil/original_corpus resources/aligner/english_guava.dict --ignore_acoustics -c -s 7
 
 ---
 # Generate dictionary
@@ -48,7 +48,7 @@ mfa g2p ~/Documents/MFA/pretrained_models/g2p/english_g2p.zip
 -n 3
 
 **Example for copying**
-mfa g2p ~/Documents/MFA/pretrained_models/g2p/english_g2p.zip ~/Documents/UM/UM_Research/anANAs/GUAva/corpus/aligned_audio/eas/mfa_aligner/original_corpus/corpus_data/oovs_found.txt ~/Documents/UM/UM_Research/anANAs/GUAva/corpus/aligned_audio/eas/trained_models/dictionary/oovs_guava.dict
+mfa g2p ~/Documents/MFA/pretrained_models/g2p/english_g2p.zip corpus/aligned_audio/fil/mfa_aligner/original_corpus/corpus_data/oovs_found.txt corpus/aligned_audio/fil/trained_models/dictionary/oovs_guava.dict
 ___
 # Align
 

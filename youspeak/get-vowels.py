@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from os import listdir, makedirs, path
+from os import listdir, makedirs, path, remove
 import pandas as pd
 from numpy import arange
 
@@ -23,9 +23,11 @@ def open_files_in_praat (fn, tg_path, audio_path):
 def get_formants (sound, int_start, int_dur, proportion_time, max_formant):
 
     # TODO: Possibly check for pitch(?) to decide whether max formant is 5000 or 5500
+    # print("Making formant object")
     sound_formant = sound.to_formant_burg(0.001, 5.0, 5500.0, 0.025, 50.0)
     timepoint = int_start + (int_dur * proportion_time)
 
+    # print("Getting formant values")
     # get formant values at timepoint in sound
     formant_list = []
     for formant_i in range(1, max_formant+1):
@@ -34,7 +36,24 @@ def get_formants (sound, int_start, int_dur, proportion_time, max_formant):
     return formant_list
 
 def main(args):
-    # base paths
+
+    # Vowel target lists
+    monoph = ['AA', 'AE', 'AH', 'AO', 'EH', 'ER', 'IH', 'IY', 'UH', 'UW']
+    diph = ['AW', 'AY', 'EY', 'OW', 'OY']
+    if args.vowels:
+        vowel_list = [v for v in args.vowels.split(',')]
+    else:
+        vowel_list = monoph + diph
+
+    target_list = []
+    if args.stress:
+        stress_list = [s for s in args.stress.split(',')]
+    else:
+        stress_list = [1,2,0]
+    for s in stress_list:
+        target_list = target_list + [v+str(s) for v in vowel_list]
+
+    # Base paths
     aligned_audio_base = path.join("corpus", "aligned_audio")
     acoustic_data_base = path.join("corpus", "acoustic_data")
 
@@ -57,41 +76,95 @@ def main(args):
         video_list = [video_id for video_id in listdir(post_align_path) if not video_id.startswith('.') and not video_id.endswith('.txt')]
 
         for v_i, video_id in enumerate(video_list):
-            print('\nVideo {0} of {1}: {2} ...'.format(v_i+1, len(video_list), video_id))
+            print('* Video {0} of {1}: {2} ...'.format(v_i+1, len(video_list), video_id))
 
-            # TODO: Add try for adjusted audio; except to pre/post align or add a flag for testing
             tg_path = path.join(adjusted_path, video_id, "textgrids")
             audio_path = path.join(adjusted_path, video_id, "audio")
+            out_data_path = path.join(acoustic_data_base, "adjusted", channel_id)
 
             if not [tg for tg in listdir(tg_path) if path.splitext(tg)[1] == '.TextGrid']:
-                print('\nNOTICE: No adjusted textgrids. Processing using unadjusted forced alignment textgrids.\n')
+                print('  Using automatic (unadjusted) forced alignment')
                 tg_path = path.join(post_align_path, video_id)
                 audio_path = path.join(pre_align_path, video_id)
-
-            out_data_path = path.join(acoustic_data_base, "vowels", channel_id)
+                out_data_path = path.join(acoustic_data_base, "automatic", channel_id)
 
             # Make folders
             if not path.exists(out_data_path):
                 makedirs(out_data_path)
 
+            if args.nucleus:
+                out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","nucleus")
+            if args.onoff:
+                out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","onoff")
+            if args.steps:
+                out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","steps")
+            if args.nucleus or args.onoff or args.steps:
+                '{0}_{1}_{2}.csv'.format(video_id, "vowel","formants")
+            else:
+                out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","duration")
+
+            if path.exists(path.join(out_data_path, out_fn)):
+                if args.overwrite:
+                    remove(path.join(out_data_path, out_fn))
+                else:
+                    print('- File already exists: {0}'.format(out_fn))
+                    continue
+
             # Create output data frame (overwriting existing)
             out_df = pd.DataFrame(columns=['channel', 'video_id', 'fn', 'label', 'start_time', 'end_time', 'duration', 'pre_phone', 'post_phone', 'word', 'vowel', 'stress', 'diph'])
 
             for f_i, fn in enumerate(listdir(tg_path)):
-                print('Processing file {0} of {1}: {2} ...'.format(f_i+1, len(listdir(tg_path)), fn))
-                sound, textgrid = open_files_in_praat(fn,
-                                                      tg_path, audio_path)
-
-                # def get_formants(textgrid, max_step, max_formant, vowels)
-                monoph = ['AA', 'AE', 'AH', 'AO', 'EH', 'ER', 'IH', 'IY', 'UH', 'UW']
-                diph = ['AW', 'AY', 'EY', 'OW', 'OY']
+                # print('Processing file {0} of {1}: {2} ...'.format(f_i+1, len(listdir(tg_path)), fn))
+                sound, textgrid = open_files_in_praat(fn, tg_path, audio_path)
 
                 # Get all times of all (relevant) intervals (e.g., vowels)
-                n_ints = call(textgrid, 'Get number of intervals', 2)
-                for int_i in range(1, n_ints+1):
+                # n_ints = call(textgrid, 'Get number of intervals', 2)
+                # for int_i in range(1, n_ints+1):
+                #
+                #     print('Processing interval {0} of {1} ...'.format(int_i, n_ints+1))
+
+                extracted_vowels = []
+                for target_label in target_list:
+                    vowel_subsounds = call([sound, textgrid],
+                                            'Extract intervals where',
+                                            2, True, 'starts with', target_label)
+                    if not isinstance(vowel_subsounds, list): # check if list
+                        vowel_subsounds = [vowel_subsounds]
+                    vowel_sound_list = [(vs,target_label) for vs in vowel_subsounds]
+                    # print(vowel_sound_list)
+                    extracted_vowels = extracted_vowels + vowel_sound_list
+                    # print(extracted_vowels)
+
+                print('  Number of vowels: {0}'.format(len(extracted_vowels)))
+                for j, target_vowel in enumerate(extracted_vowels):
+                    vowel_sound, vowel_label = target_vowel
+                    # print('Processing vowel {0} of {1}: {2}'.format(j, len(extracted_vowels), vowel_label))
+
+                    int_vowel = vowel_label[:2]
+                    int_stress = vowel_label[-1]
+                    if vowel_label in diph:
+                        int_diph = 1
+                    else:
+                        int_diph = 0
+
+                    # Get label timing
+                    int_start = vowel_sound.get_start_time()
+                    int_end = vowel_sound.get_end_time()
+                    int_dur =  (int_end - int_start)
+
+                    # int_start = call(textgrid, 'Get start time of interval', 2, int_i)
+                    # int_end = call(textgrid, 'Get end time of interval', 2, int_i)
+                    # int_dur =  (int_end - int_start)
 
                     # Get labels
-                    int_lab = call(textgrid, 'Get label of interval', 2, int_i)
+                    # int_lab = call(textgrid, 'Get label of interval', 2, int_i)
+
+                    # Get label word/sound info
+                    int_word = call(textgrid, 'Get label of interval', 1,
+                                call(textgrid, 'Get interval at time', 1, int_start))
+                    int_i = call(textgrid, 'Get interval at time', 2, int_start)
+
+                    # Get pre- and post-context
                     try:
                         int_pre = call(textgrid, 'Get label of interval', 2, int_i-1)
                         if int_pre == 'sp':
@@ -105,80 +178,54 @@ def main(args):
                     except:
                         int_post = None
 
-                    if int_lab[:2] in monoph or int_lab[:2] in diph:
+                    # Add info to data output row
+                    data_row = {'channel': channel_id, 'video_id': video_id, 'filename': fn, 'label': vowel_label, 'start_time': int_start, 'end_time': int_end, 'duration': int_dur, 'pre_phone': int_pre, 'post_phone': int_post, 'word': int_word, 'vowel': int_vowel, 'stress': int_stress, 'diph': int_diph}
 
-                        # Get label timing
-                        int_start = call(textgrid, 'Get start time of interval', 2, int_i)
-                        int_end = call(textgrid, 'Get end time of interval', 2, int_i)
-                        int_dur =  (int_end - int_start)
-
-                        # Get label word/sound info
-                        int_vowel = int_lab[:2]
-                        if args.vowels:
-                            vowel_list = [v for v in args.vowels.split(',')]
-                            if int_vowel not in vowel_list:
-                                continue
-                        int_stress = int_lab[-1]
-                        if args.stress:
-                            stress_list = [s for s in args.stress.split(',')]
-                            if int_stress not in stress_list:
-                                continue
-
-                        int_word = call(textgrid, 'Get label of interval', 1,
-                                    call(textgrid, 'Get interval at time', 1, int_start))
-
-                        if int_vowel in diph:
-                            int_diph = 1
+                    # Get nucleus formants
+                    if args.nucleus:
+                        # print("Getting formants...")
+                        if int_diph == 1:
+                            f1, f2, f3 = get_formants(vowel_sound, int_start, int_dur, 0.3, 3)
                         else:
-                            int_diph = 0
+                            f1, f2, f3 = get_formants(vowel_sound, int_start, int_dur, 0.5, 3)
+                        data_row.update({'F1_nuc': f1, 'F2_nuc': f2, 'F3_nuc': f3})
 
-                        # Add info to data output row
-                        data_row = {'channel': channel_id, 'video_id': video_id, 'filename': fn, 'label': int_lab, 'start_time': int_start, 'end_time': int_end, 'duration': int_dur, 'pre_phone': int_pre, 'post_phone': int_post, 'word': int_word, 'vowel': int_vowel, 'stress': int_stress, 'diph': int_diph}
+                    if args.onoff:
+                        # Get onset formants at 25% into the vowel
+                        f1, f2, f3 = get_formants(vowel_sound, int_start, int_dur, 0.25, 3)
+                        data_row.update({'F1_on': f1, 'F2_on': f2, 'F3_on': f3})
 
-                        # Get nucleus formants
-                        if args.nucleus:
-                            if int_diph == 1:
-                                f1, f2, f3 = get_formants(sound, int_start, int_dur, 0.3, 3)
-                            else:
-                                f1, f2, f3 = get_formants(sound, int_start, int_dur, 0.5, 3)
-                            data_row.update({'F1_nuc': f1, 'F2_nuc': f2, 'F3_nuc': f3})
+                        # Get offset formants at 75% into the vowel
+                        f1, f2, f3 = get_formants(vowel_sound, int_start, int_dur, 0.75, 3)
+                        data_row.update({'F1_off': f1, 'F2_off': f2, 'F3_off': f3})
 
-                        if args.onoff:
-                            # Get onset formants at 25% into the vowel
-                            f1, f2, f3 = get_formants(sound, int_start, int_dur, 0.25, 3)
-                            data_row.update({'F1_on': f1, 'F2_on': f2, 'F3_on': f3})
+                    if args.steps:
+                        # Get formants at X steps between Y time and Z time
+                        prop_start = 0.2
+                        prop_end = 0.8
+                        n_steps = 30
+                        prop_interval = (prop_end - prop_start)/n_steps
 
-                            # Get offset formants at 75% into the vowel
-                            f1, f2, f3 = get_formants(sound, int_start, int_dur, 0.75, 3)
-                            data_row.update({'F1_off': f1, 'F2_off': f2, 'F3_off': f3})
+                        for step_i in arange(prop_start, prop_end+prop_interval, prop_interval):
+                            prop_step = round(step_i,3)
+                            f1, f2, f3 = get_formants(vowel_sound, int_start, int_dur, prop_step, 3)
+                            data_row.update({'F1_{0}'.format(round(prop_step*100)): f1, 'F2_{0}'.format(round(prop_step*100)): f2, 'F3_{0}'.format(round(prop_step*100)): f3})
 
-                        if args.steps:
-                            # Get formants at X steps between Y time and Z time
-                            prop_start = 0.2
-                            prop_end = 0.8
-                            n_steps = 30
-                            prop_interval = (prop_end - prop_start)/n_steps
+                    # write to DataFrame
+                    out_df = out_df.append(data_row, ignore_index=True, sort=False)
 
-                            for step_i in arange(prop_start, prop_end+prop_interval, prop_interval):
-                                prop_step = round(step_i,3)
-                                f1, f2, f3 = get_formants(sound, int_start, int_dur, prop_step, 3)
-                                data_row.update({'F1_{0}'.format(round(prop_step*100)): f1, 'F2_{0}'.format(round(prop_step*100)): f2, 'F3_{0}'.format(round(prop_step*100)): f3})
+                    # if args.nucleus:
+                    #     out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","nucleus")
+                    # if args.onoff:
+                    #     out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","onoff")
+                    # if args.steps:
+                    #     out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","steps")
+                    # if args.nucleus or args.onoff or args.steps:
+                    #     '{0}_{1}_{2}.csv'.format(video_id, "vowel","formants")
+                    # else:
+                    #     out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","duration")
 
-                        # write to DataFrame
-                        out_df = out_df.append(data_row, ignore_index=True, sort=False)
-
-                        if args.nucleus:
-                            out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","nucleus")
-                        if args.onoff:
-                            out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","onoff")
-                        if args.steps:
-                            out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","steps")
-                        if args.nucleus or args.onoff or args.steps:
-                            '{0}_{1}_{2}.csv'.format(video_id, "vowel","formants")
-                        else:
-                            out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","duration")
-
-                        out_df.to_csv(path.join(out_data_path, out_fn), index=False)
+                    out_df.to_csv(path.join(out_data_path, out_fn), index=False)
 
 if __name__ == '__main__':
 
@@ -190,9 +237,10 @@ if __name__ == '__main__':
     parser.add_argument('--vowels', '-vw', help='list of vowels to target, comma-separated', type=str)
     parser.add_argument('--stress', '-st', help='list of stress values to target, comma-separated', type=str)
     parser.add_argument('--nucleus', '-n', action='store_true', default=False, help='extract nucleus midpoint formants')
-    parser.add_argument('--onoff', '-o', action='store_true', default=False, help='extract onset and offset formants')
+    parser.add_argument('--onoff', action='store_true', default=False, help='extract onset and offset formants')
     parser.add_argument('--steps', '-s', action='store_true', default=False, help='extract formants at 30 steps')
     parser.add_argument('--formants', '-f', default=3, type=int, help='maximum number of formants to extract (default=3)')
+    parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
 
     # TODO: Add overwrite
 

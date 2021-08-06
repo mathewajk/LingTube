@@ -102,9 +102,9 @@ def write_audio(audio, video, yt_id, channel_name="", channel_id="", group=None,
 
     try:
         if include_title:
-            audio.download(filename=safe_title, output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, yt_id), skip_existing=True)
+            audio.download(filename=safe_title + '.mp4', output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, yt_id), skip_existing=True)
         else:
-            audio.download(filename=str(yt_id), output_path=out_path, filename_prefix="{0}_".format(safe_author), skip_existing=True)
+            audio.download(filename=str(yt_id) + '.mp4', output_path=out_path, filename_prefix="{0}_".format(safe_author), skip_existing=True)
 
     except:
         logging.critical("Video {0}: Could not save audio stream for video {0} from channel {1} ({2})".format(yt_id, video.author, video.title))

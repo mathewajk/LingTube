@@ -53,8 +53,6 @@ def write_captions(captions, video, yt_id, channel_name="", channel_id="", group
     if not path.exists(out_path):
         makedirs(out_path)
 
-    print(include_title)
-
     try:
         if include_title:
             captions.download(helpers.safe_filename(safe_title), srt=convert_srt, output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, yt_id))

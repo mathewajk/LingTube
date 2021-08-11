@@ -214,7 +214,10 @@ def main(args):
                         channel_fave_dir = path.join(fave_dir, dir_element)
                         channel_text_dir = path.join(text_dir, dir_element)
 
-                        for j, fn in enumerate(listdir(channel_in_dir)):
+                        channel_dir_list = [dir_element for dir_element in listdir(channel_in_dir)]
+                        if '.DS_Store' in channel_dir_list:
+                            channel_dir_list.remove('.DS_Store')
+                        for j, fn in enumerate(channel_dir_list):
                             process_raw_subs(j, fn, langcode, channel_in_dir, channel_cleans_dir,channel_fave_dir, channel_text_dir, args.fave, args.text, args.overwrite)
                     else:
                         process_raw_subs(i, dir_element, langcode, in_dir, cleans_dir, fave_dir, text_dir, args.fave, args.text, args.overwrite)

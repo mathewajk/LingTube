@@ -2,6 +2,7 @@
 
 import argparse
 from os import listdir, makedirs, path
+from shutil import rmtree
 from glob import glob
 import pandas as pd
 from re import sub, findall
@@ -15,7 +16,6 @@ def main(args):
 
     # base paths
     raw_audio_base = path.join("corpus", "raw_audio")
-    print(raw_audio_base)
     chunked_audio_base = path.join("corpus", "chunked_audio")
     aligned_audio_base = path.join("corpus", "aligned_audio")
 
@@ -47,20 +47,6 @@ def main(args):
             out_audio_path = path.join(chunked_audio_base, "audio", "coding", channel_id, video_id)
             out_tg_path = path.join(chunked_audio_base, "textgrids", "coding", channel_id, video_id)
 
-            if path.isdir(out_audio_path) and not args.overwrite:
-                existing_files = glob(path.join(out_audio_path, "**", "*{0}*".format(video_id)), recursive=True)
-                if existing_files:
-                    continue
-
-
-            full_audio_path = path.join(raw_audio_base, "wav", channel_id, video_id+'.wav')
-            audio_path = path.join(chunked_audio_base, "audio", "chunking", channel_id, video_id)
-            tg_path = path.join(chunked_audio_base, "textgrids", "chunking", channel_id, video_id, video_id+'.TextGrid')
-            file_path = path.join(log_path, video_id+'_coding_responses.csv')
-
-            df = pd.read_csv(file_path)
-            print('Processing audio chunks from: {0}'.format(video_id))
-
             # alignment dirs
             pre_align_path = path.join(aligned_audio_base, "original_corpus", channel_id, video_id)
             post_align_path = path.join(aligned_audio_base, "aligned_corpus", channel_id, video_id)
@@ -68,6 +54,38 @@ def main(args):
             adjusted_queue_path = path.join(aligned_audio_base, "adjusted_corpus", channel_id, video_id, "queue")
             adjusted_audio_path = path.join(aligned_audio_base, "adjusted_corpus", channel_id, video_id, "audio")
             adjusted_tg_path = path.join(aligned_audio_base, "adjusted_corpus", channel_id, video_id, "textgrids")
+
+            # TODO: Update to check for and delete old files from audio, tg and alignmemt original_corpus directories if overwrite
+            if args.overwrite:
+                if path.isdir(out_audio_path):
+                    rmtree(out_audio_path)
+                if path.isdir(out_tg_path):
+                    rmtree(out_tg_path)
+                if path.isdir(pre_align_path):
+                    rmtree(pre_align_path)
+                print("Overwriting audio and textgrid files for: {0}".format(video_id))
+            else:
+                if path.isdir(out_audio_path):
+                    existing_audio = glob(path.join(out_audio_path, "**", "*{0}*".format(video_id)), recursive=True)
+                else:
+                    existing_audio = []
+                if path.isdir(out_tg_path):
+                    existing_tgs = glob(path.join(out_tg_path, "**", "*{0}*".format(video_id)), recursive=True)
+                else:
+                    existing_tgs = []
+                existing_files = existing_audio + existing_tgs
+                if existing_files:
+                    print("Audio and/or textgrid files exist. Skipping {0}".format(video_id))
+                    continue
+
+            # Get files
+            full_audio_path = path.join(raw_audio_base, "wav", channel_id, video_id+'.wav')
+            audio_path = path.join(chunked_audio_base, "audio", "chunking", channel_id, video_id)
+            tg_path = path.join(chunked_audio_base, "textgrids", "chunking", channel_id, video_id, video_id+'.TextGrid')
+            file_path = path.join(log_path, video_id+'_coding_responses.csv')
+
+            df = pd.read_csv(file_path)
+            print('Processing audio chunks from: {0}'.format(video_id))
 
             for dir in [dict_path, out_audio_path, out_tg_path, pre_align_path, post_align_path, aligner_path, adjusted_queue_path, adjusted_audio_path, adjusted_tg_path]:
                 if not path.exists(dir):

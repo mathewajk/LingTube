@@ -62,7 +62,7 @@ def write_captions(captions, video, yt_id, channel_name="", channel_id="", group
             return 1
     except:
         logging.critical("Video {0}: Could not download caption track for video {0} from channel {1} ({2})".format(yt_id, video.author, video.title))
-        return 0
+    return 0
 
 
 def write_audio(audio, video, yt_id, channel_name="", channel_id="", group=None, screen=None, include_title=False):
@@ -102,9 +102,9 @@ def write_audio(audio, video, yt_id, channel_name="", channel_id="", group=None,
 
     try:
         if include_title:
-            audio.download(filename=safe_title, output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, yt_id), skip_existing=True)
+            audio.download(filename=safe_title + '.mp4', output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, yt_id), skip_existing=True)
         else:
-            audio.download(filename=str(yt_id), output_path=out_path, filename_prefix="{0}_".format(safe_author), skip_existing=True)
+            audio.download(filename=str(yt_id) + '.mp4', output_path=out_path, filename_prefix="{0}_".format(safe_author), skip_existing=True)
 
     except:
         logging.critical("Video {0}: Could not save audio stream for video {0} from channel {1} ({2})".format(yt_id, video.author, video.title))
@@ -318,7 +318,7 @@ def process_videos(urls_path, batch=False, language=None, group=None, screen=Non
             #     logging.critical("Video {0}: An unexpected error occured ({1})".format(video_count, url))
             #     continue
 
-            process_video(video, yt_id, channel_dict, log_writer, channel_name, channel_id, url, language, group, screen, include_audio, include_auto, convert_srt, overwrite)
+            process_video(video, yt_id, channel_dict, log_writer, channel_name, channel_id, url, language, group, screen, include_audio, include_auto, convert_srt, False, overwrite)
 
             if limit_to != -1 and video_count == resume_from + limit_to:
                 print("{0}: Limit reached".format(urls_path))
@@ -363,7 +363,7 @@ def process_files(urls_path, language=None, group=None, screen=None, include_aud
     all_fns = URL_fns_txt + URL_fns_csv
 
     for fn in all_fns:
-        process_videos(fn, True, language, group, screen, include_audio, include_auto, convert_srt, resume_from, limit_to, overwrite)
+        process_videos(fn, True, language, group, screen, include_audio, include_auto, convert_srt, resume_from, limit_to, False, overwrite)
 
 
 def main(args):

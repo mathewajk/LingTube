@@ -1,6 +1,8 @@
 from sys import path
+from pathlib import Path
+
 from time import sleep
-from os import path, makedirs
+from os import path, makedirs, remove
 from re import sub
 from glob import glob
 import logging
@@ -11,43 +13,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
-class MultiChannelHandler():
-
-    def __init__(self, channels_f, driver=None, browser="Firefox", pause_time=4, cutoff=-1, group='', ignore_videos=False, screen=False):
-
-        self.channels = []
-        self.channels_f = channels.f
-
-
-    def process_channels(self):
-
-        with open(channels_f) as channels_in:
-            for line in channels_in:
-                line = line.split('\t')[0]
-                line = sub('[\s\ufeff]+', '', line.strip('/')) # Handle whitespace and Excel nonsense?
-
-                channel = ChannelHandler(line, self.browser, self.pause_time, self.cutoff, self.group, self.screen)
-                channel.scrape()
-                self.channels.append(channel)
-
-
-    def save(self):
-        """Write channel information and (if scraping) a scraped list of video links to a file.
-        """
-
-        for channel in self.channels:
-            channel.save()
-
-class MultiVideoHandler:
-
-    __init__():
-
-        self.temp = 0
-
-
 class ChannelHandler:
 
-    def __init__(self, url, browser="Firefox", pause_time=4, cutoff=-1, group='', ignore_videos=False, screen=False):
+    def __init__(self, url, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, screen=False):
 
         self.url = url
 
@@ -60,11 +28,18 @@ class ChannelHandler:
         self.screen        = screen
 
 
-    def init_info(url, driver):
+    def init_info(self, driver):
+        """Initialize *info* with the channel's ID
+        """
 
         punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
 
-        channel_id = url.split('/')[-1]
+        # Remove trailing forward slash
+        if self.url[-1] == '/':
+            self.url = self.url[:-1]
+
+        # TODO: We are assuming URLs are frmatted correctly
+        channel_id = self.url.split('/')[-1]
         info = {"ChannelID": channel_id, "SafeChannelID": sub(punc_and_whitespace, "", channel_id)}
 
         logging.info("Gathering videos from channel ID: " + channel_id)
@@ -72,13 +47,17 @@ class ChannelHandler:
         return info
 
 
-    def process_channel(self):
+    def process(self):
+        """Scrape the channel and save
+        """
 
         self.scrape()
         self.save()
 
 
     def save(self):
+        """Save info and (if applicable) list of video URLs as text files
+        """
 
         # If videos need to be screened, save to separate folder
         if self.screen:
@@ -87,7 +66,7 @@ class ChannelHandler:
             base_path = path.join("corpus", "screened_urls")
 
         # Create info output path
-        info_out_dir = path.join(base_path, group, "about")
+        info_out_dir = path.join(base_path, self.group, "about")
         if not path.exists(info_out_dir):
             makedirs(info_out_dir)
 
@@ -107,7 +86,7 @@ class ChannelHandler:
             return
 
         # Create URL out path
-        url_out_dir = path.join(base_path, group, "channel_urls")
+        url_out_dir = path.join(base_path, self.group, "channel_urls")
         if not path.exists(url_out_dir):
             makedirs(url_out_dir)
 
@@ -174,7 +153,7 @@ class ChannelHandler:
         :return: A dictionary containing the channel's description, bio, and metadata.
         """
 
-        info = init_info(self.url, driver)
+        info = self.init_info(driver)
 
         # Load the about page
         driver.get(self.url + "/about")
@@ -239,19 +218,25 @@ class ChannelHandler:
     def get_links(self):
         return self.links
 
+
     def get_url(self):
         return self.url
 
 
 class VideoHandler(ChannelHandler):
+    """Scrape channel info and videos from a channel based on the URL of a video from that channel.
+    """
 
-    def __init__(self, url, browser="Firefox", pause_time=4, cutoff=-1, group='', ignore_videos=False, screen=False, overwrite=False):
+    def __init__(self, url, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, overwrite=False, screen=False):
 
         self.overwrite = overwrite
-        super(self, url, browser="Firefox", pause_time=pause_time, cutoff=cutoff, group=group, screen=screen)
+        super().__init__(url, browser, pause_time, cutoff, group, ignore_videos, screen)
 
 
-    def init_info(url, driver):
+    def init_info(self, driver):
+        """Initialize *info* with the channel name and ID. For videos, this requires scraping the video's page.
+           This function also updates self.url to reflect the URL of the channel.
+        """
 
         driver.get(self.url)
 
@@ -263,19 +248,124 @@ class VideoHandler(ChannelHandler):
             channel_url = driver.find_element(By.CLASS_NAME, "ytd-channel-name").find_element(By.TAG_NAME, 'a').get_attribute('href')
             logging.info("Gathering information from channel: " + channel_url)
 
+            # TODO: Not really the safest way to update the URL. Video and channel URL should be kept clearly distinct.
+            self.video_url = self.url
+            self.url = channel_url
+
+            punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
+            channel_id = channel_url.split('/')[-1]
+            info = {"ChannelID": channel_id, "SafeChannelID": sub(punc_and_whitespace, "", channel_id)}
+
+            return info
+
         except:
-            # print("Could not locate element")
-            return
+            logging.critical("Could not locate channel URL")
+            exit(1)
 
-        punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-        channel_id = channel_url.split('/')[-1]
 
-        self.info = {"ChannelID": channel_id, "SafeChannelID": sub(punc_and_whitespace, "", channel_id)}
-        self.url = channel_url
+    def save(self):
+        """Save channel info and scraped videos (if applicable)
+        """
 
-        self.scrape()
+        super().save()
+        self.log_video()
 
-    def log_video:
+
+    def log_video(self):
+        """Log the video URL, channel name, and channel ID in LingTube format
+        """
+
+        # TODO: Genertion of base_path is redundant given the save() function
+        base_path = path.join("corpus", "screened_urls")
+        if self.screen:
+            base_path = path.join("corpus", "unscreened_urls")
+
+        if self.group:
+            videos_out_dir = path.join(base_path, self.group, "urls")
+            videos_fn = "{0}.txt".format(self.group)
+        else:
+            videos_out_dir = path.join(base_path, "urls")
+            videos_fn = "{0}.txt".format(self.info["SafeChannelName"])
+        if not path.exists(videos_out_dir):
+            makedirs(videos_out_dir)
+
+        videos_path = path.join(videos_out_dir, videos_fn)
+
+        if path.isfile(videos_path) and self.overwrite:
+            remove(videos_path)
+
         # Log input video info
-        #with open(videos_path, 'a') as videos_out:
-        #    videos_out.write("{0}\t{1}\t{2}\n".format(url, info["ChannelName"], info["SafeChannelID"]))
+        with open(videos_path, 'a') as videos_out:
+            videos_out.write("{0}\t{1}\t{2}\n".format(self.video_url, self.info["ChannelName"], self.info["SafeChannelID"]))
+
+
+class MultiChannelHandler:
+
+    def __init__(self, channels_f, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, screen=False):
+
+        self.channels = []
+        self.channels_f = channels_f
+
+        # To be passed to ChannelHandler objects
+        self.browser       = browser
+        self.pause_time    = pause_time
+        self.cutoff        = cutoff
+        self.group         = group
+        self.ignore_videos = ignore_videos
+        self.screen        = screen
+
+
+    def process(self):
+
+        try:
+            with open(self.channels_f) as channels_in:
+                for line in channels_in:
+                    line = line.split('\t')[0]
+                    line = sub('[\s\ufeff]+', '', line.strip('/')) # Handle whitespace and Excel nonsense?
+
+                    channel = ChannelHandler(line, self.browser, self.pause_time, self.cutoff, self.group, self.screen)
+                    channel.scrape()
+                    self.channels.append(channel)
+                    sleep(1)
+        except FileNotFoundError as e:
+            print('Error: File {0} could not be found.'.format(self.channels_f))
+
+
+    def save(self):
+        """Write channel information and (if scraping) a scraped list of video links to a file.
+        """
+
+        for channel in self.channels:
+            channel.save()
+
+
+class MultiVideoHandler:
+
+    def __init__(self, videos_f, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, screen=False, overwrite=False):
+
+            self.overwrite     = overwrite
+            self.videos_f      = videos_f
+
+            # To be passed to VideoHandler objects
+            self.browser       = browser
+            self.pause_time    = pause_time
+            self.cutoff        = cutoff
+            self.group         = group
+            self.ignore_videos = ignore_videos
+            self.screen        = screen
+
+
+    def process(self):
+
+        with open(self.channels_f) as channels_in:
+
+            for line in videos_f:
+
+                line = line.split('\t')[0]
+                line = sub('[\s\ufeff]+', '', line.strip('/')) # Handle whitespace and Excel nonsense?
+
+                # VideoHandler takes a video URL and scrapes the channel data
+                # TODO: This isn't very transparent
+                channel = VideoHandler(line, self.browser, self.pause_time, self.cutoff, self.group, self.overwrite, self.screen)
+                channel.scrape()
+                self.channels.append(channel)

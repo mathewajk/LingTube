@@ -301,7 +301,7 @@ class VideoHandler(ChannelHandler):
 
 class MultiChannelHandler:
 
-    def __init__(self, channels_f, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, screen=False):
+    def __init__(self, channels_f, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, overwrite=False, screen=False):
 
         self.channels = []
         self.channels_f = channels_f
@@ -312,6 +312,7 @@ class MultiChannelHandler:
         self.cutoff        = cutoff
         self.group         = group
         self.ignore_videos = ignore_videos
+        self.overwrite     = overwrite
         self.screen        = screen
 
 
@@ -323,7 +324,7 @@ class MultiChannelHandler:
                     line = line.split('\t')[0]
                     line = sub('[\s\ufeff]+', '', line.strip('/')) # Handle whitespace and Excel nonsense?
 
-                    channel = ChannelHandler(line, self.browser, self.pause_time, self.cutoff, self.group, self.screen)
+                    channel = ChannelHandler(line, self.browser, self.pause_time, self.cutoff, self.group, self.overwrite, self.screen)
                     channel.scrape()
                     self.channels.append(channel)
                     sleep(1)

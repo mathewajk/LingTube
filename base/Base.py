@@ -1,16 +1,14 @@
-from sys import path
-from pathlib import Path
-
-from time import sleep
 from os import path, makedirs, remove
+from sys import path
+from time import sleep
 from re import sub
-from glob import glob
-import logging
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
+import logging
 
 
 # TODO: Need to implement robust error handling
@@ -372,3 +370,8 @@ class MultiVideoScraper:
                 channel = VideoScraper(line, self.browser, self.pause_time, self.cutoff, self.group, self.overwrite, self.screen)
                 channel.scrape()
                 self.channels.append(channel)
+
+
+class Video:
+
+    def __init__():

@@ -13,6 +13,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
+# TODO: Need to implement robust error handling
+
 class ChannelHandler:
 
     def __init__(self, url, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, screen=False):

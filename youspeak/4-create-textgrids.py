@@ -79,7 +79,6 @@ def main(args):
             audio_path = path.join(chunked_audio_base, "audio", "chunking", channel_id, video_id)
             tg_path = path.join(chunked_audio_base, "textgrids", "chunking", channel_id, video_id, video_id+'.TextGrid')
 
-            # TODO: remove word list collection (or make optional, but im not using it)
             if not path.exists(out_tg_path):
                 makedirs(out_tg_path)
             if args.save_chunks:
@@ -101,7 +100,6 @@ def main(args):
                     copy(full_audio_path, pre_align_path)
                 continue
 
-            # TODO: Make an option to just create textgrid from cleaned subtitle files (+ chunked tg???) for manual correction w/o validation
             file_path = path.join(log_path, video_id+'_coding_responses.csv')
             df = pd.read_csv(file_path)
             print('Processing audio chunks from: {0}'.format(video_id))

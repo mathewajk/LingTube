@@ -30,7 +30,7 @@ def run(args):
         else:
             scraper = Base.MultiVideoHandler(source, browser, pause_time, cutoff, group, ignore_videos, overwrite, screen)
     else:
-        print('ERROR: Please specify whether the input is a channel (-c) or video (-v)')
+        print('ERROR: Please specify whether the input contains channel(s) (-c) or video(s) (-v)')
         exit(1)
 
     scraper.process()

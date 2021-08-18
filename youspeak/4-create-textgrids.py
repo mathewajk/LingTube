@@ -56,7 +56,6 @@ def main(args):
             adjusted_audio_path = path.join(aligned_audio_base, "adjusted_corpus", channel_id, video_id, "audio")
             adjusted_tg_path = path.join(aligned_audio_base, "adjusted_corpus", channel_id, video_id, "textgrids")
 
-            # TODO: Update to check for and delete old files from audio, tg and alignmemt original_corpus directories if overwrite
             if args.overwrite:
                 if path.isdir(out_audio_path):
                     rmtree(out_audio_path)
@@ -120,7 +119,6 @@ def main(args):
             full_tg = call(original_tg, 'Extract one tier', 1)
             call(full_tg, 'Replace interval texts', 1, 1, 0, '.*', '', 'Regular Expressions')
             call(full_tg, 'Set tier name', 1, 'sentence') # for Darla compatibility
-            # call(full_tg, 'Insert interval tier', 2, 'transcript')
 
             if args.save_chunks:
                 sil1 = call('Create Sound from formula', "silence", 1, 0, 0.25, 44100, "0")
@@ -140,11 +138,6 @@ def main(args):
                         current_int = call(full_tg, 'Get interval at time', 1, int_center)
                         call(full_tg, 'Set interval text', 1, current_int, row['transcription'])
 
-                        # if loop_start == 0:
-                        #     # Add transcript start boundary
-                        #     # call(full_tg, 'Insert boundary', 2, call(full_tg, 'Get start time of interval', 1, current_int))
-                        #     loop_start = 1
-
                         # Save to local dir
                         full_tg.save(path.join(out_tg_path, video_id+'.TextGrid'))
 
@@ -155,6 +148,7 @@ def main(args):
                             if loop_start == 0:
                                 sound = parselmouth.Sound(full_audio_path)
                                 sound.save(path.join(pre_align_path, video_id+'.wav'), "WAV")
+                                loop_start = 1
 
 
                     # By-WAV file TextGrid creation
@@ -185,10 +179,6 @@ def main(args):
                     punc = "[\.\?\!,;:\"\\\/]+"
                     word_list = word_list + [sub(punc, '', word) for word in row['transcription'].split()]
 
-            # Add transcript end boundary
-            # call(full_tg, 'Insert boundary', 2, call(full_tg, 'Get end time of interval', 1, current_int))
-            # call(full_tg, 'Set interval text', 2, 2, ' '.join(transcript_list))
-            # full_tg.save(path.join(chunked_audio_base, "textgrids", "coding", channel_id, video_id+'.TextGrid'))
 
             # Add to word list for dictionary generation
             with open(dict_fp, "a+") as word_file, open(update_fp, "a+") as update_file:

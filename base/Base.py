@@ -15,7 +15,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 # TODO: Need to implement robust error handling
 
-class ChannelHandler:
+class ChannelScraper:
 
     def __init__(self, url, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, screen=False):
 
@@ -225,7 +225,7 @@ class ChannelHandler:
         return self.url
 
 
-class VideoHandler(ChannelHandler):
+class VideoScraper(ChannelScraper):
     """Scrape channel info and videos from a channel based on the URL of a video from that channel.
     """
 
@@ -301,14 +301,14 @@ class VideoHandler(ChannelHandler):
             videos_out.write("{0}\t{1}\t{2}\n".format(self.video_url, self.info["ChannelName"], self.info["SafeChannelID"]))
 
 
-class MultiChannelHandler:
+class MultiChannelScraper:
 
     def __init__(self, channels_f, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, overwrite=False, screen=False):
 
         self.channels = []
         self.channels_f = channels_f
 
-        # To be passed to ChannelHandler objects
+        # To be passed to ChannelScraper objects
         self.browser       = browser
         self.pause_time    = pause_time
         self.cutoff        = cutoff
@@ -326,7 +326,7 @@ class MultiChannelHandler:
                     line = line.split('\t')[0]
                     line = sub('[\s\ufeff]+', '', line.strip('/')) # Handle whitespace and Excel nonsense?
 
-                    channel = ChannelHandler(line, self.browser, self.pause_time, self.cutoff, self.group, self.overwrite, self.screen)
+                    channel = ChannelScraper(line, self.browser, self.pause_time, self.cutoff, self.group, self.overwrite, self.screen)
                     channel.scrape()
                     self.channels.append(channel)
                     sleep(1)
@@ -342,14 +342,14 @@ class MultiChannelHandler:
             channel.save()
 
 
-class MultiVideoHandler:
+class MultiVideoScraper:
 
     def __init__(self, videos_f, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, screen=False, overwrite=False):
 
             self.overwrite     = overwrite
             self.videos_f      = videos_f
 
-            # To be passed to VideoHandler objects
+            # To be passed to VideoScraper objects
             self.browser       = browser
             self.pause_time    = pause_time
             self.cutoff        = cutoff
@@ -367,8 +367,8 @@ class MultiVideoHandler:
                 line = line.split('\t')[0]
                 line = sub('[\s\ufeff]+', '', line.strip('/')) # Handle whitespace and Excel nonsense?
 
-                # VideoHandler takes a video URL and scrapes the channel data
+                # VideoScraper takes a video URL and scrapes the channel data
                 # TODO: This isn't very transparent
-                channel = VideoHandler(line, self.browser, self.pause_time, self.cutoff, self.group, self.overwrite, self.screen)
+                channel = VideoScraper(line, self.browser, self.pause_time, self.cutoff, self.group, self.overwrite, self.screen)
                 channel.scrape()
                 self.channels.append(channel)

@@ -103,7 +103,7 @@ def main(args):
 
             if path.exists(path.join(out_data_path, out_fn)):
                 if args.overwrite:
-                    print('- Ovewriting file: {0}'.format(out_fn))
+                    print('- Overwriting file: {0}'.format(out_fn))
 
                     remove(path.join(out_data_path, out_fn))
                 else:

@@ -55,14 +55,16 @@ def main(args):
     aligned_audio_base = path.join("corpus", "aligned_audio")
     acoustic_data_base = path.join("corpus", "acoustic_data")
 
-    if not args.group == None:
+    if args.group:
         aligned_audio_base = path.join(aligned_audio_base, args.group)
         acoustic_data_base = path.join(acoustic_data_base, args.group)
 
-    if not args.channel == None:
+    if args.channel:
         channel_list = [args.channel]
     else:
         channel_list = [channel_id for channel_id in listdir(path.join(aligned_audio_base, "aligned_corpus")) if not channel_id.startswith('.') and not channel_id.endswith('.txt')]
+        channel_list.sort(key=str.lower)
+
 
     for ch_i, channel_id in enumerate(channel_list):
         print('\nChannel {0} of {1}: {2} ...'.format(ch_i+1, len(channel_list), channel_id))
@@ -71,20 +73,34 @@ def main(args):
         post_align_path = path.join(aligned_audio_base, "aligned_corpus", channel_id)
         pre_align_path = path.join(aligned_audio_base, "original_corpus", channel_id)
 
-        video_list = [video_id for video_id in listdir(post_align_path) if not video_id.startswith('.') and not video_id.endswith('.txt')]
+        # TODO: Add back in option to list video_id folders from post-align
+        # Fix the current issue where if adjusted folder exists, but vowels are not yet coded (and in the adjusted/.../textgrids folder, cannot recover to run on aligned_corpus/.../video_id because the video director is different name (merged "all" folder under adjusted but seperate video_id folders under aligned))
+        try:
+            video_list = [video_dir for video_dir in listdir(adjusted_path) if not video_dir.startswith('.') and not video_dir.endswith('.txt')]
+        except:
+            video_list = [video_dir for video_dir in listdir(post_align_path) if not video_dir.startswith('.') and not video_dir.endswith('.txt')]
+        video_list.sort(key=str.lower)
+        print(video_list)
+        input()
 
-        for v_i, video_id in enumerate(video_list):
+        for v_i, video_dir in enumerate(video_list):
+            video_id = video_dir # need to fix so things work without an id
+
             print('* Video {0} of {1}: {2} ...'.format(v_i+1, len(video_list), video_id))
 
             tg_path = path.join(adjusted_path, video_id, "textgrids")
             audio_path = path.join(adjusted_path, video_id, "audio")
             out_data_path = path.join(acoustic_data_base, "adjusted", channel_id)
 
-            if not [tg for tg in listdir(tg_path) if path.splitext(tg)[1] == '.TextGrid']:
+            print(path.isdir(tg_path))
+            input()
+            if not path.isdir(tg_path) or not [tg for tg in listdir(tg_path) if path.splitext(tg)[1] == '.TextGrid']:
                 print('  Using automatic (unadjusted) forced alignment')
                 tg_path = path.join(post_align_path, video_id)
                 audio_path = path.join(pre_align_path, video_id)
                 out_data_path = path.join(acoustic_data_base, "automatic", channel_id)
+            print(tg_path)
+            input()
 
             # Make folders
             if not path.exists(out_data_path):
@@ -111,33 +127,46 @@ def main(args):
                     continue
 
             # Create output data frame (overwriting existing)
-            out_df = pd.DataFrame(columns=['channel', 'video_id', 'fn', 'label', 'start_time', 'end_time', 'duration', 'pre_phone', 'post_phone', 'word', 'vowel', 'stress', 'diph'])
+            out_df = pd.DataFrame(columns=['channel', 'video_id', 'filename', 'label', 'start_time', 'end_time', 'duration', 'pre_phone', 'post_phone', 'word', 'vowel', 'stress', 'diph'])
 
-            for f_i, fn in enumerate(listdir(tg_path)):
+            files_list = [fn for fn in listdir(tg_path) if not fn.startswith('.') and not fn.endswith('.txt')]
+            files_list.sort(key=str.lower)
+
+            for f_i, fn in enumerate(files_list):
+                print(fn)
                 sound, textgrid = open_files_in_praat(fn, tg_path, audio_path)
 
-                none_vowels = []
-                extracted_vowels = []
-                for target_label in target_list:
-                    vowel_count = call(textgrid,'Count intervals where',
-                                   2, 'is equal to', target_label)
-                    if vowel_count > 0:
-                        vowel_subsounds = call([sound, textgrid],
-                                                'Extract intervals where',
-                                                2, True, 'is equal to', target_label)
-                        if not isinstance(vowel_subsounds, list): # check if list
-                            vowel_subsounds = [vowel_subsounds]
-                        vowel_sound_list = [(vs,target_label) for vs in vowel_subsounds]
-                        extracted_vowels = extracted_vowels + vowel_sound_list
-                    else:
-                        none_vowels.append(target_label)
+                if args.point_marker:
+                    target_int = call(textgrid, "Get interval at time", 2, call(textgrid, "Get time of point", 3, 1))
+                    target_label = call(textgrid, "Get label of interval", 2, target_int)
+                    # TODO: add check in case marked label is wrong/doesn't match expected vowel; write filename to textfile for manual checking
+                    target_start = call(textgrid, "Get start time of interval", 2, target_int)
+                    target_end = call(textgrid, "Get end time of interval", 2, target_int)
+                    vowel_subsounds = [call(sound, "Extract part", target_start, target_end, "rectangular", 1, True)]
+                    extracted_vowels = [(vs, target_start, target_end, target_label) for vs in vowel_subsounds]
+                else:
+                    none_vowels = []
+                    extracted_vowels = []
+                    for target_label in target_list:
+                        vowel_count = call(textgrid,'Count intervals where',
+                                       2, 'is equal to', target_label)
+                        if vowel_count > 0:
+                            vowel_subsounds = call([sound, textgrid],
+                                                    'Extract intervals where',
+                                                    2, True, 'is equal to', target_label)
+                            if not isinstance(vowel_subsounds, list): # check if list
+                                vowel_subsounds = [vowel_subsounds]
+                            vowel_sound_list = [(vs,vs.get_start_time(), vs.get_end_time(), target_label) for vs in vowel_subsounds]
+                            extracted_vowels = extracted_vowels + vowel_sound_list
+                        else:
+                            none_vowels.append(target_label)
 
-                if none_vowels:
-                    print('  - Vowels not found: {0}.'.format(none_vowels))
+                    if none_vowels:
+                        print('  - Vowels not found: {0}.'.format(none_vowels))
 
                 print('  Number of vowels: {0}'.format(len(extracted_vowels)))
                 for j, target_vowel in enumerate(extracted_vowels):
-                    vowel_sound, vowel_label = target_vowel
+                    vowel_sound, int_start, int_end, vowel_label = target_vowel
 
                     int_vowel = vowel_label[:2]
                     int_stress = vowel_label[-1]
@@ -147,8 +176,6 @@ def main(args):
                         int_diph = 0
 
                     # Get label timing
-                    int_start = vowel_sound.get_start_time()
-                    int_end = vowel_sound.get_end_time()
                     int_dur =  (int_end - int_start)
 
                     # Get label word/sound info
@@ -214,6 +241,7 @@ if __name__ == '__main__':
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_audio/$group)')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
+    parser.add_argument('--point_marker', '-p', action='store_true', default=False, help='use point marker to identify target vowels')
     parser.add_argument('--vowels', '-vo', help='list of vowels to target, comma-separated', type=str)
     parser.add_argument('--stress', '-st', help='list of stress values to target, comma-separated', type=str)
     parser.add_argument('--nucleus', '-n', action='store_true', default=False, help='extract nucleus midpoint formants')
@@ -222,8 +250,6 @@ if __name__ == '__main__':
     parser.add_argument('--max_formant', '-mf', default=3, type=int, metavar='N', help='maximum number of formants to extract (default=3)')
     parser.add_argument('--formant_ceiling', '-fc', default=5500, type=int, metavar='N', help='formant ceiling value (Hz); typically 5500 for adult women, 5000 for adult men (default=5500)')
     parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
-
-    # TODO: Add overwrite
 
     args = parser.parse_args()
 

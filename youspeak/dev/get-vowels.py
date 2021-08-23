@@ -129,7 +129,6 @@ def main(args):
             files_list.sort(key=str.lower)
 
             for f_i, fn in enumerate(files_list):
-                print(fn)
                 sound, textgrid = open_files_in_praat(fn, tg_path, audio_path)
 
                 if args.point_marker:
@@ -160,7 +159,8 @@ def main(args):
                     if none_vowels:
                         print('  - Vowels not found: {0}.'.format(none_vowels))
 
-                print('  Number of vowels: {0}'.format(len(extracted_vowels)))
+                if not args.adjusted:
+                    print('  Number of vowels: {0}'.format(len(extracted_vowels)))
                 for j, target_vowel in enumerate(extracted_vowels):
                     vowel_sound, int_start, int_end, vowel_label = target_vowel
 

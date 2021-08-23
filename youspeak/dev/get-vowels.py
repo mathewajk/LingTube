@@ -73,34 +73,30 @@ def main(args):
         post_align_path = path.join(aligned_audio_base, "aligned_corpus", channel_id)
         pre_align_path = path.join(aligned_audio_base, "original_corpus", channel_id)
 
-        # TODO: Add back in option to list video_id folders from post-align
-        # Fix the current issue where if adjusted folder exists, but vowels are not yet coded (and in the adjusted/.../textgrids folder, cannot recover to run on aligned_corpus/.../video_id because the video director is different name (merged "all" folder under adjusted but seperate video_id folders under aligned))
-        try:
+        #video_list = []
+        #if path.isdir(adjusted_path):
+        if args.adjusted:
             video_list = [video_dir for video_dir in listdir(adjusted_path) if not video_dir.startswith('.') and not video_dir.endswith('.txt')]
-        except:
+        #if len(video_list) == 0:
+        else:
             video_list = [video_dir for video_dir in listdir(post_align_path) if not video_dir.startswith('.') and not video_dir.endswith('.txt')]
         video_list.sort(key=str.lower)
-        print(video_list)
-        input()
 
         for v_i, video_dir in enumerate(video_list):
             video_id = video_dir # need to fix so things work without an id
 
             print('* Video {0} of {1}: {2} ...'.format(v_i+1, len(video_list), video_id))
 
-            tg_path = path.join(adjusted_path, video_id, "textgrids")
-            audio_path = path.join(adjusted_path, video_id, "audio")
-            out_data_path = path.join(acoustic_data_base, "adjusted", channel_id)
-
-            print(path.isdir(tg_path))
-            input()
-            if not path.isdir(tg_path) or not [tg for tg in listdir(tg_path) if path.splitext(tg)[1] == '.TextGrid']:
+            if args.adjusted:
+                tg_path = path.join(adjusted_path, video_id, "textgrids")
+                audio_path = path.join(adjusted_path, video_id, "audio")
+                out_data_path = path.join(acoustic_data_base, "adjusted", channel_id)
+            else:
+            #if not path.isdir(tg_path) or not [tg for tg in listdir(tg_path) if path.splitext(tg)[1] == '.TextGrid']:
                 print('  Using automatic (unadjusted) forced alignment')
                 tg_path = path.join(post_align_path, video_id)
                 audio_path = path.join(pre_align_path, video_id)
                 out_data_path = path.join(acoustic_data_base, "automatic", channel_id)
-            print(tg_path)
-            input()
 
             # Make folders
             if not path.exists(out_data_path):
@@ -241,6 +237,7 @@ if __name__ == '__main__':
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_audio/$group)')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
+    parser.add_argument('--adjusted', '-a', action='store_true', default=False, help='use hand-corrected, adjusted textgrids (under adjusted_corpus)')
     parser.add_argument('--point_marker', '-p', action='store_true', default=False, help='use point marker to identify target vowels')
     parser.add_argument('--vowels', '-vo', help='list of vowels to target, comma-separated', type=str)
     parser.add_argument('--stress', '-st', help='list of stress values to target, comma-separated', type=str)

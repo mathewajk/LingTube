@@ -83,11 +83,12 @@ def main(args):
             out_vowel_path = path.join(out_path, "queue")
 
             if path.exists(out_vowel_path):
-                if args.overwrite:
-                    rmtree(out_vowel_path)
-                else:
-                    print('- Extracted vowels already exist for: {0}'.format(video_id))
-                    continue
+                if channel_j == 0:
+                    if args.overwrite:
+                        rmtree(out_vowel_path)
+                    else:
+                        print('- Extracted vowels already exist.'.format(channel_id))
+                        continue
 
             for dir in [out_tg_path, out_audio_path, out_vowel_path]:
                 if not path.exists(dir):

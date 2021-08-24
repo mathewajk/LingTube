@@ -253,17 +253,3 @@ endfor
 
 select all
 Remove
-
-## OUT-OF-DATE
-#target_vowels$# = {"OW1", "UW1", "EY1", "IY1", "AE1", "AA1", "AO1"}
-
-
-#vowel_exists = Search column: "vowel", current_vowel$
-#if vowel_exists > 0
-#	Extract rows where column (text): "vowel", "is equal to", current_vowel$
-#	number_of_rows = Get number of rows
-#	Remove
-#	appendInfoLine: current_vowel$ + ": " + string$(number_of_rows)
-#else
-#	appendInfoLine: current_vowel$ + ": " + string$(0)
-#endif

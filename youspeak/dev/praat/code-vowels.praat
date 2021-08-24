@@ -28,6 +28,7 @@ form Modify textgrids
 	sentence reference_vowels IY1 AE1 AA1 AO1
 endform
 
+#########################################################
 # Create vowel list vectors
 target_vowels$# = splitByWhitespace$#(target_vowels$)
 reference_vowels$# = splitByWhitespace$#(reference_vowels$)
@@ -37,6 +38,7 @@ for j from 1 to size(finished_vowels$#)
 endfor
 #finished_vowel_i = 1
 
+#########################################################
 # Create/read file and add header if file doesn't already exist (NOTE: fileReadable location is always relative to script)
 new_outfile = 0
 if !(fileReadable (outfile$))
@@ -44,7 +46,6 @@ if !(fileReadable (outfile$))
 		new_outfile = 1
 endif
 
-#########################################################
 # Check coding progress
 if new_outfile = 0
 	clearinfo
@@ -87,8 +88,11 @@ if new_outfile = 0
 	select Table output
 	plus Table usable_output
 	Remove
+else
+	usable_rows = 0
 endif
 
+#########################################################
 # Get list of all files
 clearinfo
 Create Strings as file list... list 'audio_dir$'*.wav
@@ -194,51 +198,54 @@ for i_file to number_of_files
 							...boundaries, ",",
 							...creak, ",",
 							...issues
+
+							if new_outfile = 1
+								new_outfile = 0
+							endif
+
+							clearinfo
+							Read Table from comma-separated file... 'out_list_dir$''outfile$'
+							Rename: "output"
+							total_rows = Get number of rows
+							appendInfoLine: "Total vowels coded: " + string$(total_rows) + newline$
+
+							Extract rows where... self$["boundaries"]="1" & self$["creak"]="1" & self$["issues"]="1"
+							Rename: "usable_output"
+							usable_rows = Get number of rows
+							appendInfoLine: "Usable vowels coded: " + string$(usable_rows) + newline$
+
+							appendInfoLine: "Target vowels usable: "
+							for i_vowel from 1 to size(target_vowels$#)
+								current_vowel$ = target_vowels$#[i_vowel]
+								select Table usable_output
+
+								vowel_rows# = List row numbers where... self$["vowel"]=current_vowel$
+								number_of_vowels = size(vowel_rows#)
+								if number_of_vowels > 49
+									finished_vowels$#[i_vowel] = current_vowel$
+								endif
+								appendInfoLine: current_vowel$ + ": " + string$(number_of_vowels)
+							endfor
+
+							appendInfoLine:  newline$ + "Reference vowels usable: "
+							for i_ref_vowel from 1 to size(reference_vowels$#)
+								current_vowel$ = reference_vowels$#[i_ref_vowel]
+								select Table usable_output
+
+								vowel_rows# = List row numbers where... self$["vowel"]=current_vowel$
+								number_of_vowels = size(vowel_rows#)
+								if number_of_vowels > 19
+									finished_vowels$#[i_ref_vowel + size(target_vowels$#)] = current_vowel$
+								endif
+								appendInfoLine: current_vowel$ + ": " + string$(number_of_vowels)
+							endfor
+
+							select Table output
+							plus Table usable_output
+							Remove
+
 			endif
 		endeditor
-
-		if new_outfile = 0
-			clearinfo
-			Read Table from comma-separated file... 'out_list_dir$''outfile$'
-			Rename: "output"
-			total_rows = Get number of rows
-			appendInfoLine: "Total vowels coded: " + string$(total_rows) + newline$
-
-			Extract rows where... self$["boundaries"]="1" & self$["creak"]="1" & self$["issues"]="1"
-			Rename: "usable_output"
-			usable_rows = Get number of rows
-			appendInfoLine: "Usable vowels coded: " + string$(usable_rows) + newline$
-
-			appendInfoLine: "Target vowels usable: "
-			for i_vowel from 1 to size(target_vowels$#)
-				current_vowel$ = target_vowels$#[i_vowel]
-				select Table usable_output
-
-				vowel_rows# = List row numbers where... self$["vowel"]=current_vowel$
-				number_of_vowels = size(vowel_rows#)
-				if number_of_vowels > 49
-					finished_vowels$#[i_vowel] = current_vowel$
-				endif
-				appendInfoLine: current_vowel$ + ": " + string$(number_of_vowels)
-			endfor
-
-			appendInfoLine:  newline$ + "Reference vowels usable: "
-			for i_ref_vowel from 1 to size(reference_vowels$#)
-				current_vowel$ = reference_vowels$#[i_ref_vowel]
-				select Table usable_output
-
-				vowel_rows# = List row numbers where... self$["vowel"]=current_vowel$
-				number_of_vowels = size(vowel_rows#)
-				if number_of_vowels > 19
-					finished_vowels$#[i_ref_vowel + size(target_vowels$#)] = current_vowel$
-				endif
-				appendInfoLine: current_vowel$ + ": " + string$(number_of_vowels)
-			endfor
-
-			select Table output
-			plus Table usable_output
-			Remove
-		endif
 
 	endif
 

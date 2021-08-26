@@ -23,7 +23,9 @@ form Modify textgrids
 	sentence outfile vowel_coding_log.csv
 	comment Vowel Lists (list each separated by a space)
 	sentence target_vowels OW1 UW1 EY1
+	integer max_target 50
 	sentence reference_vowels IY1 AE1 AA1 AO1
+	integer max_reference 20
 endform
 
 #########################################################
@@ -224,7 +226,7 @@ for i_file to number_of_files
 
 								vowel_rows# = List row numbers where... self$["vowel"]=current_vowel$
 								number_of_vowels = size(vowel_rows#)
-								if number_of_vowels > 49
+								if number_of_vowels > max_target-1
 									finished_vowels$#[i_vowel] = current_vowel$
 								endif
 								appendInfoLine: current_vowel$ + ": " + string$(number_of_vowels)
@@ -237,7 +239,7 @@ for i_file to number_of_files
 
 								vowel_rows# = List row numbers where... self$["vowel"]=current_vowel$
 								number_of_vowels = size(vowel_rows#)
-								if number_of_vowels > 19
+								if number_of_vowels > max_reference-1
 									finished_vowels$#[i_ref_vowel + size(target_vowels$#)] = current_vowel$
 								endif
 								appendInfoLine: current_vowel$ + ": " + string$(number_of_vowels)

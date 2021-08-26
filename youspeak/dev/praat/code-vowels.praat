@@ -174,6 +174,9 @@ for i_file to number_of_files
 						endeditor
 						select all
 						Remove
+						if new_outfile = 1
+							deleteFile: out_list_dir$ + outfile$
+						endif
 						exitScript ()
 			elsif clicked = 2
 						select TextGrid 'name$'

@@ -170,11 +170,12 @@ def main(args):
                         sound_window.save(path.join(out_vowel_path, window_name+'.wav'), "WAV")
                         tg_window.save(path.join(out_vowel_path, window_name+'.TextGrid'))
                     else:
-                        if not path.exists(path.join(out_vowel_path, 'extra')):
-                            makedirs(path.join(out_vowel_path, 'extra'))
-
-                        sound_window.save(path.join(out_vowel_path, 'extra', window_name+'.wav'), "WAV")
-                        tg_window.save(path.join(out_vowel_path, 'extra', window_name+'.TextGrid'))
+                        continue
+                        # if not path.exists(path.join(out_path, 'extra')):
+                        #     makedirs(path.join(out_path, 'extra'))
+                        #
+                        # sound_window.save(path.join(out_path, 'extra', window_name+'.wav'), "WAV")
+                        # tg_window.save(path.join(out_path, 'extra', window_name+'.TextGrid'))
 
                 video_j = video_j + file_j
                 # print("Updated Video j: {}".format(video_j))

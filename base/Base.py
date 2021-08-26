@@ -16,16 +16,19 @@ import logging
 
 class ChannelScraper:
 
-    def __init__(self, url, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, screen=False):
+    def __init__(self, url, from_video=True, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, overwrite =False, screen=False):
 
         self.url = url
 
         # Default variables
+        self.from_video    = from_video
+        self.video_url     = None
         self.browser       = browser
         self.pause_time    = pause_time
         self.cutoff        = cutoff
         self.group         = group
         self.ignore_videos = ignore_videos
+        self.overwrite     = overwrite
         self.screen        = screen
 
 
@@ -39,11 +42,34 @@ class ChannelScraper:
         if self.url[-1] == '/':
             self.url = self.url[:-1]
 
-        # TODO: We are assuming URLs are frmatted correctly
-        channel_id = self.url.split('/')[-1]
-        info = {"ChannelID": channel_id, "SafeChannelID": sub(punc_and_whitespace, "", channel_id)}
+        if self.from_video:
+            driver.get(self.url)
 
-        logging.info("Gathering videos from channel ID: " + channel_id)
+            try:
+                WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'ytd-channel-name')))
+
+                sleep(2)
+
+                channel_url = driver.find_element(By.CLASS_NAME, "ytd-channel-name").find_element(By.TAG_NAME, 'a').get_attribute('href')
+                logging.info("Gathering information from channel: " + channel_url)
+
+                # TODO: Not really the safest way to update the URL. Video and channel URL should be kept clearly distinct.
+                self.video_url = self.url
+                self.url = channel_url
+
+                channel_id = channel_url.split('/')[-1]
+                info = {"ChannelID": channel_id, "SafeChannelID": sub(punc_and_whitespace, "", channel_id)}
+
+                return info
+
+            except:
+                logging.critical("Could not locate channel URL")
+                exit(1)
+
+        else:
+            # TODO: We are assuming URLs are frmatted correctly
+            channel_id = self.url.split('/')[-1]
+            info = {"ChannelID": channel_id, "SafeChannelID": sub(punc_and_whitespace, "", channel_id)}
 
         return info
 
@@ -147,6 +173,9 @@ class ChannelScraper:
             elements = driver.find_elements_by_xpath('//*[@id="video-title"]')
             return [element.get_attribute('href') for element in elements]
 
+        if self.from_video:
+            self.log_video()
+
 
     def scrape_info(self, driver):
         """Scrape the channel's description.
@@ -212,66 +241,6 @@ class ChannelScraper:
                     self.links = self.scrape_links(driver)
 
 
-    def get_info(self):
-        return self.info
-
-
-    def get_links(self):
-        return self.links
-
-
-    def get_url(self):
-        return self.url
-
-
-class VideoScraper(ChannelScraper):
-    """Scrape channel info and videos from a channel based on the URL of a video from that channel.
-    """
-
-    def __init__(self, url, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, overwrite=False, screen=False):
-
-        self.overwrite = overwrite
-        super().__init__(url, browser, pause_time, cutoff, group, ignore_videos, screen)
-
-
-    def init_info(self, driver):
-        """Initialize *info* with the channel name and ID. For videos, this requires scraping the video's page.
-           This function also updates self.url to reflect the URL of the channel.
-        """
-
-        driver.get(self.url)
-
-        try:
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'ytd-channel-name')))
-
-            sleep(2)
-
-            channel_url = driver.find_element(By.CLASS_NAME, "ytd-channel-name").find_element(By.TAG_NAME, 'a').get_attribute('href')
-            logging.info("Gathering information from channel: " + channel_url)
-
-            # TODO: Not really the safest way to update the URL. Video and channel URL should be kept clearly distinct.
-            self.video_url = self.url
-            self.url = channel_url
-
-            punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-            channel_id = channel_url.split('/')[-1]
-            info = {"ChannelID": channel_id, "SafeChannelID": sub(punc_and_whitespace, "", channel_id)}
-
-            return info
-
-        except:
-            logging.critical("Could not locate channel URL")
-            exit(1)
-
-
-    def save(self):
-        """Save channel info and scraped videos (if applicable)
-        """
-
-        super().save()
-        self.log_video()
-
-
     def log_video(self):
         """Log the video URL, channel name, and channel ID in LingTube format
         """
@@ -300,14 +269,27 @@ class VideoScraper(ChannelScraper):
             videos_out.write("{0}\t{1}\t{2}\n".format(self.video_url, self.info["ChannelName"], self.info["SafeChannelID"]))
 
 
+    def get_info(self):
+        return self.info
+
+
+    def get_links(self):
+        return self.links
+
+
+    def get_url(self):
+        return self.url
+
+
 class MultiChannelScraper:
 
-    def __init__(self, channels_f, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, overwrite=False, screen=False):
+    def __init__(self, f, from_video=False, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, overwrite=False, screen=False):
 
         self.channels = []
-        self.channels_f = channels_f
+        self.f        = f
 
         # To be passed to ChannelScraper objects
+        self.from_video    = from_video
         self.browser       = browser
         self.pause_time    = pause_time
         self.cutoff        = cutoff
@@ -320,14 +302,14 @@ class MultiChannelScraper:
     def process(self):
 
         try:
-            with open(self.channels_f) as channels_in:
-                for line in channels_in:
+            with open(self.f) as file_in:
+                for line in file_in:
                     line = line.split('\t')[0]
                     line = sub('[\s\ufeff]+', '', line.strip('/')) # Handle whitespace and Excel nonsense?
 
-                    channel = ChannelScraper(line, self.browser, self.pause_time, self.cutoff, self.group, self.overwrite, self.screen)
-                    channel.scrape()
-                    self.channels.append(channel)
+                    scraper = ChannelScraper(line, self.browser, self.pause_time, self.cutoff, self.group, self.overwrite, self.screen)
+                    scraper.scrape()
+                    self.scrapers.append(scraper)
                     sleep(1)
         except FileNotFoundError as e:
             print('Error: File {0} could not be found.'.format(self.channels_f))
@@ -337,45 +319,13 @@ class MultiChannelScraper:
         """Write channel information and (if scraping) a scraped list of video links to a file.
         """
 
-        for channel in self.channels:
-            channel.save()
-
-
-class MultiVideoScraper:
-
-    def __init__(self, videos_f, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, screen=False, overwrite=False):
-
-            self.overwrite     = overwrite
-            self.videos_f      = videos_f
-
-            # To be passed to VideoScraper objects
-            self.browser       = browser
-            self.pause_time    = pause_time
-            self.cutoff        = cutoff
-            self.group         = group
-            self.ignore_videos = ignore_videos
-            self.screen        = screen
-
-
-    def process(self):
-
-        with open(self.channels_f) as channels_in:
-
-            for line in videos_f:
-
-                line = line.split('\t')[0]
-                line = sub('[\s\ufeff]+', '', line.strip('/')) # Handle whitespace and Excel nonsense?
-
-                # VideoScraper takes a video URL and scrapes the channel data
-                # TODO: This isn't very transparent
-                channel = VideoScraper(line, self.browser, self.pause_time, self.cutoff, self.group, self.overwrite, self.screen)
-                channel.scrape()
-                self.channels.append(channel)
+        for scraper in self.scrapers:
+            scraper.save()
 
 
 class Video:
 
-    def __init__(video, yt_id, channel_name="", channel_id="", group='', screen=False, convert_srt=False, include_title=False):
+    def __init__(url, yt_id, channel_name="", channel_id="", group='', screen=False, convert_srt=False, include_title=False):
 
         try:
             self.video = YouTube(url)
@@ -396,6 +346,7 @@ class Video:
         self.screen = screen
         self.convert_srt = convert_srt
         self.include_title = include_title
+
 
     def write_captions(self, captions):
         """Write Caption object to a file. If an output folder is not specified, captions will be placed in a folder corresponding to the name of the video's author (i.e. channel).
@@ -446,35 +397,28 @@ class Video:
             return 0
 
 
-    def write_audio(audio, video, yt_id, channel_name="", channel_id="", group=None, screen=None, include_title=False):
+    def write_audio(self):
         """Write audio Stream object to a file. If an output folder is not specified, audio will be placed in a folder corresponding to the name of the video's author (i.e. channel).
-
-        :param audio: The audio Stream to download
-        :param yt_id: YouTube ID string of the video from the url
-        :param channel_name: The name of the channel as given on its main page (default "")
-        :param channel_id: The name of the channel as it appears in the channel's URL (default "")
-        :param group: The folder to output the audio stream to (default None)
-        :param include_title: Include video title in audio filename (default True)
         """
 
-        safe_title = helpers.safe_filename(video.title)
-        safe_author = helpers.safe_filename(video.author)
+        safe_title = helpers.safe_filename(self.video.title)
+        safe_author = helpers.safe_filename(self.video.author)
 
-        if screen:
+        if self.screen:
             out_path = path.join("corpus", "unscreened_urls", "audio")
-            if group:
-                out_path = path.join("corpus", "unscreened_urls", group, "audio")
+            if self.group:
+                out_path = path.join("corpus", "unscreened_urls", self.group, "audio")
         else:
             out_path = path.join("corpus", "raw_audio")
-            if group:
-                out_path = path.join(out_path, group)
+            if self.group:
+                out_path = path.join(out_path, self.group)
 
         punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-        if channel_name and channel_id:
-            safe_channel_name = sub(punc_and_whitespace, "", channel_name)
-            safe_author = "{0}_{1}".format(safe_channel_name, channel_id)
+        if self.channel_name and self.channel_id:
+            safe_channel_name = sub(punc_and_whitespace, "", self.channel_name)
+            safe_author = "{0}_{1}".format(safe_channel_name, self.channel_id)
         else:
-            safe_author = sub(punc_and_whitespace, "", video.author)
+            safe_author = sub(punc_and_whitespace, "", self.video.author)
 
         out_path = path.join(out_path, safe_author)
 
@@ -483,39 +427,30 @@ class Video:
 
         try:
             if include_title:
-                audio.download(filename=safe_title + '.mp4', output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, yt_id), skip_existing=True)
+                audio.download(filename=safe_title + '.mp4', output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, self.yt_id), skip_existing=True)
             else:
                 audio.download(filename=str(yt_id) + '.mp4', output_path=out_path, filename_prefix="{0}_".format(safe_author), skip_existing=True)
 
         except:
-            logging.critical("Video {0}: Could not save audio stream for video {0} from channel {1} ({2})".format(yt_id, video.author, video.title))
+            logging.critical("Video {0}: Could not save audio stream for video {0} from channel {1} ({2})".format(yt_id, self.video.author, self.video.title))
 
         # Be polite
         sleep(1)
 
 
-    def write_captions_by_language(video, yt_id, channel_name="", channel_id="", language=None, group=None, screen=None, include_auto=False, convert_srt=False, include_title=False):
+    def get_captions_by_language(self):
         """Filter captions by language and write each caption track to a file. If no language is specified, all caption tracks will be downloaded.
-
-        :param video: The YouTube object to download caption tracks from
-        :param yt_id: YouTube ID string of the video from the url
-        :param channel_name: The name of the channel as given on its main page (default "")
-        :param channel_id: The name of the channel as it appears in the channel's URL (default "")
-        :param language: The language to download caption tracks for (default None)
-        :param group: The folder to output the caption track to (default None)
-        :param convert_srt: Convert captions from XML to SRT format (default False)
-        :param include_title: Include video title in caption filename (default False)
 
         :return caption_list: list of metadata for all successfully-downloaded caption tracks
         """
 
         caption_list = []
-        for track in video.captions:
-            if language is None or (language in track.name and (include_auto or "a." not in track.code)):
+        for track in self.video.captions:
+            if self.language is None or (self.language in track.name and (self.include_auto or "a." not in self.track.code)):
 
-                success = write_captions(track, video, yt_id, channel_name, channel_id, group, screen, convert_srt, include_title)
+                success = write_captions(track)
                 if success:
-                    caption_list.append((track.code, track.name))
+                    self.caption_list.append((track.code, track.name))
 
                 # Be polite
                 sleep(1)
@@ -523,36 +458,31 @@ class Video:
         return caption_list
 
 
-    def write_metadata(video, yt_id, caption_list, log_writer, url, channel_name="", channel_id=""):
+    def write_metadata(self, caption_list):
         """Write video metadata to log file.
 
-        :param video: The YouTube object to log
-        :param yt_id: YouTube ID string of the video from the url
-        :param caption_list: A list of successfully-downloaded captions
-        :param log_writer: DictWriter to use for writing metadata
-        :param channel_name: The name of the channel as given on its main page (default "")
-        :param channel_id: The name of the channel as it appears in the channel's URL (default "")
+        :param caption_list: List of downloaded caption tracks
         """
 
-        channel_initials = "".join( [name[0].upper() for name in video.author.split()] )
+        channel_initials = "".join( [name[0].upper() for name in self.video.author.split()] )
 
         punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-        safe_author = sub(punc_and_whitespace, "", video.author)
+        safe_author = sub(punc_and_whitespace, "", self.video.author)
 
         metadata = {
-            "yt_id": yt_id,
-            "author": video.author,
+            "yt_id": self.yt_id,
+            "author": self.video.author,
             "code": channel_initials,
             "name": safe_author,
-            "ID": channel_id,
-            "url": url,
-            "title": video.title,
-            "description": video.description.replace('\n', ' '),
-            "keywords": video.keywords,
-            "length": video.length,
-            "publish_date": video.publish_date,
-            "views": video.views,
-            "rating": video.rating,
+            "ID": self.channel_id,
+            "url": self.url,
+            "title": self.video.title,
+            "description": self.video.description.replace('\n', ' '),
+            "keywords": self.video.keywords,
+            "length": self.video.length,
+            "publish_date": self.video.publish_date,
+            "views": self.video.views,
+            "rating": self.video.rating,
             "captions": caption_list,
             "scrape_time": strftime("%Y-%m-%d_%H:%M:%S"),
             "corrected": 0,
@@ -561,37 +491,29 @@ class Video:
         log_writer.writerow(metadata)
 
 
-    def process_video(video, yt_id, channel_dict, log_writer, channel_name=None, channel_id=None, url=None, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, include_title=False, overwrite=False):
+    def process_video(video, channel_dict):
         """Download captions, audio (optional), and metadata for a given video.
-
-        :param video: The YouTube object to process
-        :param channel_name: The name of the channel as given on its main page (default None)
-        :param channel_id: The name of the channel as it appears in the channel's URL (default None)
-        :param channel_id: The url of the video
-        :param yt_id: YouTube ID string of the video from the url
-        :param language: The language to download caption tracks for (default None)
-        :param group: The folder to output the caption track to (default None)
-        :param convert_srt: Convert captions from XML to SRT format (default False)
-        :param include_title: Include video title in caption filename (default False)
 
         :return caption_dict: list of metadata for all successfully-downloaded caption tracks
         """
 
-        if video.author not in channel_dict.keys():
-            channel_dict.update({video.author: 0})
-        channel_dict[video.author] = channel_dict[video.author] + 1
+        if self.video.author not in self.channel_dict.keys():
+            self.channel_dict.update({self.video.author: 0})
+        self.channel_dict[self.video.author] = self.channel_dict[self.video.author] + 1
 
-        caption_list = write_captions_by_language(video, yt_id, channel_name, channel_id, language, group, screen, include_auto, convert_srt, include_title)
+        caption_list = write_captions_by_language()
 
         if include_audio:
-            audio = video.streams.filter(mime_type="audio/mp4").first()
-            write_audio(audio, video, yt_id, channel_name, channel_id, group, screen, include_title)
+            audio = self.video.streams.filter(mime_type="audio/mp4").first()
+            write_audio(audio)
 
         if len(caption_list):
-            write_metadata(video, yt_id, caption_list, log_writer, url, channel_name, channel_id)
+            write_metadata(caption_list)
 
         return channel_dict
 
+
+class MultiVideoScraper:
 
     def process_videos(urls_path, batch=False, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, resume_from=0, limit_to=-1, overwrite=False):
         """Download captions, audio (optional), and metadata for a list of videos.

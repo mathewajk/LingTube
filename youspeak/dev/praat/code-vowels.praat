@@ -42,7 +42,7 @@ endfor
 # Create/read file and add header if file doesn't already exist (NOTE: fileReadable location is always relative to script)
 new_outfile = 0
 if !(fileReadable (outfile$))
-		writeFileLine: "'out_list_dir$''outfile$'", "file,order,vowel,boundaries,creak,issues"
+		writeFileLine: "'out_list_dir$''outfile$'", "file,order,vowel,boundaries,creak,issues,flag"
 		new_outfile = 1
 endif
 
@@ -168,6 +168,7 @@ for i_file to number_of_files
 				option ("breathy/whisper/voiceless")
 				option ("noise/sfx/click/etc.")
 				option ("other")
+			flag = boolean ("Flag", 0)
 
 			clicked = endPause: "Quit", "Skip", "Done", 3, 1
 			if clicked = 1
@@ -200,7 +201,8 @@ for i_file to number_of_files
 							...vowel$, ",",
 							...boundaries, ",",
 							...creak, ",",
-							...issues
+							...issues, ",",
+							...flag
 
 							if new_outfile = 1
 								new_outfile = 0

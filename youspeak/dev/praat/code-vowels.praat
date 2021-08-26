@@ -19,8 +19,6 @@ form Modify textgrids
 	sentence out_audio_dir ./audio/
 	comment Directory to write the TextGrid to
 	sentence out_tg_dir ./textgrids/
-	comment Review List Directory
-	sentence out_list_dir ./
 	comment Output filename
 	sentence outfile vowel_coding_log.csv
 	comment Vowel Lists (list each separated by a space)
@@ -42,14 +40,14 @@ endfor
 # Create/read file and add header if file doesn't already exist (NOTE: fileReadable location is always relative to script)
 new_outfile = 0
 if !(fileReadable (outfile$))
-		writeFileLine: "'out_list_dir$''outfile$'", "file,order,vowel,boundaries,creak,issues,flag"
+		writeFileLine: "'outfile$'", "file,order,vowel,boundaries,creak,issues,flag"
 		new_outfile = 1
 endif
 
 # Check coding progress
 if new_outfile = 0
 	clearinfo
-	Read Table from comma-separated file... 'out_list_dir$''outfile$'
+	Read Table from comma-separated file... 'outfile$'
 	Rename: "output"
 	total_rows = Get number of rows
 	appendInfoLine: "Total vowels coded: " + string$(total_rows) + newline$
@@ -176,7 +174,7 @@ for i_file to number_of_files
 						select all
 						Remove
 						if new_outfile = 1
-							deleteFile: out_list_dir$ + outfile$
+							deleteFile: outfile$
 						endif
 						exitScript ()
 			elsif clicked = 2
@@ -195,7 +193,7 @@ for i_file to number_of_files
 						filedelete 'audio_dir$''name$'.wav
 
 						# Save to a spreadsheet
-						appendFileLine: "'out_list_dir$''outfile$'",
+						appendFileLine: "'outfile$'",
 							...soundname$, ",",
 							...order$, ",",
 							...vowel$, ",",
@@ -209,7 +207,7 @@ for i_file to number_of_files
 							endif
 
 							clearinfo
-							Read Table from comma-separated file... 'out_list_dir$''outfile$'
+							Read Table from comma-separated file... 'outfile$'
 							Rename: "output"
 							total_rows = Get number of rows
 							appendInfoLine: "Total vowels coded: " + string$(total_rows) + newline$

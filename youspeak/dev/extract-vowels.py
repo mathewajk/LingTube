@@ -65,7 +65,6 @@ def main(args):
 
 
         video_list = [video_id for video_id in listdir(post_align_path) if not video_id.startswith('.') and not video_id.endswith('.txt')]
-        video_list.sort(key=str.lower)
 
 
         for v_i, video_id in enumerate(video_list):

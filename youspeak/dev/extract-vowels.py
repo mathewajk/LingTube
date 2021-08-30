@@ -94,7 +94,7 @@ def main(args):
                     makedirs(dir)
 
             # add code-vowels praat script to directory
-            copy(path.join(path.dirname(path.realpath(__file__)), "praat", "code-vowels.praat"), out_path)
+            # copy(path.join(path.dirname(path.realpath(__file__)), "praat", "code-vowels.praat"), out_path)
             ##########################
 
             file_list = [fn for fn in listdir(tg_path) if not fn.startswith('.') and not fn.endswith('.txt')]

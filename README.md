@@ -1,8 +1,11 @@
 # LingTube
 Tools for scraping and doing linguistic analysis with YouTube data.
 
+*[Note: Currently only tested on MacOS and English speech.]*
+
 ## Updates
-* Currently under active development
+* 08/12/21: Scripts reorganized and renamed (with order); structure and documentation update underway
+* 04/06/21: Currently under active development
 
 ## Dependencies
 
@@ -21,49 +24,19 @@ to install the version of Python that is bundled with TK. By default, `brew inst
 ## Components
 *Details coming soon!*
 
-* `yt-tools`
-* `text-tools`
-* `youdep`
-* `youspeak`
+* [`base`](#base)
+* [`youdep`](#youdep)
+* [`youspeak`](#youspeak)
 
-### yt-tools
+### Base
 
-#### correct-captions.py
+*Details coming soon!*
 
-This script helps to streamline the correction of YouTube captions prior to chunking. It opens each video in a list of videos one-at-a-time in the browser alongside the caption file, which opens in a text editor of the user's choice. Correction progress can be saved such that next time the program is run, the video will open where the user left off last time.
+<!-- Add details -->
 
-##### Usage
+#### 1-scrape-channels.py
 
-```
-python3 yt-tools/correct-captions.py -h
-usage: correct-captions.py [-h] [--group GROUP] [--lang_code LANG_CODE]
-                           [--channel CHANNEL] [--editor EDITOR]
-
-Open captions text file and YouTube video in browser to aid in correcting captions,
-based on a log file in corpus/logs. If group is specified, uses
-corpus/logs/$group_log.csv. If no group is specified, ask user to navigate to and
-select a log file.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --group GROUP, -g GROUP
-                        name to group files under (create and /or assume files are
-                        located in a subfolder: raw_subtitles/$group)
-  --lang_code LANG_CODE, -l LANG_CODE
-                        open captions with a specific a language code (e.g., "en");
-                        if unspecified, uses first available language code in
-                        subtitle directory
-  --channel CHANNEL, -ch CHANNEL
-                        run on files for a specific channel name; if unspecified,
-                        goes through all channels in order
-  --editor EDITOR, -e EDITOR
-                        opens text file in a specified text editor: TextEdit, Atom,
-                        Notepad++ (default=TextEdit)
-```
-
-#### scrape-channels.py
-
-This script allows the user to scrape video URLs from a specified channel or list of channels. The user can also input a list of videos in order to scrape the uploading channel's infor and/or scrape the remaining videos from their channel.
+This script allows the user to scrape video URLs from a specified channel or list of channels. The user can also input a list of videos in order to scrape the uploading channel's info and/or scrape the remaining videos from their channel.
 
 ##### Usage
 
@@ -172,53 +145,7 @@ This call:
 3. Groups the resulting video URLs under a subfolder called `cali-tw`
 4. Additionally groups them under a folder called `unscreened_videos` indicating that the videos need to be checked for usability
 
-#### scrape-connections.py
-
-##### Usage
-
-```
-python3 yt-tools/scrape-connections.py -h
-usage: scrape-connections.py [-h] [--max_depth N] [-g GROUP] seed_users
-
-Scrape connected channel links from YouTube channel and their about pages.
-
-positional arguments:
-  seed_users            path to a file containing the users to start search from
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --max_depth N, -max N
-                        maximum depth of recursion (default=5)
-  -g GROUP, --group GROUP
-                        name to group files under (will create a subfolder:
-                        unscreened_urls/$group)
-```
-
-#### scrape-search.py
-
-##### Usage
-
-```
-python3 yt-tools/scrape-search.py -h
-usage: scrape-search.py [-h] [--exclude_query STR] [--group NAME] [--cutoff N]
-                        search_query
-
-Scrape video URLs from a YouTube channel.
-
-positional arguments:
-  search_query          search query (e.g., "get to know me")
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --exclude_query STR, -ex STR
-                        string of terms used to exclude from video title
-  --group NAME, -g NAME
-                        name to group files under (will create a subfolder:
-                        channel_data/$group)
-  --cutoff N            maximum number of times to scroll the page
-```
-
-#### scrape-videos.py
+#### 2-scrape-videos.py
 
 ##### Usage
 
@@ -251,4 +178,161 @@ optional arguments:
   --screen              downloading files for screening purposes
   --clean               skip scraping and only clean dowloaded caption filenames of
                         langcode
+```
+
+### 3-clean-captions.py
+#### Usage
+```
+usage: clean-captions.py [-h] [--group GROUP] [--lang_code LANG_CODE] [--fave]
+                         [--text] [--corrected] [--overwrite]
+
+Convert scraped YouTube captions to cleaned transcript format.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --group GROUP, -g GROUP
+                        name to group files under (create and /or assume files
+                        are located in a subfolder: cleaned_subtitles/$group)
+  --lang_code LANG_CODE, -l LANG_CODE
+                        open captions with a specific a language code (e.g.,
+                        "en"); if unspecified, goes through all available
+                        language code in subtitle directory
+  --fave, -f            additionally output Fave-format file
+  --text, -t            additionally output text-only file
+  --corrected, -c       only run on corrected subtitles
+  --overwrite, -o       overwrite files rather than appending
+```
+
+#### 4-correct-captions.py
+
+This script helps to streamline the correction of YouTube captions prior to chunking. It opens each video in a list of videos one-at-a-time in the browser alongside the caption file, which opens in a text editor of the user's choice. Correction progress can be saved such that next time the program is run, the video will open where the user left off last time.
+
+##### Usage
+
+```
+python3 yt-tools/correct-captions.py -h
+usage: correct-captions.py [-h] [--group GROUP] [--lang_code LANG_CODE]
+                           [--channel CHANNEL] [--editor EDITOR]
+
+Open captions text file and YouTube video in browser to aid in correcting captions,
+based on a log file in corpus/logs. If group is specified, uses
+corpus/logs/$group_log.csv. If no group is specified, ask user to navigate to and
+select a log file.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --group GROUP, -g GROUP
+                        name to group files under (create and /or assume files are
+                        located in a subfolder: raw_subtitles/$group)
+  --lang_code LANG_CODE, -l LANG_CODE
+                        open captions with a specific a language code (e.g., "en");
+                        if unspecified, uses first available language code in
+                        subtitle directory
+  --channel CHANNEL, -ch CHANNEL
+                        run on files for a specific channel name; if unspecified,
+                        goes through all channels in order
+  --editor EDITOR, -e EDITOR
+                        opens text file in a specified text editor: TextEdit, Atom,
+                        Notepad++ (default=TextEdit)
+```
+### YouDep
+*Details coming soon!*
+
+### YouSpeak
+
+*[Note: More details forthcoming!]*
+
+#### Dependencies
+
+Most dependencies are provided in the `requirements/` folder. To install, from the LingTube main directory, run
+
+`pip install -r requirements/youspeak.txt`
+
+For the scripts that rely on [pydub](https://github.com/jiaaro/pydub), you will also need to download `ffmpeg` separately, following the instructions [here](https://github.com/jiaaro/pydub#getting-ffmpeg-set-up).  If you are on MacOS and using Homebrew, you can run
+
+`brew install ffmpeg`
+
+For the scripts requiring `parselmouth-praat`, the Praat application is required. It can be downloaded from the [Praat website](https://www.fon.hum.uva.nl/praat/).  If you are on MacOS and using Homebrew, simply run
+
+`brew install --cask praat`
+
+#### Pipeline Components
+
+Before using scripts under YouSpeak, you should have already run the relevant scripts in `base`. That is, you should have (1) downloaded audio and caption files, and (2) corrected the original captions (though corrections can also be done later). YouSpeak is intended to be run in this order:
+
+1. [`1-convert-audio.py`](#1-convert-audio.py)
+2. [`2-chunk-audio.py`](#2-chunk-audio.py)
+4. [`3-validate-chunks.py`](#3-validate-chunks.py)
+5. [`4-create-textgrids.py`](#4-create-textgrids.py)
+
+After this stage, you can run forced alignment (using the Montreal Forced Aligner or other compatible aligner).
+
+#### 1-convert-audio.py
+
+##### Usage
+
+```
+usage: convert-audio.py [-h] [--group GROUP]
+
+Convert scraped YouTube audio from mp4 to WAV format.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --group GROUP, -g GROUP
+                        name to group files under (create and /or assume files
+                        are located in a subfolder: raw_audio/$group)
+```
+
+#### 2-chunk-audio.py
+
+##### Usage
+```
+usage: chunk-audio.py [-h] [--group GROUP] [--overwrite]
+
+Chunk WAV audio files into short segments of sound.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --group GROUP, -g GROUP
+                        name to group files under (create and /or assume files
+                        are located in a subfolder: raw_subtitles/$group)
+  --overwrite, -o       overwrite files rather than appending
+```
+
+
+#### 3-validate-chunks.py
+##### Usage
+```
+usage: validate-chunks.py [-h] [--group GROUP] [--lang_code LANG_CODE]
+
+Open a GUI for categorizing and transcribing audio chunks.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --group GROUP, -g GROUP
+                        name to group files under (create and /or assume files
+                        are located in a subfolder: chunked_audio/$group)
+  --lang_code LANG_CODE, -l LANG_CODE
+                        open captions with a specific a language code (e.g.,
+                        "en"); if unspecified, uses first available language
+                        code in subtitle directory
+```
+
+#### 4-create-textgrids.py
+##### Usage
+```
+usage: create-textgrids.py [-h] [--group GROUP] [--channel CHANNEL]
+                           [--overwrite]
+
+Create MFA-compatible textgrids and move to MFA alignment folder.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --group GROUP, -g GROUP
+                        name to group files under (create and /or assume files
+                        are located in a subfolder: aligned_audio/$group)
+  --channel CHANNEL, -ch CHANNEL
+                        run on files for a specific channel name; if
+                        unspecified, goes through all channels in order
+  --overwrite, -o       overwrite files rather than appending
 ```

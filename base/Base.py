@@ -323,9 +323,9 @@ class MultiChannelScraper:
             scraper.save()
 
 
-class Video:
+class VideoScraper:
 
-    def __init__(url, yt_id, channel_name="", channel_id="", group='', screen=False, convert_srt=False, include_title=False):
+    def __init__(url, id, log_fp=None, channel_name="", channel_id="", group='', screen=False, convert_srt=False, include_title=False):
 
         try:
             self.video = YouTube(url)
@@ -339,12 +339,13 @@ class Video:
             exit(1)
 
 
-        self.yt_id = yt_id
-        self.channel_name = channel_name
-        self.channel_id = channel_id
-        self.group = group
-        self.screen = screen
-        self.convert_srt = convert_srt
+        self.id            = id
+        self.log_fn        = log_fn
+        self.channel_name  = channel_name
+        self.channel_id    = channel_id
+        self.group         = group
+        self.screen        = screen
+        self.convert_srt   = convert_srt
         self.include_title = include_title
 
 
@@ -488,7 +489,25 @@ class Video:
             "corrected": 0,
         }
 
-        log_writer.writerow(metadata)
+        if not log_fp:
+            if self.group is None:
+                log_fn = "{0}_log.csv".format(safe_author)
+            else:
+                log_fn = "{0}_log.csv".format(self.group)
+
+            log_fp = path.join("corpus", "logs", log_fn)
+            if self.screen:
+                log_fp = path.join("corpus", "unscreened_urls", "logs", log_fn)
+
+
+        with open(log_fp, 'a') as log_out:
+
+            log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "code", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "scrape_time", "corrected"])
+
+            if(f.tell() == 0):
+                log_writer.writeheader()
+
+            log_writer.writerow(metadata)
 
 
     def process_video(video, channel_dict):
@@ -497,17 +516,17 @@ class Video:
         :return caption_dict: list of metadata for all successfully-downloaded caption tracks
         """
 
-        if self.video.author not in self.channel_dict.keys():
-            self.channel_dict.update({self.video.author: 0})
-        self.channel_dict[self.video.author] = self.channel_dict[self.video.author] + 1
+        if self.video.author not in channel_dict.keys():
+            channel_dict.update({self.video.author: 0})
+        channel_dict[self.video.author] = channel_dict[self.video.author] + 1
 
         caption_list = write_captions_by_language()
 
-        if include_audio:
+        if self.include_audio:
             audio = self.video.streams.filter(mime_type="audio/mp4").first()
             write_audio(audio)
 
-        if len(caption_list):
+        if len(caption_list) or include_audio:
             write_metadata(caption_list)
 
         return channel_dict
@@ -515,70 +534,67 @@ class Video:
 
 class MultiVideoScraper:
 
-    def process_videos(urls_path, batch=False, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, resume_from=0, limit_to=-1, overwrite=False):
-        """Download captions, audio (optional), and metadata for a list of videos.
+    def __init__(f, log_fp, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, resume_from=0, limit_to=-1, overwrite=False):
 
-        :param batch: Indicates if a directory or single file is being processed
-        :param video: Path to a file containing the list of URLs to process
-        :param channel_name: The name of the channel as given on its main page (default None)
-        :param channel_id: The name of the channel as it appears in the channel's URL (default None)
-        :param language: The language to download caption tracks for (default None)
-        :param group: The subfolder to output the caption and audio tracks to (default None)
-        :param include_audio: Download audio in addition to captions (default False)
-        :param include_auto: Download automatically-generated captions (default False)
-        :param convert_srt: Convert captions from XML to SRT format (default False)
-        :param resume_from: Start from the Nth entry in the URL list (default 0)
-        :param limit_to: Download captions (and audio) from only N files (default -1)
+        # Input params
+        self.f             = f
+        self.log_fp        = log_fp
+        self.language      = language
+        self.group         = group
+        self.screen        = screen
+        self.include_audio = include_audio
+        self.convert_srt   = convert_srt
+        self.resume_from   = resume_from
+        self.limit_to      = limit_to
+        self.overwrite     = overwrite
+
+        # Other params
+        self.channel_dict = {}
+
+
+    def process_videos(self):
+        """Download captions, audio (optional), and metadata for a list of videos.
         """
 
-        channel_dict = {}
-        video_count = 0
+        if not log_fp: # No file passed, i.e. not a grouped batch
 
-        if group is None:
-            log_fn = "{0}_log.csv".format(path.splitext(path.split(urls_path)[1])[0])
-        else:
-            log_fn = "{0}_log.csv".format(group)
+            if self.group is None:
+                log_fn = "{0}_log.csv".format(path.splitext(path.split(self.f)[1])[0])
+            else:
+                log_fn = "{0}_log.csv".format(self.group)
 
-        log_fp = path.join("corpus", "logs", log_fn)
-        if screen:
-            log_fp = path.join("corpus", "unscreened_urls", "logs", log_fn)
+            log_fp = path.join("corpus", "logs", log_fn)
+            if self.screen:
+                log_fp = path.join("corpus", "unscreened_urls", "logs", log_fn)
 
-        log_exists = path.exists(log_fp)
+            # Delete previous if overwriting, but only if NOT a batch
+            if path.isfile(log_fp) and self.overwrite:
+                remove(log_fp)
 
-        write_type = 'a'
-        #if batch and group:
-        #    write_type = 'a'
-        if overwrite:
-            write_type = 'w'
-
-        if screen:
+        if self.screen:
             out_path = path.join("corpus", "unscreened_urls", "subtitles")
             if group:
-                out_path = path.join("corpus", "unscreened_urls", group, "subtitles")
+                out_path = path.join("corpus", "unscreened_urls", self.group, "subtitles")
             out_audio_path = None
         else:
             out_path = path.join("corpus", "raw_subtitles")
             out_audio_path = path.join("corpus", "raw_audio")
-            if group:
-                out_path = path.join(out_path, group)
-                out_audio_path = path.join(out_audio_path, group)
+            if self.group:
+                out_path = path.join(out_path, self.group)
+                out_audio_path = path.join(out_audio_path, self.group)
 
-        with open(urls_path, "r") as urls_in, open(log_fp, write_type) as log_out:
+        video_count == 0
+        with open(urls_path, "r") as urls_in:
 
-            # Prepare writer for writing video data
-            log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "code", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "scrape_time", "corrected"])
-            if not (batch and group):
-                if overwrite or not log_exists:
-                    log_writer.writeheader()
-
-            for url_data in urls_in:
+            for line in urls_in:
 
                 video_count += 1
 
-                if(video_count < resume_from):
+                if(self.video_count < self.resume_from):
                     continue
 
-                url_data = url_data.strip('\n').split('\t')
+                url_data = line.strip('\n').split('\t')
+
                 # Get URL and title
                 if len(url_data) == 3:
                     (url, channel_name, channel_id) = url_data
@@ -595,12 +611,10 @@ class MultiVideoScraper:
                     exit(2)
 
                 punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-                yt_id = sub(punc_and_whitespace, '',
-                                findall(r".+watch\?v=(.+)\b", url)[0])
+                yt_id = sub(punc_and_whitespace, '', findall(r".+watch\?v=(.+)\b", url)[0])
 
                 # Check if yt_id already exists in some file; skip download if so
-
-                if not overwrite:
+                if not self.overwrite:
                     files = glob(path.join(out_path, "**", "*{0}*".format(yt_id)), recursive=True)
                     if out_audio_path:
                         audio_files = glob(path.join(out_audio_path, "**", "*{0}*".format(yt_id)), recursive=True)
@@ -608,62 +622,49 @@ class MultiVideoScraper:
                     if files:
                         continue
 
-                # Try to load the video
-                try:
-                    video = YouTube(url)
-                except KeyError as e:
-                    logging.warning("Video {0}: Could not retrieve URL ({1})".format(video_count, url))
-                    continue
-                except exceptions.VideoUnavailable as e:
-                    logging.warning("Video {0}: Video unavailable ({1})".format(video_count, url))
-                    continue
-                # except:
-                #     logging.critical("Video {0}: An unexpected error occured ({1})".format(video_count, url))
-                #     continue
+                video = VideoScraper(url, id, log_fp, channel_name, channel_id, self.group, self.screen, self.convert_srt, False)
 
-                process_video(video, yt_id, channel_dict, log_writer, channel_name, channel_id, url, language, group, screen, include_audio, include_auto, convert_srt, False, overwrite)
-
-                if limit_to != -1 and video_count == resume_from + limit_to:
+                if self.limit_to != -1 and self.video_count == self.resume_from + self.limit_to:
                     print("{0}: Limit reached".format(urls_path))
                     break
 
 
-    def process_files(urls_path, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, resume_from=0, limit_to=-1, overwrite=False):
-        """Download captions, audio (optional), and metadata from a directoy of video lists.
+class BatchVideoScraper():
 
-        :param video: Path to a directory containing a set of list files
-        :param channel_name: The name of the channel as given on its main page (default None)
-        :param channel_id: The name of the channel as it appears in the channel's URL (default None)
-        :param language: The language to download caption tracks for (default None)
-        :param group: The subfolder to output the caption and audio tracks to (default None)
-        :param include_audio: Download audio in addition to captions (default False)
-        :param include_auto: Download automatically-generated captions (default False)
-        :param convert_srt: Convert captions from XML to SRT format (default False)
-        :param resume_from: Start from the Nth entry in the URL list (default 0)
-        :param limit_to: Download captions (and audio) from only N files (default -1)
+    def __init__(self, base_fn, batch=False, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, resume_from=0, limit_to=-1, overwrite=False):
+
+        self.base_fn       = base_fn
+        self.batch         = batch
+        self.language      = language
+        self.group         = group
+        self.screen        = screen
+        self.include_audio = include_audio
+        self.convert_srt   = convert_srt
+        self.resume_from   = resume_from
+        self.limit_to      = limit_to
+        self.overwrite     = overwrite
+
+
+    def process_files():
+        """Download captions, audio (optional), and metadata from a directory of video lists.
         """
 
-        URL_fns_txt = sorted(glob(path.join(urls_path, "*.txt")))
-        URL_fns_csv = sorted(glob(path.join(urls_path, "*.csv")))
+        URL_fns_txt = sorted(glob(path.join(self.base_fn, "*.txt")))
+        URL_fns_csv = sorted(glob(path.join(self.base_fn, "*.csv")))
 
-        if group:
-            log_fn = "{0}_log.csv".format(group)
+        log_fp = None
+        if self.group:
+            log_fn = "{0}_log.csv".format(self.group)
             log_fp = path.join("corpus", "logs", log_fn)
-            if screen:
+            if self.screen:
                 log_fp = path.join("corpus", "unscreened_urls", "logs", log_fn)
 
-            log_exists = path.exists(log_fp)
+            if path.isfile(log_fp) and self.overwrite:
+                path.remove(log_fp)
 
-            write_mode = 'a'
-            if overwrite:
-                write_mode = 'w'
-
-            with open(log_fp, write_mode) as log_out:
-                log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "code", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "scrape_time", "corrected"])
-                if overwrite or not log_exists:
-                    log_writer.writeheader()
 
         all_fns = URL_fns_txt + URL_fns_csv
 
+        # Need to make video objs
         for fn in all_fns:
-            process_videos(fn, True, language, group, screen, include_audio, include_auto, convert_srt, resume_from, limit_to, False, overwrite)
+            scraper = MultiVideoScraper(fn, log_fp, self.language, self.group, self.screen, self.include_audio, self.include_auto, self.convert_srt, self.resume_from, self.limit_to, self.overwrite)

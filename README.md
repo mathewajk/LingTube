@@ -28,6 +28,8 @@ to install the version of Python that is bundled with TK. By default, `brew inst
 * [`youdep`](#youdep)
 * [`youspeak`](#youspeak)
 
+---
+
 ### Base
 
 *Details coming soon!*
@@ -235,8 +237,13 @@ optional arguments:
                         opens text file in a specified text editor: TextEdit, Atom,
                         Notepad++ (default=TextEdit)
 ```
+
+---
+
 ### YouDep
 *Details coming soon!*
+
+---
 
 ### YouSpeak
 
@@ -266,6 +273,8 @@ Before using scripts under YouSpeak, you should have already run the relevant sc
 5. [`4-create-textgrids.py`](#4-create-textgrids.py)
 
 After this stage, you can run forced alignment (using the Montreal Forced Aligner or other compatible aligner).
+
+---
 
 #### 1-convert-audio.py
 
@@ -300,7 +309,7 @@ This call:
 2. Converts all MP4 files in the `kor` folder to mono WAV files.
 3. Moves MP4 files to a folder called `mp4` and the WAV files to a folder called `wav`
 
-
+---
 #### 2-chunk-audio.py
 
 This script identifies short utterances of speech based on breath breaks in the audio and outputs corresponding Praat TextGrid files. The user can specify whether to process all the audio files in a group, channel, or particular video. Users can also optionally save chunked audio files, either specified during the initial chunking (will be saved while processing the output TextGrid) or when running the script a second time (sound files will be saved based on an input TextGrid).
@@ -312,24 +321,34 @@ NOTE: The user can specify whether first-pass chunking is based on voice activit
 
 To chunk all audio files and output an annotated TextGrid for each (in a corpus without group structure):
 
-`python3 youspeak/2-chunk-audio.py voice`
+```
+python3 youspeak/2-chunk-audio.py voice
+```
 
 To chunk all audio files in a group and output an annotated TextGrid for each (in a corpus with group structure):
 
-`python3 youspeak/2-chunk-audio.py voice --group $group_name`
+```
+python3 youspeak/2-chunk-audio.py voice --group $group_name
+```
 
 
 To chunk all audio files for a particular channel and output an annotated TextGrid for each (in a corpus with group structure):
 
-`python3 youspeak/2-chunk-audio.py voice --group $group_name --channel $channel_name`
+```
+python3 youspeak/2-chunk-audio.py voice --group $group_name --channel $channel_name
+```
 
 To chunk a particular video audio file and output an annotated TextGrid (in a corpus with group structure):
 
-`python3 youspeak/2-chunk-audio.py voice --group $group_name --channel $channel_name --video $video_id`
+```
+python3 youspeak/2-chunk-audio.py voice --group $group_name --channel $channel_name --video $video_id
+```
 
 To chunk all audio files in a group and output (a) an annotated TextGrid for each and (b) separate WAV sound files corresponding to each identified chunk:
 
-`python3 youspeak/2-chunk-audio.py voice --group $group_name --save_sounds`
+```
+python3 youspeak/2-chunk-audio.py voice --group $group_name --save_sounds
+```
 
 Alternatively, this same command can be used to save separate WAV sound files based on already existing TextGrids from running `python3 youspeak/2-chunk-audio.py voice --group $group_name` previously. This may be beneficial if the user prefers to check and/or modify the TextGrids prior to extracting utterance-level sound files.
 
@@ -339,26 +358,16 @@ Alternatively, this same command can be used to save separate WAV sound files ba
 
 This call:
 1. Takes a group name and locates the group folder `kor` under the folder of scraped YouTube audio called `raw_audio/wav`
-2. For each audio file, checks if TextGrids and audio files already exist.
-
-If yes:
-3. Skips file.
-
-If no:
-3. Runs voice activity detection on each audio file to identify pauses/breath breaks vs. speech.
+2. For each audio file, checks if TextGrids and audio files already exist. (If yes, moves onto next file.)
+3. If no, runs voice activity detection on each audio file to identify pauses/breath breaks vs. speech.
 4. Adds boundaries to a TextGrid per video to identify intervals of "speech" or "silence" and saves this TextGrid under the folder `chunked_audio/kor/textgrids/chunking`
 
 `python3 youspeak/2-chunk-audio.py voice -g kor -s`
 
 This call:
 1. Takes a group name and locates the group folder `kor` under the folder of scraped YouTube audio called `raw_audio/wav`
-2. For each audio file, checks if TextGrids already exist.
-
-If yes:
-3. Extracts audio per "speech" interval in the TextGrid and saves as WAV files under the folder `chunked_audio/kor/audio/chunking`
-
-If no:
-3. Runs voice activity detection on each audio file to identify pauses/breath breaks vs. speech.
+2. For each audio file, checks if TextGrids already exist. (If yes, extracts audio per "speech" interval in the TextGrid and saves as WAV files under the folder `chunked_audio/kor/audio/chunking`. Then, moves onto next file.)
+3. If no, runs voice activity detection on each audio file to identify pauses/breath breaks vs. speech.
 4. Adds boundaries to a TextGrid per video to identify intervals of "speech" or "silence" and saves this TextGrid under the folder `chunked_audio/kor/textgrids/chunking`
 5. Extracts audio per identified speech chunk and saves as WAV files under the folder `chunked_audio/kor/audio/chunking`
 
@@ -399,7 +408,7 @@ positional arguments:
 
 ``` -->
 
-
+---
 #### 3-validate-chunks.py
 ##### Usage
 ```
@@ -418,6 +427,7 @@ optional arguments:
                         code in subtitle directory
 ```
 
+---
 #### 4-create-textgrids.py
 ##### Usage
 ```

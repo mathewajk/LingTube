@@ -269,26 +269,100 @@ After this stage, you can run forced alignment (using the Montreal Forced Aligne
 
 #### 1-convert-audio.py
 
+This script allows the user to convert scraped YouTube audio from MP4 to WAV format, as well as converting from stereo to mono. The default includes mono conversion but the user can specify if they prefer to keep audio as stereo. The script then moves the raw MP4 and converted WAV files to separate folders.
+
 ##### Usage
 
-```
-usage: 1-convert-audio.py [-h] [--group GROUP] [--stereo]
+To convert all scraped audio files to mono WAV (in a corpus without group structure):
 
-Convert scraped YouTube audio from mp4 to WAV format.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --group GROUP, -g GROUP
-                        name to group files under (create and /or assume files
-                        are located in a subfolder: raw_audio/$group)
-  --stereo, -s          keep stereo (separate audio channels); default
-                        converts to mono
 ```
+python3 youspeak/1-convert-audio.py
+```
+
+To convert all scraped audio files in a group to mono WAV (in a corpus with group structure):
+
+```
+python3 youspeak/1-convert-audio.py --group $group_name
+```
+
+To convert all scraped audio files in a group to stereo WAV (in a corpus with group structure):
+
+```
+python3 youspeak/1-convert-audio.py --group $group_name --stereo
+```
+
+##### Examples
+
+`python3 youspeak/1-convert-audio.py -g kor`
+
+This call:
+1. Takes a group name and locates the group folder `kor` under the folder of scraped YouTube audio called `raw_audio`
+2. Converts all MP4 files in the `kor` folder to mono WAV files.
+3. Moves MP4 files to a folder called `mp4` and the WAV files to a folder called `wav`
+
 
 #### 2-chunk-audio.py
 
+This script identifies short utterances of speech based on breath breaks in the audio and outputs corresponding Praat TextGrid files. The user can specify whether to process all the audio files in a group, channel, or particular video. Users can also optionally save chunked audio files, either specified during the initial chunking (will be saved while processing the output TextGrid) or when running the script a second time (sound files will be saved based on an input TextGrid).
+
+NOTE: The user can specify whether first-pass chunking is based on voice activity detection (identifying long pauses) or music detection (identifying music vs. speech). Music detection is undergoing updates and not currently recommended for use.
+
+
 ##### Usage
-```
+
+To chunk all audio files and output an annotated TextGrid for each (in a corpus without group structure):
+
+`python3 youspeak/2-chunk-audio.py voice`
+
+To chunk all audio files in a group and output an annotated TextGrid for each (in a corpus with group structure):
+
+`python3 youspeak/2-chunk-audio.py voice --group $group_name`
+
+
+To chunk all audio files for a particular channel and output an annotated TextGrid for each (in a corpus with group structure):
+
+`python3 youspeak/2-chunk-audio.py voice --group $group_name --channel $channel_name`
+
+To chunk a particular video audio file and output an annotated TextGrid (in a corpus with group structure):
+
+`python3 youspeak/2-chunk-audio.py voice --group $group_name --channel $channel_name --video $video_id`
+
+To chunk all audio files in a group and output (a) an annotated TextGrid for each and (b) separate WAV sound files corresponding to each identified chunk:
+
+`python3 youspeak/2-chunk-audio.py voice --group $group_name --save_sounds`
+
+Alternatively, this same command can be used to save separate WAV sound files based on already existing TextGrids from running `python3 youspeak/2-chunk-audio.py voice --group $group_name` previously. This may be beneficial if the user prefers to check and/or modify the TextGrids prior to extracting utterance-level sound files.
+
+##### Examples
+
+`python3 youspeak/2-chunk-audio.py voice -g kor`
+
+This call:
+1. Takes a group name and locates the group folder `kor` under the folder of scraped YouTube audio called `raw_audio/wav`
+2. For each audio file, checks if TextGrids and audio files already exist.
+
+If yes:
+3. Skips file.
+
+If no:
+3. Runs voice activity detection on each audio file to identify pauses/breath breaks vs. speech.
+4. Adds boundaries to a TextGrid per video to identify intervals of "speech" or "silence" and saves this TextGrid under the folder `chunked_audio/kor/textgrids/chunking`
+
+`python3 youspeak/2-chunk-audio.py voice -g kor -s`
+
+This call:
+1. Takes a group name and locates the group folder `kor` under the folder of scraped YouTube audio called `raw_audio/wav`
+2. For each audio file, checks if TextGrids already exist.
+
+If yes:
+3. Extracts audio per "speech" interval in the TextGrid and saves as WAV files under the folder `chunked_audio/kor/audio/chunking`
+
+If no:
+3. Runs voice activity detection on each audio file to identify pauses/breath breaks vs. speech.
+4. Adds boundaries to a TextGrid per video to identify intervals of "speech" or "silence" and saves this TextGrid under the folder `chunked_audio/kor/textgrids/chunking`
+5. Extracts audio per identified speech chunk and saves as WAV files under the folder `chunked_audio/kor/audio/chunking`
+
+<!-- ```
 usage: 2-chunk-audio.py [-h] {voice,music} ...
 
 Chunk WAV audio files into short segments of sound.
@@ -323,7 +397,7 @@ positional arguments:
 
 
 
-```
+``` -->
 
 
 #### 3-validate-chunks.py

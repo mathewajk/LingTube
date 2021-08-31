@@ -164,7 +164,7 @@ for i_file to number_of_files
 				option ("half/most/all")
 			issues = choice ("Issues", 1)
 				option ("none")
-				option ("vowel quality (e.g. mispronounced)")
+				option ("vowel quality")
 				option ("breathy/whisper/voiceless")
 				option ("noise/sfx/click/etc.")
 				option ("other")

@@ -272,7 +272,7 @@ After this stage, you can run forced alignment (using the Montreal Forced Aligne
 ##### Usage
 
 ```
-usage: convert-audio.py [-h] [--group GROUP]
+usage: 1-convert-audio.py [-h] [--group GROUP] [--stereo]
 
 Convert scraped YouTube audio from mp4 to WAV format.
 
@@ -281,29 +281,55 @@ optional arguments:
   --group GROUP, -g GROUP
                         name to group files under (create and /or assume files
                         are located in a subfolder: raw_audio/$group)
+  --stereo, -s          keep stereo (separate audio channels); default
+                        converts to mono
 ```
 
 #### 2-chunk-audio.py
 
 ##### Usage
 ```
-usage: chunk-audio.py [-h] [--group GROUP] [--overwrite]
+usage: 2-chunk-audio.py [-h] {voice,music} ...
 
 Chunk WAV audio files into short segments of sound.
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --group GROUP, -g GROUP
-                        name to group files under (create and /or assume files
-                        are located in a subfolder: raw_subtitles/$group)
-  --overwrite, -o       overwrite files rather than appending
+positional arguments:
+  {voice,music}  use voice activity detection or music detection (beta ver.)
+                 for first-pass audio chunking
+    voice        use voice activity detection for first-pass audio chunking
+                 (see 2-chunk-audio.py voice -h for more help)
+    music        (BETA) use music detection for first-pass audio chunking (see
+                 2-chunk-audio.py music -h for more help)
+
+
+                 usage: 2-chunk-audio.py voice [-h] [--group GROUP] [--channel CHANNEL]
+                                               [--video VIDEO] [--save_sounds] [--overwrite]
+
+                 optional arguments:
+                   -h, --help            show this help message and exit
+                   --group GROUP, -g GROUP
+                                         name to group files under (create and /or assume files
+                                         are located in a subfolder: raw_subtitles/$group)
+                   --channel CHANNEL, -ch CHANNEL
+                                         run on files for a specific channel name; if
+                                         unspecified, goes through all channels in order
+                   --video VIDEO, -v VIDEO
+                                         run on files for a video id; if unspecified, goes
+                                         through all videos in order
+                   --save_sounds, -s     save chunked sound files (necessary for using
+                                         3-validate-chunks.py); default only saves full
+                                         textgrid
+                   --overwrite, -o       overwrite files rather than appending
+
+
+
 ```
 
 
 #### 3-validate-chunks.py
 ##### Usage
 ```
-usage: validate-chunks.py [-h] [--group GROUP] [--lang_code LANG_CODE]
+usage: 3-validate-chunks.py [-h] [--group GROUP] [--lang_code LANG_CODE]
 
 Open a GUI for categorizing and transcribing audio chunks.
 
@@ -321,8 +347,8 @@ optional arguments:
 #### 4-create-textgrids.py
 ##### Usage
 ```
-usage: create-textgrids.py [-h] [--group GROUP] [--channel CHANNEL]
-                           [--overwrite]
+usage: 4-create-textgrids.py [-h] [--group GROUP] [--channel CHANNEL]
+                             [--save_chunks] [--mfa] [--overwrite]
 
 Create MFA-compatible textgrids and move to MFA alignment folder.
 
@@ -330,9 +356,14 @@ optional arguments:
   -h, --help            show this help message and exit
   --group GROUP, -g GROUP
                         name to group files under (create and /or assume files
-                        are located in a subfolder: aligned_audio/$group)
+                        are located in a subfolder: chunked_audio/$group)
   --channel CHANNEL, -ch CHANNEL
                         run on files for a specific channel name; if
                         unspecified, goes through all channels in order
+  --save_chunks, -s     save chunked textgrids and sound files; default only
+                        saves full textgrid
+  --mfa                 copy textgrids and audio into MFA compatible directory
+                        structure under aligned_audio/$group; default does not
+                        create directory
   --overwrite, -o       overwrite files rather than appending
 ```

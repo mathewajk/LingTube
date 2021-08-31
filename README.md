@@ -365,11 +365,11 @@ This call:
 `python3 youspeak/2-chunk-audio.py voice -g kor -s`
 
 This call:
-1. Takes a group name and locates the group folder `kor` under the folder of scraped YouTube audio called `raw_audio/wav`
-2. For each audio file, checks if TextGrids already exist. (If yes, extracts audio per "speech" interval in the TextGrid and saves as WAV files under the folder `chunked_audio/kor/audio/chunking`. Then, moves onto next file.)
+1. Takes a group name and locates the group folder `kor` under the folder of scraped YouTube audio called `raw_audio`
+2. For each audio file, checks if TextGrids already exist. (If yes, extracts audio per "speech" interval in the TextGrid and saves as WAV files under the folder `chunked_audio/kor/audio/chunking`, with a log file in `chunked_audio/kor/logs/chunking`. Then, moves onto next file.)
 3. If no, runs voice activity detection on each audio file to identify pauses/breath breaks vs. speech.
 4. Adds boundaries to a TextGrid per video to identify intervals of "speech" or "silence" and saves this TextGrid under the folder `chunked_audio/kor/textgrids/chunking`
-5. Extracts audio per identified speech chunk and saves as WAV files under the folder `chunked_audio/kor/audio/chunking`
+5. Extracts audio per identified speech chunk and saves as WAV files under the folder `chunked_audio/kor/audio/chunking`, with a log file in `chunked_audio/kor/logs/chunking`
 
 <!-- ```
 usage: 2-chunk-audio.py [-h] {voice,music} ...
@@ -410,8 +410,54 @@ positional arguments:
 
 ---
 #### 3-validate-chunks.py
+
+This script opens a GUI for categorizing and transcribing audio chunks, allowing the user to (1) mark audio chunks as usable or not, and (2) check that transcript lines are time-aligned accurately to speech per audio chunk.
+
 ##### Usage
+
+To run the GUI when only one transcript (language) is available:
 ```
+python3 youspeak/3-validate-chunks.py voice -g $group_name
+```
+
+To run the GUI when needing to specify transcript (language):
+```
+python3 youspeak/3-validate-chunks.py voice -g $group_name --lang_code $language_code
+```
+
+##### Examples
+
+`python3 youspeak/3-validate-chunks.py voice -g kor (-l en)`
+
+This call:
+1. Opens up a prompt for user to select a chunking log file from `chunked_audio/kor/logs/chunking`
+
+![3-validate-chunks.py prompt 1](https://github.com/Narquelion/LingTube/blob/main/_docs/screenshots/validate-chunks-1.png)
+
+2. Prompts user to enter initials
+
+![3-validate-chunks.py prompt 2](https://github.com/Narquelion/LingTube/blob/main/_docs/screenshots/validate-chunks-2.png)
+
+3. Allows user to play each audio chunk, which displays the corresponding transcript text, then (a) code the chunk as usable, (b) optionally code the type of issue if unusable, and (c) correct the predicted transcription to match what is heard in the audio clip.
+
+![3-validate-chunks.py prompt 3](https://github.com/Narquelion/LingTube/blob/main/_docs/screenshots/validate-chunks-4.png)
+
+4. Logs progress in a coding log file saved to `chunked_audio/kor/logs/coding`
+
+<!-- Press ‘Play’ to clear all display options\text box and hear the audio clip
+Press ‘Repeat’ to only hear the audio clip again, without clearing selections\text
+Press ‘Next’ to go to the next clip, which automatically clears selections and plays the clip
+If (some parts of) the clip is usable for analysis of English speech sounds, check off the ‘Usable?’ box
+Mainly, clear speech with minimal background noise\music, as well as speech in English
+If the clip not usable (or it seems usable but has some potential issues), check off all ‘Main Issues’ that apply
+For example, music or noise in the background, or other types of sounds interfering with clear speech (see guidelines at lspcheng\GUAva)
+In the ‘Transcribe’ text box, fix the predicted transcription to match what is heard, phonetically, in the audio clip.
+This can include deleting extra text, adding missing words (including filler words!), or marking notable issues according to the Transcription Guidelines (see guidelines at lspcheng\GUAva)
+When finished a session, press ‘Save & Quit’ to save progress and leave the program. -->
+
+
+
+<!-- ```
 usage: 3-validate-chunks.py [-h] [--group GROUP] [--lang_code LANG_CODE]
 
 Open a GUI for categorizing and transcribing audio chunks.
@@ -425,7 +471,7 @@ optional arguments:
                         open captions with a specific a language code (e.g.,
                         "en"); if unspecified, uses first available language
                         code in subtitle directory
-```
+``` -->
 
 ---
 #### 4-create-textgrids.py

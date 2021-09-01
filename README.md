@@ -475,8 +475,52 @@ optional arguments:
 
 ---
 #### 4-create-textgrids.py
+
+This script combines the chunked interval TextGrids from `2-chunk-audio.py` and the usable transcript sections from `3-validate-chunks.py` to create a TextGrid for the full video-length audio file ready for forced alignment. The user can optionally save chunked audio and TextGrids (i.e., per utterance). Additionally, users can optionally copy all relevant audio and textgrid files into a new folder optimized for running forced alignment with the Montreal Forced Aligner.
+
 ##### Usage
+
+To create full video-length TextGrids for all files (in a corpus without group structure):
+
 ```
+python3 youspeak/4-create-textgrids.py
+```
+
+To create full-length TextGrids for all files in a group (in a corpus with group structure):
+
+```
+python3 youspeak/4-create-textgrids.py --group $group_name
+```
+
+To create full video-length TextGrids for a particular channel in a group (in a corpus with group structure):
+
+```
+python3 youspeak/4-create-textgrids.py --group $group_name --channel $channel_name
+```
+
+To create chunk-length TextGrids for all files in a group:
+```
+python3 youspeak/4-create-textgrids.py --group $group_name --save_chunks
+```
+
+To create video-length TextGrids for all files in a group and copy files to a directory for running the Montreal Forced Aligner:
+
+```
+python3 youspeak/4-create-textgrids.py --group $group_name --mfa
+```
+
+##### Examples
+
+`python3 youspeak/2-create-textgrids.py -g kor --mfa`
+
+This call:
+1. Takes a group name and locates the group folder `kor` under the folder of scraped YouTube audio called `chunked_audio`
+2. For each video, adds transcript text to chunked TextGrid for intervals coded as usable (referencing the coding log file).
+3. Outputs transcribed video-length TextGrid to `chunked_audio/kor/textgrids/coding`
+4. Creates folder structure under `aligned_audio/kor` for running MFA, including an input folder (`original_corpus`), processing folder (`mfa_aligner`), output folder (`aligned_corpus`), and folder for corpus-specific materials like generated pronunciation dictionaries (`trained_models`)
+5. Copies TextGrid from `chunked_audio/kor/textgrids/coding` and audio from `raw_audio/kor/.../wav` to  `aligned_audio/kor/original_corpus`
+
+<!-- ```
 usage: 4-create-textgrids.py [-h] [--group GROUP] [--channel CHANNEL]
                              [--save_chunks] [--mfa] [--overwrite]
 
@@ -496,4 +540,4 @@ optional arguments:
                         structure under aligned_audio/$group; default does not
                         create directory
   --overwrite, -o       overwrite files rather than appending
-```
+``` -->

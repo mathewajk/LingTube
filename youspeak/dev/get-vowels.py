@@ -29,8 +29,8 @@ def get_formants (sound, int_start, int_dur, proportion_time, max_formant, forma
     # print("Getting formant values")
     formant_list = []
     for formant_i in range(1, max_formant+1):
-        fn = sound_formant.get_value_at_time(formant_i, timepoint)
-        formant_list.append(fn)
+        formant_n = sound_formant.get_value_at_time(formant_i, timepoint)
+        formant_list.append(formant_n)
     return formant_list
 
 def main(args):

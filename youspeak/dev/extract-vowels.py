@@ -80,6 +80,7 @@ def main(args):
             out_tg_path = path.join(out_path, "textgrids")
             out_audio_path = path.join(out_path, "audio")
             out_vowel_path = path.join(out_path, "queue")
+            out_skip_path = path.join(out_path, "queue", "skipped")
 
             if path.exists(out_vowel_path):
                 if channel_j == 0:
@@ -89,7 +90,7 @@ def main(args):
                         print('- Extracted vowels already exist.'.format(channel_id))
                         continue
 
-            for dir in [out_tg_path, out_audio_path, out_vowel_path]:
+            for dir in [out_tg_path, out_audio_path, out_vowel_path, out_skip_path]:
                 if not path.exists(dir):
                     makedirs(dir)
 

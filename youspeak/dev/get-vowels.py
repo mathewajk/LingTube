@@ -123,13 +123,14 @@ def main(args):
                     continue
 
             # Create output data frame (overwriting existing)
-            out_df = pd.DataFrame(columns=['channel', 'video_id', 'filename', 'label', 'start_time', 'end_time', 'duration', 'pre_phone', 'post_phone', 'word', 'vowel', 'stress', 'diph'])
+            out_df = pd.DataFrame(columns=['filename', 'label', 'start_time', 'end_time', 'duration', 'pre_phone', 'post_phone', 'word', 'vowel', 'stress', 'diph'])
 
             files_list = [fn for fn in listdir(tg_path) if not fn.startswith('.') and not fn.endswith('.txt')]
             files_list.sort(key=str.lower)
 
             for f_i, fn in enumerate(files_list):
                 sound, textgrid = open_files_in_praat(fn, tg_path, audio_path)
+                sound_fn = path.splitext(fn)[0] + ".wav"
 
                 if args.point_marker:
                     target_int = call(textgrid, "Get interval at time", 2, call(textgrid, "Get time of point", 3, 1))
@@ -194,7 +195,7 @@ def main(args):
                         int_post = None
 
                     # Add info to data output row
-                    data_row = {'channel': channel_id, 'video_id': video_id, 'filename': fn, 'label': vowel_label, 'start_time': int_start, 'end_time': int_end, 'duration': int_dur, 'pre_phone': int_pre, 'post_phone': int_post, 'word': int_word, 'vowel': int_vowel, 'stress': int_stress, 'diph': int_diph}
+                    data_row = {'filename': sound_fn, 'label': vowel_label, 'start_time': int_start, 'end_time': int_end, 'duration': int_dur, 'pre_phone': int_pre, 'post_phone': int_post, 'word': int_word, 'vowel': int_vowel, 'stress': int_stress, 'diph': int_diph}
 
                     # Get nucleus formants
                     if args.nucleus:

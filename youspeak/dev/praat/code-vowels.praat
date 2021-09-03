@@ -15,6 +15,8 @@ form Modify textgrids
 	sentence audio_dir	./queue/
 	comment Aligned Textgrid Directory
 	sentence tg_dir	./queue/
+	comment Directory to move skipped files to
+	sentence skip_dir	./queue/skipped/
 	comment Directory to move the original Sound files to
 	sentence out_audio_dir ./audio/
 	comment Directory to write the TextGrid to
@@ -181,8 +183,13 @@ for i_file to number_of_files
 						exitScript ()
 			elsif clicked = 2
 						select TextGrid 'name$'
-						plus Sound 'name$'
+						Write to text file... 'skip_dir$''name$'.TextGrid
 						Remove
+						filedelete 'tg_dir$''name$'.TextGrid
+						select Sound 'name$'
+						Write to WAV file... 'skip_dir$''name$'.wav
+						Remove
+						filedelete 'audio_dir$''name$'.wav
 			elsif clicked = 3
 						# Now save the result
 						select TextGrid 'name$'

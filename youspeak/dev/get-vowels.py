@@ -125,6 +125,13 @@ def main(args):
             # Create output data frame (overwriting existing)
             out_df = pd.DataFrame(columns=['filename', 'label', 'start_time', 'end_time', 'duration', 'pre_phone', 'post_phone', 'word', 'vowel', 'stress', 'diph'])
 
+            # TODO: Read in the 'vowel_coding_log.csv'
+            log_path = path.join(adjusted_path, video_id, "vowel_coding_log.csv")
+            log_df = pd.read_csv(log_path)
+            # TODO: Read columns, split file column name to remove wav, add order, vowel label, boundaries, creak, and issues column
+            # log_df['file']
+            # log_df.iloc[idx]
+
             files_list = [fn for fn in listdir(tg_path) if not fn.startswith('.') and not fn.endswith('.txt')]
             files_list.sort(key=str.lower)
 

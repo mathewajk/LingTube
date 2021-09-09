@@ -75,8 +75,10 @@ def main(args):
     mp4_path = path.join(orig_path, "mp4")
     wav_path = path.join(orig_path, "wav")
 
-    # TODO: Legacy mono option
-    mono = True # Convert files to mono
+    if args.stereo:
+        mono = False
+    else:
+        mono = True # Convert files to mono
 
     for dir_element in listdir(orig_path):
 
@@ -88,7 +90,7 @@ def main(args):
 
     out_message = path.join(wav_path, "README.md")
     with open(out_message, 'w') as file:
-        file.write('Channel folders for full audio files (converted to mono WAV) go here.')
+        file.write('Channel folders for full audio files (converted to WAV) go here.')
 
 if __name__ == '__main__':
 
@@ -96,6 +98,7 @@ if __name__ == '__main__':
 
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_audio/$group)')
+    parser.add_argument('--stereo', '-s', action='store_true', default=False, help='keep stereo (separate audio channels); default converts to mono')
 
     args = parser.parse_args()
 

@@ -2,7 +2,7 @@
 
 import argparse
 from os import listdir, makedirs, path
-from shutil import rmtree
+from shutil import rmtree, copy
 from glob import glob
 import pandas as pd
 from re import sub, findall
@@ -13,6 +13,7 @@ from parselmouth.praat import call, run_file
 
 
 def main(args):
+    mfa_only = 0
 
     # base paths
     raw_audio_base = path.join("corpus", "raw_audio")
@@ -25,11 +26,6 @@ def main(args):
         aligned_audio_base = path.join(aligned_audio_base, args.group)
 
     dict_path = path.join(aligned_audio_base, "trained_models", "dictionary")
-    dict_fp = path.join(dict_path, "word_list.txt")
-    update_fp = path.join(dict_path, "update_list.txt")
-    if args.overwrite:
-        file = open(dict_fp, "w")
-        file.close()
 
     # Get file info
     if args.channel:
@@ -51,11 +47,7 @@ def main(args):
             pre_align_path = path.join(aligned_audio_base, "original_corpus", channel_id, video_id)
             post_align_path = path.join(aligned_audio_base, "aligned_corpus", channel_id, video_id)
             aligner_path = path.join(aligned_audio_base, "mfa_aligner")
-            adjusted_queue_path = path.join(aligned_audio_base, "adjusted_corpus", channel_id, video_id, "queue")
-            adjusted_audio_path = path.join(aligned_audio_base, "adjusted_corpus", channel_id, video_id, "audio")
-            adjusted_tg_path = path.join(aligned_audio_base, "adjusted_corpus", channel_id, video_id, "textgrids")
 
-            # TODO: Update to check for and delete old files from audio, tg and alignmemt original_corpus directories if overwrite
             if args.overwrite:
                 if path.isdir(out_audio_path):
                     rmtree(out_audio_path)
@@ -75,56 +67,76 @@ def main(args):
                     existing_tgs = []
                 existing_files = existing_audio + existing_tgs
                 if existing_files:
-                    print("Audio and/or textgrid files exist. Skipping {0}".format(video_id))
-                    continue
+                    if args.mfa:
+                        print('Copying existing files to MFA compatible directory for: {0}'.format(video_id))
+                        mfa_only = 1
+                    else:
+                        print("Audio and/or textgrid files exist. Skipping {0}".format(video_id))
+                        continue
 
             # Get files
             full_audio_path = path.join(raw_audio_base, "wav", channel_id, video_id+'.wav')
             audio_path = path.join(chunked_audio_base, "audio", "chunking", channel_id, video_id)
             tg_path = path.join(chunked_audio_base, "textgrids", "chunking", channel_id, video_id, video_id+'.TextGrid')
-            file_path = path.join(log_path, video_id+'_coding_responses.csv')
 
+            if not path.exists(out_tg_path):
+                makedirs(out_tg_path)
+            if args.save_chunks:
+                if not path.exists(out_audio_path):
+                    makedirs(out_audio_path)
+            if args.mfa:
+                for dir in [dict_path, pre_align_path, post_align_path, aligner_path]:
+                    if not path.exists(dir):
+                        makedirs(dir)
+
+            if mfa_only == 1:
+                if existing_tgs:
+                    for fn in existing_tgs:
+                        copy(fn, pre_align_path)
+                if existing_audio:
+                    for fn in existing_audio:
+                        copy(fn, pre_align_path)
+                else:
+                    copy(full_audio_path, pre_align_path)
+                continue
+
+            file_path = path.join(log_path, video_id+'_coding_responses.csv')
             df = pd.read_csv(file_path)
             print('Processing audio chunks from: {0}'.format(video_id))
-
-            for dir in [dict_path, out_audio_path, out_tg_path, pre_align_path, post_align_path, aligner_path, adjusted_queue_path, adjusted_audio_path, adjusted_tg_path]:
-                if not path.exists(dir):
-                    makedirs(dir)
 
             # Start audio-textgrid processing
             original_tg = parselmouth.read(tg_path)
             full_tg = call(original_tg, 'Extract one tier', 1)
             call(full_tg, 'Replace interval texts', 1, 1, 0, '.*', '', 'Regular Expressions')
-            # call(full_tg, 'Insert interval tier', 2, 'transcript')
+            call(full_tg, 'Set tier name', 1, 'sentence') # for Darla compatibility
 
-            sil1 = call('Create Sound from formula', "silence", 1, 0, 0.25, 44100, "0")
-            sil2 = call('Create Sound from formula', "silence", 1, 0, 0.25, 44100, "0")
+            if args.save_chunks:
+                sil1 = call('Create Sound from formula', "silence", 1, 0, 0.25, 44100, "0")
+                sil2 = call('Create Sound from formula', "silence", 1, 0, 0.25, 44100, "0")
 
             loop_start = 0
-            # transcript_list = []
-            word_list = []
 
             for i in df['id']:
                 row = df.iloc[i]
                 if row['usability'] == 1 and not pd.isnull(row['transcription']):
 
                     # By-timestamp full TextGrid modification
-                    if args.full:
+                    if not args.save_chunks:
                         int_center = mean([int(row['start_time']), int(row['end_time'])])/1000
                         current_int = call(full_tg, 'Get interval at time', 1, int_center)
                         call(full_tg, 'Set interval text', 1, current_int, row['transcription'])
 
-                        if loop_start == 0:
-                            # Add transcript start boundary
-                            # call(full_tg, 'Insert boundary', 2, call(full_tg, 'Get start time of interval', 1, current_int))
-                            loop_start = 1
-
-                            # Save copy to temp MFA pre-alignment dir
-                            sound = parselmouth.Sound(full_audio_path)
-                            sound.save(path.join(pre_align_path, video_id+'.wav'), "WAV")
-
+                        # Save to local dir
                         full_tg.save(path.join(out_tg_path, video_id+'.TextGrid'))
-                        full_tg.save(path.join(pre_align_path, video_id+'.TextGrid'))
+
+                        if args.mfa:
+                            # Save copy to temp MFA pre-alignment dir
+                            full_tg.save(path.join(pre_align_path, video_id+'.TextGrid'))
+
+                            if loop_start == 0:
+                                sound = parselmouth.Sound(full_audio_path)
+                                sound.save(path.join(pre_align_path, video_id+'.wav'), "WAV")
+                                loop_start = 1
 
 
                     # By-WAV file TextGrid creation
@@ -147,46 +159,20 @@ def main(args):
                         sound.save(path.join(out_audio_path, name+'.wav'), "WAV")
                         textgrid.save(path.join(out_tg_path, name+'.TextGrid'))
 
-                        # Save copy to temp MFA pre-alignment dir
-                        sound.save(path.join(pre_align_path, name+'.wav'), "WAV")
-                        textgrid.save(path.join(pre_align_path, name+'.TextGrid'))
-
-                    # Word list creation
-                    # transcript_list.append(row['transcription'])
-
-                    punc = "[\.\?\!,;:\"\\\/]+"
-                    word_list = word_list + [sub(punc, '', word) for word in row['transcription'].split()]
-
-            # Add transcript end boundary
-            # call(full_tg, 'Insert boundary', 2, call(full_tg, 'Get end time of interval', 1, current_int))
-            # call(full_tg, 'Set interval text', 2, 2, ' '.join(transcript_list))
-            # full_tg.save(path.join(chunked_audio_base, "textgrids", "coding", channel_id, video_id+'.TextGrid'))
-
-            # Add to word list for dictionary generation
-            with open(dict_fp, "a+") as word_file, open(update_fp, "a+") as update_file:
-                word_file.seek(0)
-                word_contents = word_file.read().split('\n')
-                for word in set(word_list):
-                    if not word in word_contents:
-                        update_file.seek(0)
-                        update_words = findall(r"\b(.+)\t", update_file.read())
-                        if word.isupper() and "-" not in word:
-                            if not sub("\-","",word.lower()) in update_words:
-                                update_file.write(word.lower()+'\n')
-                        word_file.write(word.lower()+'\n')
-
-    out_message = path.join(aligned_audio_base, "adjusted_corpus", "README.md")
-    with open(out_message, 'w') as file:
-        file.write('Channel folders for aligned audio files (found within the "queue" folder of each video sub-folder) go here.')
+                        if args.mfa:
+                            # Save copy to temp MFA pre-alignment dir
+                            sound.save(path.join(pre_align_path, name+'.wav'), "WAV")
+                            textgrid.save(path.join(pre_align_path, name+'.TextGrid'))
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Create MFA-compatible textgrids and move to MFA alignment folder.')
 
     parser.set_defaults(func=None)
-    parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: aligned_audio/$group)')
+    parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: chunked_audio/$group)')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
-    parser.add_argument('--full', '-f', action='store_true', default=False, help='add transcript to full audio and textgrid (not chunked audio)')
+    parser.add_argument('--save_chunks', '-s', action='store_true', default=False, help='save chunked textgrids and sound files; default only saves full textgrid')
+    parser.add_argument('--mfa', action='store_true', default=False, help='copy textgrids and audio into MFA compatible directory structure under aligned_audio/$group; default does not create directory')
     parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
 
     args = parser.parse_args()

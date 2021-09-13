@@ -1,18 +1,22 @@
+import pandas as pd
+import logging
+
 from pytube import YouTube, exceptions, helpers
-from os import path, makedirs, remove
-from sys import path
-from time import sleep
-from re import sub
+from os import path, makedirs, remove, rename, listdir
+from time import sleep, strftime
+from re import sub, findall
+from glob import glob
+from csv import DictWriter
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-import logging
-
 
 # TODO: Need to implement robust error handling
+# TODO: PyTube now supports channels
+
 
 class ChannelScraper:
 
@@ -325,7 +329,7 @@ class MultiChannelScraper:
 
 class VideoScraper:
 
-    def __init__(url, id, log_fp=None, channel_name="", channel_id="", group='', screen=False, convert_srt=False, include_title=False):
+    def __init__(self, url, yt_id, log_fp=None, channel_name="", channel_id="", language=None, include_audio=False, include_auto=False, group='', screen=False, convert_srt=False, include_title=False):
 
         try:
             self.video = YouTube(url)
@@ -339,13 +343,17 @@ class VideoScraper:
             exit(1)
 
 
-        self.id            = id
-        self.log_fn        = log_fn
+        self.url           = url
+        self.yt_id         = yt_id
+        self.log_fp        = log_fp
         self.channel_name  = channel_name
         self.channel_id    = channel_id
+        self.language      = language
         self.group         = group
         self.screen        = screen
         self.convert_srt   = convert_srt
+        self.include_audio = include_audio
+        self.include_auto  = include_auto
         self.include_title = include_title
 
 
@@ -386,19 +394,35 @@ class VideoScraper:
         if not path.exists(out_path):
             makedirs(out_path)
 
+        if(self.convert_srt):
+            ext = ".srt"
+        else:
+            ext = ".xml"
+
         try:
             if self.include_title:
                 captions.download(helpers.safe_filename(safe_title), srt=self.convert_srt, output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, self.yt_id))
+
+                caption_fn = "".join(["{0}_{1}_".format(safe_author, self.yt_id), " ", helpers.safe_filename(safe_title), " ({0})".format(captions.code), ext])
+                caption_fn_clean = caption_fn.rsplit(' ',1)[0]+ext
+                rename(path.join(out_path, caption_fn), path.join(out_path, caption_fn_clean))
+
                 return 1
             else:
                 captions.download(str(self.yt_id), srt=self.convert_srt, output_path=out_path, filename_prefix="{0}_".format(safe_author))
+
+                caption_fn = "".join(["{0}_".format(safe_author), self.yt_id, " ({0})".format(captions.code), ext])
+                caption_fn_clean = caption_fn.rsplit(' ',1)[0]+ext
+                rename(path.join(out_path, caption_fn), path.join(out_path, caption_fn_clean))
+
                 return 1
-        except:
-            logging.critical("Video {0}: Could not download caption track for video {0} from channel {1} ({2})".format(self.yt_id, video.author, video.title))
+
+        except KeyError:
+            logging.critical("Video {0}: Could not convert caption track for video {0} from channel {1} ({2}) to SRT.".format(self.yt_id, self.video.author, self.video.title))
             return 0
 
 
-    def write_audio(self):
+    def write_audio(self, audio):
         """Write audio Stream object to a file. If an output folder is not specified, audio will be placed in a folder corresponding to the name of the video's author (i.e. channel).
         """
 
@@ -426,14 +450,14 @@ class VideoScraper:
         if not path.exists(out_path):
             makedirs(out_path)
 
-        try:
-            if include_title:
-                audio.download(filename=safe_title + '.mp4', output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, self.yt_id), skip_existing=True)
-            else:
-                audio.download(filename=str(yt_id) + '.mp4', output_path=out_path, filename_prefix="{0}_".format(safe_author), skip_existing=True)
+        #try:
+        if self.include_title:
+            audio.download(filename=safe_title + '.mp4', output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, self.yt_id), skip_existing=True)
+        else:
+            audio.download(filename=str(self.yt_id) + '.mp4', output_path=out_path, filename_prefix="{0}_".format(safe_author), skip_existing=True)
 
-        except:
-            logging.critical("Video {0}: Could not save audio stream for video {0} from channel {1} ({2})".format(yt_id, self.video.author, self.video.title))
+        #except:
+        #    logging.critical("Video {0}: Could not save audio stream for video {0} from channel {1} ({2})".format(self.yt_id, self.video.author, self.video.title))
 
         # Be polite
         sleep(1)
@@ -449,9 +473,9 @@ class VideoScraper:
         for track in self.video.captions:
             if self.language is None or (self.language in track.name and (self.include_auto or "a." not in self.track.code)):
 
-                success = write_captions(track)
+                success = self.write_captions(track)
                 if success:
-                    self.caption_list.append((track.code, track.name))
+                    caption_list.append((track.code, track.name))
 
                 # Be polite
                 sleep(1)
@@ -489,52 +513,48 @@ class VideoScraper:
             "corrected": 0,
         }
 
-        if not log_fp:
+        if not self.log_fp:
             if self.group is None:
                 log_fn = "{0}_log.csv".format(safe_author)
             else:
                 log_fn = "{0}_log.csv".format(self.group)
 
-            log_fp = path.join("corpus", "logs", log_fn)
+            self.log_fp = path.join("corpus", "logs", log_fn)
             if self.screen:
-                log_fp = path.join("corpus", "unscreened_urls", "logs", log_fn)
+                self.log_fp = path.join("corpus", "unscreened_urls", "logs", log_fn)
 
 
-        with open(log_fp, 'a') as log_out:
+        with open(self.log_fp, 'a') as log_out:
 
             log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "code", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "scrape_time", "corrected"])
 
-            if(f.tell() == 0):
+            if(log_out.tell() == 0):
                 log_writer.writeheader()
 
             log_writer.writerow(metadata)
 
 
-    def process_video(video, channel_dict):
+    def process_video(self):
         """Download captions, audio (optional), and metadata for a given video.
 
         :return caption_dict: list of metadata for all successfully-downloaded caption tracks
         """
 
-        if self.video.author not in channel_dict.keys():
-            channel_dict.update({self.video.author: 0})
-        channel_dict[self.video.author] = channel_dict[self.video.author] + 1
-
-        caption_list = write_captions_by_language()
+        caption_list = self.get_captions_by_language()
 
         if self.include_audio:
             audio = self.video.streams.filter(mime_type="audio/mp4").first()
-            write_audio(audio)
+            self.write_audio(audio)
 
-        if len(caption_list) or include_audio:
-            write_metadata(caption_list)
+        if len(caption_list) or self.include_audio:
+            self.write_metadata(caption_list)
 
-        return channel_dict
+        return caption_list
 
 
 class MultiVideoScraper:
 
-    def __init__(f, log_fp, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, resume_from=0, limit_to=-1, overwrite=False):
+    def __init__(self, f, log_fp=None, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, resume_from=0, limit_to=-1, overwrite=False):
 
         # Input params
         self.f             = f
@@ -543,6 +563,8 @@ class MultiVideoScraper:
         self.group         = group
         self.screen        = screen
         self.include_audio = include_audio
+        self.include_auto  = include_auto
+        self.include_title = False
         self.convert_srt   = convert_srt
         self.resume_from   = resume_from
         self.limit_to      = limit_to
@@ -550,13 +572,14 @@ class MultiVideoScraper:
 
         # Other params
         self.channel_dict = {}
+        self.video_count = 0
 
 
     def process_videos(self):
         """Download captions, audio (optional), and metadata for a list of videos.
         """
 
-        if not log_fp: # No file passed, i.e. not a grouped batch
+        if not self.log_fp: # No file passed, i.e. not a grouped batch
 
             if self.group is None:
                 log_fn = "{0}_log.csv".format(path.splitext(path.split(self.f)[1])[0])
@@ -583,12 +606,12 @@ class MultiVideoScraper:
                 out_path = path.join(out_path, self.group)
                 out_audio_path = path.join(out_audio_path, self.group)
 
-        video_count == 0
-        with open(urls_path, "r") as urls_in:
+        self.video_count = 0
+        with open(self.f, "r") as urls_in:
 
             for line in urls_in:
 
-                video_count += 1
+                self.video_count += 1
 
                 if(self.video_count < self.resume_from):
                     continue
@@ -622,14 +645,15 @@ class MultiVideoScraper:
                     if files:
                         continue
 
-                video = VideoScraper(url, id, log_fp, channel_name, channel_id, self.group, self.screen, self.convert_srt, False)
+                video = VideoScraper(url, yt_id, self.log_fp, channel_name, channel_id, self.language, self.include_audio, self.include_auto, self.group, self.screen, self.convert_srt, self.include_title)
+                video.process_video()
 
                 if self.limit_to != -1 and self.video_count == self.resume_from + self.limit_to:
                     print("{0}: Limit reached".format(urls_path))
                     break
 
 
-class BatchVideoScraper():
+class BatchVideoScraper:
 
     def __init__(self, base_fn, batch=False, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, resume_from=0, limit_to=-1, overwrite=False):
 
@@ -668,3 +692,225 @@ class BatchVideoScraper():
         # Need to make video objs
         for fn in all_fns:
             scraper = MultiVideoScraper(fn, log_fp, self.language, self.group, self.screen, self.include_audio, self.include_auto, self.convert_srt, self.resume_from, self.limit_to, self.overwrite)
+
+
+class CaptionCleaner:
+
+    def __init__(self, group=None, lang_code=None, fave=False, text=False, overwrite=False):
+
+        self.group     = group
+        self.lang_code = lang_code
+        self.fave      = fave
+        self.text      = text
+        self.overwrite = overwrite
+
+        self.raw_sub_base = path.join('corpus','raw_subtitles')
+        self.clean_sub_base = path.join('corpus','cleaned_subtitles')
+
+        if self.group:
+            self.raw_sub_base = path.join(self.raw_sub_base, self.group)
+            self.clean_sub_base = path.join(self.clean_sub_base, self.group)
+
+    def process_captions(self):
+
+        for sub_type in ['auto', 'manual']:
+
+            raw_sub_dir = path.join(self.raw_sub_base, sub_type)
+            clean_sub_dir = path.join(self.clean_sub_base, sub_type)
+
+            if self.lang_code:
+                lang_code_list = [self.lang_code]
+            elif path.isdir(raw_sub_dir):
+                lang_code_list = [langcode for langcode in listdir(raw_sub_dir) if not langcode.startswith('.')]
+            else:
+                lang_code_list = []
+
+            for langcode in lang_code_list:
+
+                in_dir = path.join(raw_sub_dir, langcode)
+                cleans_dir = path.join(clean_sub_dir, langcode, "cleans")
+                fave_dir = path.join(clean_sub_dir, langcode, "faves")
+                text_dir = path.join(clean_sub_dir, langcode, "texts")
+
+                if path.isdir(in_dir):
+                    dir_list = [dir_element for dir_element in listdir(in_dir)]
+                    if '.DS_Store' in dir_list:
+                        dir_list.remove('.DS_Store')
+                    for i, dir_element in enumerate(dir_list):
+                        if path.isdir(path.join(in_dir, dir_element)):
+
+                            channel_in_dir = path.join(in_dir, dir_element)
+                            channel_cleans_dir = path.join(cleans_dir, dir_element)
+                            channel_fave_dir = path.join(fave_dir, dir_element)
+                            channel_text_dir = path.join(text_dir, dir_element)
+
+                            channel_dir_list = [dir_element for dir_element in listdir(channel_in_dir)]
+                            if '.DS_Store' in channel_dir_list:
+                                channel_dir_list.remove('.DS_Store')
+                            for j, fn in enumerate(channel_dir_list):
+                                self.clean_captions(j, fn, langcode, channel_in_dir, channel_cleans_dir,channel_fave_dir, channel_text_dir, self.fave, self.text, self.overwrite)
+                        else:
+                            self.clean_captions(i, dir_element, langcode, in_dir, cleans_dir, fave_dir, text_dir, self.fave, self.text, self.overwrite)
+
+    def convert_to_seconds(self, timestamp):
+        """ Translate timestamps to time in seconds (used in get_lines )
+        """
+        time_components = findall(r'(\d{2}):(\d{2}):(\d{2}),(\d{3})', timestamp)
+
+        if not len(time_components) == 0:
+            hrs, mins, secs, msecs = time_components[0]
+
+            hrs = int(hrs) * (60 * 60) * 1000
+            mins = int(mins) * 60 * 1000
+            secs = int(secs) * 1000
+            msecs = int(msecs)
+
+            time_ms = hrs + mins + secs + msecs
+            time_s = float(time_ms)/float(1000)
+            return time_s
+
+    def clean_text(self, text, langcode):
+        """ Automated cleaning of text.
+        """
+
+        if langcode == 'en':
+
+            numbers = {'0': 'zero',
+                        '1': 'one',
+                        '2': 'two',
+                        '3': 'three',
+                        '4': 'four',
+                        '5': 'five',
+                        '6': 'six',
+                        '7': 'seven',
+                        '8': 'eight',
+                        '9': 'nine',
+                        '10': 'ten',
+                        '11': 'eleven',
+                        '12': 'twelve',
+                        '13': 'thirteen',
+                        '14': 'fourteen',
+                        '15': 'fifteen',
+                        '16': 'sixteen',
+                        '17': 'seventeen',
+                        '18': 'eighteen',
+                        '19': 'nineteen',
+                        '20': 'twenty',
+                        '30': 'thirty',
+                        '40': 'forty',
+                        '50': 'fifty',
+                        '60': 'sixty',
+                        '70': 'seventy',
+                        '80': 'eighty',
+                        '90': 'ninety'}
+
+            text = sub(r'1\.5', 'one point five', text)
+            for val, per in findall(r'(\d+)(%)', text):
+                text = sub(val+per, val+' percent', text)
+
+            text = sub(r':00', '', text)
+            text = sub(r':', ' ', text)
+            for i in range(2):
+                for pre, hyp, post in findall(r'([a-zA-Z]+)(\-)([a-zA-Z]+)', text):
+                    text = sub(pre+hyp+post, pre+' '+post, text)
+            text = sub(r'24/7', 'twenty-four seven', text)
+
+            for abb in findall(r'(?:^|\s)((?:[a-zA-Z]\.)+)(?:$|\s)', text):
+                cap_string = abb.replace('.','').upper()
+                text = sub(abb, cap_string, text)
+
+            for num in findall(r'(?:^|\s)(\d{1,2})(?:$|\s)', text):
+                if num in numbers.keys():
+                    numeral_string = '{0}'.format(num)
+                    word_string = '{0}'.format(numbers.get(num))
+                    text = sub(numeral_string, word_string, text)
+                else:
+                    ones = numbers.get(num[-1])
+                    tens = numbers.get("{0}0".format(num[-2]))
+                    numeral_string = '{0}'.format(num)
+                    word_string = '{0} {1}'.format(tens, ones)
+                    text = sub(numeral_string, word_string, text)
+
+        # text = sub(r'[\.,"!?:;()]', '', text)
+        text = sub(r' & ', ' and ', text)
+
+        return text
+
+    def get_timestamped_lines(self, in_dir, fn, langcode):
+        """ Extract timestamps and text per caption line
+        """
+        with open(path.join(in_dir,fn)) as file:
+            file_text = file.read()
+
+            # Extract only the relevant parts of each time+text set
+            subs = findall(r'\d+\n(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})\n(.*)\n', file_text)
+
+        timed_lines = []
+        for line in subs:
+            time_start_s = convert_to_seconds(line[0])
+            time_end_s = convert_to_seconds(line[1])
+            sub_text = clean_text(line[2], langcode)
+            timed_lines.append((time_start_s, time_end_s, sub_text))
+
+        lasti = len(timed_lines)
+        corrected_timed_lines = []
+        for i in range(0,lasti):
+            time_start = timed_lines[i][0]
+            sub_text = timed_lines[i][2]
+            if i < lasti-1:
+                time_end = timed_lines[i+1][0]
+            else:
+                time_end = timed_lines[i][1]
+            corrected_timed_lines.append((time_start, time_end, sub_text))
+
+        return corrected_timed_lines
+
+    def write_to_output(self, file_type, out_dir, name, timed_lines):
+        """ Write to files
+        :param name: The filename (w/o ext)
+        """
+        channel_name = name.split('_', 1)[0]
+
+        if not path.exists(out_dir):
+            makedirs(out_dir)
+        out_file_path = path.join(out_dir, name+'.txt')
+
+        if file_type == 'cleans':
+            out_df = pd.DataFrame(columns=['start_time', 'end_time', 'subtitle_text'])
+            for line in timed_lines:
+                subtitle_row = {"start_time": line[0], "end_time": line[1], "subtitle_text": line[2]}
+                out_df = out_df.append(subtitle_row, ignore_index=True)
+            out_df.to_csv(out_file_path, sep='\t', index=False, header=False)
+
+        elif file_type == 'fave':
+            out_df = pd.DataFrame(columns=['speaker_code', 'speaker_name',
+                                     'start_time', 'end_time', 'subtitle_text'])
+            for line in timed_lines:
+                subtitle_row = {"speaker_code": channel_name[:2], "speaker_name": channel_name, "start_time": line[0], "end_time": line[1], "subtitle_text": line[2]}
+                out_df = out_df.append(subtitle_row, ignore_index=True)
+            out_df.to_csv(out_file_path, sep='\t', index=False, header=False)
+
+        elif file_type == 'text':
+            all_lines = [line[2] for line in timed_lines]
+            all_text = " ".join(all_lines)
+            with open(out_file_path, "w") as file:
+                file.write(all_text)
+        else:
+            print('File type is not valid (cleans, fave, text).')
+
+    def clean_captions(self, i, fn, langcode, in_dir, cleans_dir, fave_dir, text_dir, fave=False, text=False, overwrite=False):
+        name, ext = path.splitext(fn)
+
+        if path.isdir(cleans_dir) and not overwrite:
+            existing_files = glob(path.join(cleans_dir, "**", "*{0}*".format(name)), recursive=True)
+            if existing_files:
+                return 1
+
+        print('Processing transcript {0}: {1}'.format(i+1,fn))
+
+        timed_lines = self.get_timestamped_lines(in_dir, fn, langcode)
+        self.write_to_output('cleans', cleans_dir, name, timed_lines)
+        if fave:
+            self.write_to_output('fave', fave_dir, name, timed_lines)
+        if text:
+            self.write_to_output('text', text_dir, name, timed_lines)

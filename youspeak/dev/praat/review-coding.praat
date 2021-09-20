@@ -24,6 +24,7 @@ form Modify textgrids
 	boolean flagged_only 0
 endform
 
+# Set names based on boolean
 if flagged_only = 0
 	file_list$ = "review_list_all.txt"
 	table_name$ = "all_rows"
@@ -32,6 +33,7 @@ elsif flagged_only = 1
 	table_name$ = "flagged_rows"
 endif
 
+# Read in relevant tables
 Read Table from comma-separated file... 'coding_log$'
 Rename: "all_rows"
 if flagged_only = 1
@@ -55,6 +57,7 @@ if !(fileReadable (file_list$))
 	Save as raw text file... 'file_list$'
 endif
 
+# Read file and create copy for output list
 if fileReadable: file_list$
 	# Read the text file and put it to the string file$
 	Read Strings from raw text file... 'file_list$'

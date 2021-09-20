@@ -18,21 +18,35 @@ form Modify textgrids
 	sentence tg_dir	./textgrids/
 	comment Coding Log Filename
 	sentence coding_log vowel_coding_log.csv
-	comment Review List Filename
-	sentence file_list review_list.txt
+	#comment Review List Filename
+	#sentence file_list review_list.txt
+	comment Review All or Flagged Only
+	boolean flagged_only 0
 endform
 
-if !(fileReadable (file_list$))
-	Read Table from comma-separated file... 'coding_log$'
-	Rename: "output"
+if flagged_only = 0
+	file_list$ = "review_list_all.txt"
+	table_name$ = "all_rows"
+elsif flagged_only = 1
+	file_list$ = "review_list_flagged.txt"
+	table_name$ = "flagged_rows"
+endif
+
+Read Table from comma-separated file... 'coding_log$'
+Rename: "all_rows"
+if flagged_only = 1
 	Extract rows where... self$["flag"]="1"
 	Rename: "flagged_rows"
+endif
+
+# If review_list file does not exist, create it
+if !(fileReadable (file_list$))
 	number_of_rows = Get number of rows
 
 	Create Strings from tokens: "review_list_in", "", ""
 
 	for i_file to number_of_rows
-		select Table flagged_rows
+		select Table 'table_name$'
 		soundname$ = Get value: i_file, "file"
 		select Strings review_list_in
 		Insert string: 0, soundname$
@@ -48,6 +62,7 @@ if fileReadable: file_list$
 	Copy... review_list_out
 endif
 
+# Processing each file
 list_index = 1
 
 number_of_files = Get number of strings

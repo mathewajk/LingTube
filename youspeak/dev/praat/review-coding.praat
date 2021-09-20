@@ -73,8 +73,25 @@ for i_file to number_of_files
 	 	 Read from file... 'audio_dir$''name$'.wav
      Read from file... 'tg_dir$''name$'.TextGrid
 
-		 select Sound 'name$'
-	 	 plus TextGrid 'name$'
+	# Print coding row values
+	select Table 'table_name$'
+	sound_row# = List row numbers where... self$[row,"file"]=soundname$
+	clearinfo
+	appendInfoLine: soundname$ + newline$
+	sound_vowel$ = Get value: sound_row#[1], "vowel"
+	appendInfoLine: "Vowel: " + sound_vowel$
+	sound_boundaries$ = Get value: sound_row#[1], "boundaries"
+	appendInfoLine: "Boundaries: " + sound_boundaries$
+	sound_creak$ = Get value: sound_row#[1], "creak"
+	appendInfoLine: "Creak: " + sound_creak$
+	sound_issues$ = Get value: sound_row#[1], "issues"
+	appendInfoLine: "Issues: " + sound_issues$
+	sound_flag$ = Get value: sound_row#[1], "flag"
+	appendInfoLine: "Flagged: " + sound_flag$
+
+	# Edit sound and TextGrid
+	 select Sound 'name$'
+	 plus TextGrid 'name$'
      Edit
 		 beginPause: "Edit Text Grid"
 			 comment: "Click 'Done' to save and continue. Click 'Keep' if need to return to this file later."

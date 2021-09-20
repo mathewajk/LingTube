@@ -13,7 +13,6 @@ from parselmouth.praat import call, run_file
 
 
 def main(args):
-    mfa_only = 0
 
     # base paths
     raw_audio_base = path.join("corpus", "raw_audio")
@@ -39,6 +38,8 @@ def main(args):
         video_list = [fn.split('_coding')[0] for fn in listdir(log_path) if not fn.startswith('.')]
 
         for video_id in video_list:
+            mfa_only = 0
+            
             # output dirs
             out_audio_path = path.join(chunked_audio_base, "audio", "coding", channel_id, video_id)
             out_tg_path = path.join(chunked_audio_base, "textgrids", "coding", channel_id, video_id)
@@ -67,6 +68,7 @@ def main(args):
                     existing_tgs = []
                 existing_files = existing_audio + existing_tgs
                 if existing_files:
+                    # TODO: Add check for files in the MFA directory, so don't copy over if files already exist there
                     if args.mfa:
                         print('Copying existing files to MFA compatible directory for: {0}'.format(video_id))
                         mfa_only = 1

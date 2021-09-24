@@ -231,7 +231,6 @@ class ChannelScraper:
     def scrape_about_links(self, driver):
 
         self.info = self.scrape_info(driver)
-        print(self.about)
         if self.about:
             self.links = None
         else:

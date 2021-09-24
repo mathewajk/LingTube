@@ -312,7 +312,6 @@ class MultiChannelScraper:
         self.about         = about
         self.overwrite     = overwrite
         self.screen        = screen
-        self.scrapers      = []
 
 
     def process(self):
@@ -324,19 +323,12 @@ class MultiChannelScraper:
                     line = sub('[\s\ufeff]+', '', line.strip('/')) # Handle whitespace and Excel nonsense?
 
                     scraper = ChannelScraper(line, self.browser, self.pause_time, self.cutoff, self.group, self.overwrite, self.screen)
-                    scraper.scrape()
-                    self.scrapers.append(scraper)
+                    scraper.process()
                     sleep(1)
+
         except FileNotFoundError as e:
             print('Error: File {0} could not be found.'.format(self.channels_f))
 
-
-    def save(self):
-        """Write channel information and (if scraping) a scraped list of video links to a file.
-        """
-
-        for scraper in self.scrapers:
-            scraper.save()
 
 
 class VideoScraper:

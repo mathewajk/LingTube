@@ -229,30 +229,26 @@ class ChannelScraper:
         return info
 
 
+    def scrape_about_links(self, driver):
+
+        self.info = self.scrape_info(driver)
+
+        if self.about:
+            self.links = None
+        else:
+            self.links = self.scrape_links(driver)
+
+
     def scrape(self):
         """Collect video URLs (if scraping URLs) and about page info from the channel
         """
 
         if self.browser.lower() == "firefox":
-
             with webdriver.Firefox() as driver:
-
-                self.info = self.scrape_info(driver)
-
-                if self.about:
-                    self.links = None
-                else:
-                    self.links = self.scrape_links(driver)
+                self.scrape_about_links(driver)
         else:
-
             with webdriver.Chrome() as driver:
-
-                self.info.update(self.scrape_info(driver))
-
-                if self.about:
-                    self.links = None
-                else:
-                    self.links = self.scrape_links(driver)
+                self.scrape_about_links(driver)
 
 
     def log_video(self):

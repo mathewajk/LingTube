@@ -65,7 +65,7 @@ def main(args):
 
 
         video_list = [video_id for video_id in listdir(post_align_path) if not video_id.startswith('.') and not video_id.endswith('.txt')]
-
+        video_list.sort()
 
         for v_i, video_id in enumerate(video_list):
             print('* Video {0} of {1}: {2} ...'.format(v_i+1, len(video_list), video_id))

@@ -5,6 +5,8 @@
 run-aligner.md
 corpus/
 resources/
+alpha/
+beta/
 
 # Webdriver
 geckodriver.log

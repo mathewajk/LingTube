@@ -11,7 +11,6 @@ def run(args):
     scraper = None
 
     source        = args.source
-    from_video    = args.v
     browser       = args.browser
     group         = args.group
     pause_time    = args.wait
@@ -21,9 +20,9 @@ def run(args):
     screen        = args.screen
 
     if 'http' in source:
-        scraper = Base.ChannelHandler(source, from_video, browser, pause_time, cutoff, group, ignore_videos, overwrite, screen)
+        scraper = Base.ChannelScraper(source, browser, pause_time, cutoff, group, ignore_videos, overwrite, screen)
     else:
-        scraper = Base.MultiChannelHandler(source, from_video, browser, pause_time, cutoff, group, ignore_videos, overwrite, screen)
+        scraper = Base.MultiChannelScraper(source, browser, pause_time, cutoff, group, ignore_videos, overwrite, screen)
 
     scraper.process()
 
@@ -34,7 +33,6 @@ if __name__ == '__main__':
 
     parser.add_argument('source', type=str, help='URL or file path to list of URLs to scrape')
 
-    parser.add_argument('-v', '-video',   action='store_true', default=False, help='Source is a video or list of videos')
     parser.add_argument('-g', '--group',     default=None, type=str, help='grouping for the output files (will create a subfolder, e.g., screened_urls/$group)')
     parser.add_argument('-b', '--browser',   default="Firefox", type=str, help='browser to use for scraping ("Firefox" or "Chrome")')
     parser.add_argument('-n', '--novideos',  action='store_true', default=False, help='only scrape about page(s); do not scrape video URLs')

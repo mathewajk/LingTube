@@ -20,12 +20,15 @@ from selenium.webdriver.support import expected_conditions as EC
 
 class ChannelScraper:
 
-    def __init__(self, url, from_video=True, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, overwrite =False, screen=False):
+    def __init__(self, url, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, overwrite =False, screen=False):
 
         self.url = url
+        self.from_video = False
+
+        if "watch?" in self.url:
+            self.from_video = True
 
         # Default variables
-        self.from_video    = from_video
         self.video_url     = None
         self.browser       = browser
         self.pause_time    = pause_time
@@ -223,7 +226,7 @@ class ChannelScraper:
         """Collect video URLs (if scraping URLs) and about page info from the channel
         """
 
-        if self.browser == "Firefox":
+        if self.browser.lower() == "firefox":
 
             with webdriver.Firefox() as driver:
 
@@ -250,9 +253,11 @@ class ChannelScraper:
         """
 
         # TODO: Genertion of base_path is redundant given the save() function
-        base_path = path.join("corpus", "screened_urls")
+
         if self.screen:
             base_path = path.join("corpus", "unscreened_urls")
+        else:
+            base_path = path.join("corpus", "screened_urls")
 
         if self.group:
             videos_out_dir = path.join(base_path, self.group, "urls")
@@ -287,13 +292,12 @@ class ChannelScraper:
 
 class MultiChannelScraper:
 
-    def __init__(self, f, from_video=False, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, overwrite=False, screen=False):
+    def __init__(self, f, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, overwrite=False, screen=False):
 
         self.channels = []
         self.f        = f
 
         # To be passed to ChannelScraper objects
-        self.from_video    = from_video
         self.browser       = browser
         self.pause_time    = pause_time
         self.cutoff        = cutoff
@@ -301,6 +305,7 @@ class MultiChannelScraper:
         self.ignore_videos = ignore_videos
         self.overwrite     = overwrite
         self.screen        = screen
+        self.scrapers      = []
 
 
     def process(self):

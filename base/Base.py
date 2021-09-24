@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 class ChannelScraper:
 
-    def __init__(self, url, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, overwrite =False, screen=False):
+    def __init__(self, url, browser="Firefox", pause_time=1, cutoff=-1, group='', about=False, overwrite =False, screen=False):
 
         self.url = url
         self.from_video = False
@@ -34,7 +34,7 @@ class ChannelScraper:
         self.pause_time    = pause_time
         self.cutoff        = cutoff
         self.group         = group
-        self.about = about
+        self.about         = about
         self.overwrite     = overwrite
         self.screen        = screen
 
@@ -299,7 +299,7 @@ class ChannelScraper:
 
 class MultiChannelScraper:
 
-    def __init__(self, f, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, overwrite=False, screen=False):
+    def __init__(self, f, browser="Firefox", pause_time=1, cutoff=-1, group='', about=False, overwrite=False, screen=False):
 
         self.channels = []
         self.f        = f
@@ -309,7 +309,7 @@ class MultiChannelScraper:
         self.pause_time    = pause_time
         self.cutoff        = cutoff
         self.group         = group
-        self.about = about
+        self.about         = about
         self.overwrite     = overwrite
         self.screen        = screen
         self.scrapers      = []

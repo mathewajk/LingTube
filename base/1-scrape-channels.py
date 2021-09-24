@@ -15,14 +15,14 @@ def run(args):
     group         = args.group
     pause_time    = args.wait
     cutoff        = args.limit
-    about = args.about
+    about         = args.about
     overwrite     = args.overwrite
     screen        = args.screen
 
     if 'http' in source:
-        scraper = Base.ChannelScraper(source, browser, pause_time, cutoff, group, ignore_videos, overwrite, screen)
+        scraper = Base.ChannelScraper(source, browser, pause_time, cutoff, group, about, overwrite, screen)
     else:
-        scraper = Base.MultiChannelScraper(source, browser, pause_time, cutoff, group, ignore_videos, overwrite, screen)
+        scraper = Base.MultiChannelScraper(source, browser, pause_time, cutoff, group, about, overwrite, screen)
 
     scraper.process()
 

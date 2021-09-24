@@ -19,6 +19,7 @@ def run(args):
     overwrite     = args.overwrite
     screen        = args.screen
 
+
     if 'http' in source:
         scraper = Base.ChannelScraper(source, browser, pause_time, cutoff, group, about, overwrite, screen)
     else:
@@ -35,7 +36,7 @@ if __name__ == '__main__':
 
     parser.add_argument('-g', '--group',     default=None, type=str, help='grouping for the output files (will create a subfolder, e.g., screened_urls/$group)')
     parser.add_argument('-b', '--browser',   default="Firefox", type=str, help='browser to use for scraping ("Firefox" or "Chrome")')
-    parser.add_argument('-a', '--about',  action='store_true', default=False, help='only scrape about page(s); do not scrape video URLs')
+    parser.add_argument('-a', '--about',     action='store_true', default=False, help='only scrape about page(s); do not scrape video URLs')
     parser.add_argument('-l', '--limit',     type=int, default=-1, help='maximum number of times to scroll the page when scraping videos')
     parser.add_argument('-w', '--wait',      type=int, default=1, help='how long to pause between scrolls; increase for slower connections')
     parser.add_argument('-s', '--screen',    action='store_true', default=False, help='videos require screening for adequacy')

@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 class ChannelScraper:
 
-    def __init__(self, url, browser="Firefox", pause_time=1, cutoff=-1, group='', about=False, overwrite =False, screen=False):
+    def __init__(self, url, browser="Firefox", pause_time=1, cutoff=-1, group='', about=False, overwrite=False, screen=False):
 
         self.url = url
         self.from_video = False
@@ -218,11 +218,10 @@ class ChannelScraper:
 
         try:
             WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, 'description')))
-
-            info["Description"] = driver.find_element(By.ID, "description").text
+            sleep(2)
+            info["Description"] = driver.find_element(By.ID, "description-container").text
             info["Bio"]         = driver.find_element(By.ID, "bio").text
             info["Metadata"]    = driver.find_element(By.ID, "details-container").find_element(By.TAG_NAME, "table").text
-
         except:
             logging.warning("Could not scrape about page")
 
@@ -232,7 +231,7 @@ class ChannelScraper:
     def scrape_about_links(self, driver):
 
         self.info = self.scrape_info(driver)
-
+        print(self.about)
         if self.about:
             self.links = None
         else:
@@ -318,7 +317,7 @@ class MultiChannelScraper:
                     line = line.split('\t')[0]
                     line = sub('[\s\ufeff]+', '', line.strip('/')) # Handle whitespace and Excel nonsense?
 
-                    scraper = ChannelScraper(line, self.browser, self.pause_time, self.cutoff, self.group, self.overwrite, self.screen)
+                    scraper = ChannelScraper(line, self.browser, self.pause_time, self.cutoff, self.group, self.about, self.overwrite, self.screen)
                     scraper.process()
                     sleep(1)
 

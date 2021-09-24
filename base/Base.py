@@ -20,7 +20,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 class ChannelScraper:
 
-    def __init__(self, url, from_video=True, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, overwrite =False, screen=False):
+    def __init__(self, url, from_video=True, browser="Firefox", pause_time=1, cutoff=-1, group='', about=False, overwrite =False, screen=False):
 
         self.url = url
 
@@ -31,7 +31,7 @@ class ChannelScraper:
         self.pause_time    = pause_time
         self.cutoff        = cutoff
         self.group         = group
-        self.ignore_videos = ignore_videos
+        self.about = about
         self.overwrite     = overwrite
         self.screen        = screen
 
@@ -97,7 +97,11 @@ class ChannelScraper:
             base_path = path.join("corpus", "screened_urls")
 
         # Create info output path
-        info_out_dir = path.join(base_path, self.group, "about")
+        if not self.group:
+            info_out_dir = path.join(base_path, "about")
+        else:
+            info_out_dir = path.join(base_path, self.group, "about")
+
         if not path.exists(info_out_dir):
             makedirs(info_out_dir)
 
@@ -113,11 +117,14 @@ class ChannelScraper:
                 info_out.write("{0}\n\n".format(self.info[key]))
 
         # Don't save the links if we didn't scrape anything
-        if self.ignore_videos:
+        if self.about:
             return
 
         # Create URL out path
-        url_out_dir = path.join(base_path, self.group, "channel_urls")
+        if not self.group:
+            url_out_dir = path.join(base_path, "channel_urls")
+        else:
+            url_out_dir = path.join(base_path, self.group, "channel_urls")
         if not path.exists(url_out_dir):
             makedirs(url_out_dir)
 
@@ -229,7 +236,7 @@ class ChannelScraper:
 
                 self.info = self.scrape_info(driver)
 
-                if self.ignore_videos:
+                if self.about:
                     self.links = None
                 else:
                     self.links = self.scrape_links(driver)
@@ -239,7 +246,7 @@ class ChannelScraper:
 
                 self.info.update(self.scrape_info(driver))
 
-                if self.ignore_videos:
+                if self.about:
                     self.links = None
                 else:
                     self.links = self.scrape_links(driver)
@@ -287,7 +294,7 @@ class ChannelScraper:
 
 class MultiChannelScraper:
 
-    def __init__(self, f, from_video=False, browser="Firefox", pause_time=1, cutoff=-1, group='', ignore_videos=False, overwrite=False, screen=False):
+    def __init__(self, f, from_video=False, browser="Firefox", pause_time=1, cutoff=-1, group='', about=False, overwrite=False, screen=False):
 
         self.channels = []
         self.f        = f
@@ -298,7 +305,7 @@ class MultiChannelScraper:
         self.pause_time    = pause_time
         self.cutoff        = cutoff
         self.group         = group
-        self.ignore_videos = ignore_videos
+        self.about = about
         self.overwrite     = overwrite
         self.screen        = screen
 

@@ -1,12 +1,15 @@
+import math, time, logging
 import pandas as pd
-import logging
+
+import xml.etree.ElementTree as ElementTree
 
 from pytube import YouTube, exceptions, helpers
 from os import path, makedirs, remove, rename, listdir
-from time import sleep, strftime
 from re import sub, findall
 from glob import glob
 from csv import DictWriter
+
+from html import unescape
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -55,7 +58,7 @@ class ChannelScraper:
             try:
                 WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'ytd-channel-name')))
 
-                sleep(2)
+                time.sleep(2)
 
                 channel_url = driver.find_element(By.CLASS_NAME, "ytd-channel-name").find_element(By.TAG_NAME, 'a').get_attribute('href')
                 logging.info("Gathering information from channel: " + channel_url)
@@ -153,7 +156,7 @@ class ChannelScraper:
         driver.execute_script('window.scrollTo(0,document.querySelector("#page-manager").scrollHeight);')
 
         # Wait to load page
-        sleep(self.pause_time)
+        time.sleep(self.pause_time)
 
         # Calculate new scroll height and compare with last scroll height
         new_height = driver.execute_script('return document.querySelector("#page-manager").scrollHeight')
@@ -218,7 +221,7 @@ class ChannelScraper:
 
         try:
             WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, 'description')))
-            sleep(2)
+            time.sleep(2)
             info["Description"] = driver.find_element(By.ID, "description-container").text
             info["Bio"]         = driver.find_element(By.ID, "bio").text
             info["Metadata"]    = driver.find_element(By.ID, "details-container").find_element(By.TAG_NAME, "table").text
@@ -231,6 +234,7 @@ class ChannelScraper:
     def scrape_about_links(self, driver):
 
         self.info = self.scrape_info(driver)
+        print(self.about)
         if self.about:
             self.links = None
         else:
@@ -318,7 +322,7 @@ class MultiChannelScraper:
 
                     scraper = ChannelScraper(line, self.browser, self.pause_time, self.cutoff, self.group, self.about, self.overwrite, self.screen)
                     scraper.process()
-                    sleep(1)
+                    time.sleep(1)
 
         except FileNotFoundError as e:
             print('Error: File {0} could not be found.'.format(self.channels_f))
@@ -353,7 +357,6 @@ class VideoScraper:
         self.include_audio = include_audio
         self.include_auto  = include_auto
         self.include_title = include_title
-
 
     def write_captions(self, captions):
         """Write Caption object to a file. If an output folder is not specified, captions will be placed in a folder corresponding to the name of the video's author (i.e. channel).
@@ -399,26 +402,83 @@ class VideoScraper:
 
         try:
             if self.include_title:
-                captions.download(helpers.safe_filename(safe_title), srt=self.convert_srt, output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, self.yt_id))
-
-                caption_fn = "".join(["{0}_{1}_".format(safe_author, self.yt_id), " ", helpers.safe_filename(safe_title), " ({0})".format(captions.code), ext])
-                caption_fn_clean = caption_fn.rsplit(' ',1)[0]+ext
-                rename(path.join(out_path, caption_fn), path.join(out_path, caption_fn_clean))
-
-                return 1
+                captions.download(helpers.safe_filename(safe_title), srt=False, output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, self.yt_id))
+                caption_fn = "".join(["{0}_{1}_".format(safe_author, self.yt_id), " ", helpers.safe_filename(safe_title), " ({0})".format(captions.code), '.xml'])
             else:
-                captions.download(str(self.yt_id), srt=self.convert_srt, output_path=out_path, filename_prefix="{0}_".format(safe_author))
+                captions.download(str(self.yt_id), srt=False, output_path=out_path, filename_prefix="{0}_".format(safe_author))
+                caption_fn = "".join(["{0}_".format(safe_author), self.yt_id, " ({0})".format(captions.code), '.xml'])
 
-                caption_fn = "".join(["{0}_".format(safe_author), self.yt_id, " ({0})".format(captions.code), ext])
-                caption_fn_clean = caption_fn.rsplit(' ',1)[0]+ext
-                rename(path.join(out_path, caption_fn), path.join(out_path, caption_fn_clean))
 
-                return 1
+            caption_fn_clean = caption_fn.rsplit(' ',1)[0]+ext
+
+            old_caption_path = path.join(out_path, caption_fn)
+            new_caption_path = path.join(out_path, caption_fn_clean)
+
+            if(self.convert_srt):
+                with open(old_caption_path, 'r') as xml_in, open(new_caption_path, 'w') as srt_out:
+                    xml_string = xml_in.read()
+                    srt_string = self.xml_caption_to_srt(xml_string)
+                    srt_out.write(srt_string)
+                remove(old_caption_path)
+            else:
+                rename(old_caption_path, new_caption_path)
+
+            return 1
 
         except KeyError:
             logging.critical("Video {0}: Could not convert caption track for video {0} from channel {1} ({2}) to SRT.".format(self.yt_id, self.video.author, self.video.title))
             return 0
 
+
+    def xml_caption_to_srt(self, xml_captions: str) -> str:
+      """Convert xml caption tracks to "SubRip Subtitle (srt)".
+
+      :param str xml_captions:
+          XML formatted caption tracks.
+      """
+      segments = []
+      root = ElementTree.fromstring(xml_captions)[1]
+      i=0
+      for child in list(root):
+          if child.tag == 'p':
+              caption = ''
+              if len(list(child))==0:
+                  continue
+              for s in list(child):
+                  if s.tag == 's':
+                      caption += ' ' + s.text
+              caption = unescape(caption.replace("\n", " ").replace("  ", " "),)
+              try:
+                  duration = float(child.attrib["d"])/1000.0
+              except KeyError:
+                  duration = 0.0
+              start = float(child.attrib["t"])/1000.0
+              end = start + duration
+              sequence_number = i + 1  # convert from 0-indexed to 1.
+              line = "{seq}\n{start} --> {end}\n{text}\n".format(
+                  seq=sequence_number,
+                  start=self.float_to_srt_time_format(start),
+                  end=self.float_to_srt_time_format(end),
+                  text=caption,
+              )
+              segments.append(line)
+              i += 1
+      return "\n".join(segments).strip()
+
+
+    def float_to_srt_time_format(self, d: float) -> str:
+            """Convert decimal durations into proper srt format.
+
+            :rtype: str
+            :returns:
+                SubRip Subtitle (str) formatted time duration.
+
+            float_to_srt_time_format(3.89) -> '00:00:03,890'
+            """
+            fraction, whole = math.modf(d)
+            time_fmt = time.strftime("%H:%M:%S,", time.gmtime(whole))
+            ms = f"{fraction:.3f}".replace("0.", "")
+            return time_fmt + ms
 
     def write_audio(self, audio):
         """Write audio Stream object to a file. If an output folder is not specified, audio will be placed in a folder corresponding to the name of the video's author (i.e. channel).
@@ -458,7 +518,7 @@ class VideoScraper:
         #    logging.critical("Video {0}: Could not save audio stream for video {0} from channel {1} ({2})".format(self.yt_id, self.video.author, self.video.title))
 
         # Be polite
-        sleep(1)
+        time.sleep(1)
 
 
     def get_captions_by_language(self):
@@ -476,7 +536,7 @@ class VideoScraper:
                     caption_list.append((track.code, track.name))
 
                 # Be polite
-                sleep(1)
+                time.sleep(1)
 
         return caption_list
 
@@ -507,7 +567,7 @@ class VideoScraper:
             "views": self.video.views,
             "rating": self.video.rating,
             "captions": caption_list,
-            "scrape_time": strftime("%Y-%m-%d_%H:%M:%S"),
+            "scrape_time": time.strftime("%Y-%m-%d_%H:%M:%S"),
             "corrected": 0,
         }
 
@@ -517,10 +577,14 @@ class VideoScraper:
             else:
                 log_fn = "{0}_log.csv".format(self.group)
 
-            self.log_fp = path.join("corpus", "logs", log_fn)
+            self.log_fp = path.join("corpus", "logs")
             if self.screen:
-                self.log_fp = path.join("corpus", "unscreened_urls", "logs", log_fn)
+                self.log_fp = path.join("corpus", "unscreened_urls", "logs")
 
+        if not path.exists(self.log_fp):
+            makedirs(self.log_fp)
+
+        self.log_fp = path.join(self.log_fp, log_fn)
 
         with open(self.log_fp, 'a') as log_out:
 
@@ -594,7 +658,7 @@ class MultiVideoScraper:
 
         if self.screen:
             out_path = path.join("corpus", "unscreened_urls", "subtitles")
-            if group:
+            if self.group:
                 out_path = path.join("corpus", "unscreened_urls", self.group, "subtitles")
             out_audio_path = None
         else:

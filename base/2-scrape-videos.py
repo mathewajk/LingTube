@@ -15,22 +15,18 @@ def main(args):
     include_audio = args.audio
     include_auto = args.auto
     convert_srt = (not args.xml)
-    resume_from = args.resume
     limit_to = args.limit
     overwrite = args.overwrite
-
-    if resume_from:
-        print("Resuming from video {0}".format(resume_from))
 
     if limit_to != -1:
         print("Limiting to {0} videos".format(limit_to))
 
     if path.isfile(args.urls_in):
-        scraper = Base.MultiVideoScraper(args.urls_in, None, language, group, screen, include_audio, include_auto, convert_srt, resume_from, limit_to, overwrite)
+        scraper = Base.MultiVideoScraper(args.urls_in, None, language, group, screen, include_audio, include_auto, convert_srt, limit_to, overwrite)
         scraper.process_videos()
 
     if path.isdir(args.urls_in):
-        scraper = Base.BatchVideoScraper(args.urls_in, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.resume, args.limit, args.overwrite)
+        scraper = Base.BatchVideoScraper(args.urls_in, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.limit, args.overwrite)
         scraper.process_videos()
 
 
@@ -49,8 +45,7 @@ if __name__ == '__main__':
     # Download parameters
     parser.add_argument('--auto',     '-a', action='store_true', default=False, help='include automatically-generated captions')
     parser.add_argument('--audio',    '-s', action='store_true', default=False, help='download audio')
-    parser.add_argument('--xml',            action='store_true', default=False, help='download captions in XML format')
-    parser.add_argument('--resume', '-res', type=int, metavar='N', default=0,  help='resume downloading from Nth video or file')
+    parser.add_argument('--srt',            action='store_true', default=False, help='convert captions to SRT format')
     parser.add_argument('--limit',  '-lim', type=int, metavar='N', default=-1, help='limit processing to N videos or files')
 
     args = parser.parse_args()

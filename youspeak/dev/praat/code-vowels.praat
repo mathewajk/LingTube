@@ -56,7 +56,7 @@ if new_outfile = 0
 	total_rows = Get number of rows
 	appendInfoLine: "Total vowels coded: " + string$(total_rows) + newline$
 
-	Extract rows where... self$["boundaries"]="1" & self$["creak"]="1" & self$["issues"]="1"
+	Extract rows where... self$["boundaries"]="1"
 	Rename: "usable_output"
 	usable_rows = Get number of rows
 	appendInfoLine: "Usable vowels coded: " + string$(usable_rows) + newline$
@@ -221,7 +221,7 @@ for i_file to number_of_files
 							total_rows = Get number of rows
 							appendInfoLine: "Total vowels coded: " + string$(total_rows) + newline$
 
-							Extract rows where... self$["boundaries"]="1" & self$["creak"]="1" & self$["issues"]="1"
+							Extract rows where... self$["boundaries"]="1"
 							Rename: "usable_output"
 							usable_rows = Get number of rows
 							appendInfoLine: "Usable vowels coded: " + string$(usable_rows) + newline$

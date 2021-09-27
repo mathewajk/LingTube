@@ -511,6 +511,9 @@ class VideoScraper:
             "corrected": 0,
         }
 
+        if not path.exists(path.join("corpus", "logs")):
+            makedirs(path.join("corpus", "logs"))
+
         if not self.log_fp:
             if self.group is None:
                 log_fn = "{0}_log.csv".format(safe_author)

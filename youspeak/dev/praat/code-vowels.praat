@@ -68,7 +68,7 @@ if new_outfile = 0
 
 		vowel_rows# = List row numbers where... self$["vowel"]=current_vowel$
 		number_of_vowels = size(vowel_rows#)
-		if number_of_vowels > 49
+		if number_of_vowels > max_target-1
 			finished_vowels$#[i_vowel] = current_vowel$
 		endif
 		appendInfoLine: current_vowel$ + ": " + string$(number_of_vowels)
@@ -81,7 +81,7 @@ if new_outfile = 0
 
 		vowel_rows# = List row numbers where... self$["vowel"]=current_vowel$
 		number_of_vowels = size(vowel_rows#)
-		if number_of_vowels > 19
+		if number_of_vowels > max_reference-1
 			finished_vowels$#[i_ref_vowel + size(target_vowels$#)] = current_vowel$
 		endif
 		appendInfoLine: current_vowel$ + ": " + string$(number_of_vowels)

@@ -714,7 +714,6 @@ class MultiVideoScraper:
                 video.process_video()
 
                 if self.limit_to != -1 and self.video_count == self.resume_from + self.limit_to:
-                    print("{0}: Limit reached".format(self.f))
                     break
 
 

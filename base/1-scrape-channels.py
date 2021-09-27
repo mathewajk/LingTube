@@ -34,13 +34,14 @@ if __name__ == '__main__':
 
     parser.add_argument('source', type=str, help='URL or file path to list of URLs to scrape (by default, source assumed to be channel URLs; to treat as video URLs, add -v)')
 
-    parser.add_argument('-g', '--group',     default=None, type=str, help='grouping for the output files (will create a subfolder, e.g., screened_urls/$group)')
-    parser.add_argument('-b', '--browser',   default="Firefox", type=str, help='browser to use for scraping ("Firefox" or "Chrome")')
-    parser.add_argument('-a', '--about',     action='store_true', default=False, help='only scrape about page(s); do not scrape video URLs')
-    parser.add_argument('-l', '--limit',     type=int, default=-1, help='maximum number of times to scroll the page when scraping videos')
-    parser.add_argument('-w', '--wait',      type=int, default=1, help='how long to pause between scrolls; increase for slower connections')
-    parser.add_argument('-s', '--screen',    action='store_true', default=False, help='videos require screening for adequacy')
-    parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite files rather than appending (applies to video lists only)')
+    parser.add_argument('--group', '-g',    default=None, type=str, help='grouping for the output files (will create a subfolder, e.g., screened_urls/$group)')
+    parser.add_argument('--browser', '-b',   default="Firefox", type=str, help='browser to use for scraping ("Firefox" or "Chrome")')
+    parser.add_argument('--about', '-a',    action='store_true', default=False, help='only scrape about page(s); do not scrape video URLs')
+    parser.add_argument('--limit',  '-l',   type=int, default=-1, help='maximum number of times to scroll the page when scraping videos')
+    parser.add_argument('--wait', '-w',     type=int, default=1, help='how long to pause between scrolls; increase for slower connections')
+    parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending (applies to video lists only)')
+    parser.add_argument('--screen',    action='store_true', default=False, help='download video URLs into a separate folder ("unscreened_urls") for further screening; default folder is "screened_urls"')
+
 
     args = parser.parse_args()
     run(args)

@@ -571,6 +571,9 @@ class VideoScraper:
             "corrected": 0,
         }
 
+        if not path.exists(path.join("corpus", "logs")):
+            makedirs(path.join("corpus", "logs"))
+
         if not self.log_fp:
             if self.group is None:
                 log_fn = "{0}_log.csv".format(safe_author)
@@ -711,7 +714,7 @@ class MultiVideoScraper:
                 video.process_video()
 
                 if self.limit_to != -1 and self.video_count == self.resume_from + self.limit_to:
-                    print("{0}: Limit reached".format(urls_path))
+                    print("{0}: Limit reached".format(self.f))
                     break
 
 

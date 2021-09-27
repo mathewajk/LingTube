@@ -44,7 +44,7 @@ if __name__ == '__main__':
     parser.add_argument('--language',  '-l', default=None, type=str, help='filter captions by language name (e.g. "Korean"); if unspecified, all captions will be downloaded')
     parser.add_argument('--group',     '-g', default=None, metavar='NAME', type=str, help='a name for the group; if unspecified, channel names will be used')
     parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite logs and files rather than appending')
-    parser.add_argument('--screen',         action='store_true', default=False, help='downloading files for screening purposes')
+    parser.add_argument('--screen',         action='store_true', default=False, help='download video URLs into a separate folder ("unscreened_urls") for further screening; default folder is "screened_urls"')
 
     # Download parameters
     parser.add_argument('--auto',     '-a', action='store_true', default=False, help='include automatically-generated captions')

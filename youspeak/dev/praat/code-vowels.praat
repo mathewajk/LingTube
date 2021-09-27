@@ -25,9 +25,9 @@ form Modify textgrids
 	sentence outfile vowel_coding_log.csv
 	comment Vowel Lists (list each separated by a space)
 	sentence target_vowels OW1 UW1 EY1
-	integer max_target 50
+	integer max_target 65
 	sentence reference_vowels IY1 AE1 AA1 AO1
-	integer max_reference 20
+	integer max_reference 30
 endform
 
 #########################################################

@@ -13,7 +13,6 @@ def run(args):
     source        = args.source
     browser       = args.browser
     group         = args.group
-    pause_time    = args.wait
     cutoff        = args.limit
     about         = args.about
     overwrite     = args.overwrite
@@ -21,9 +20,9 @@ def run(args):
 
 
     if 'http' in source:
-        scraper = Base.ChannelScraper(source, browser, pause_time, cutoff, group, about, overwrite, screen)
+        scraper = Base.ChannelScraper(source, browser, cutoff, group, about, overwrite, screen)
     else:
-        scraper = Base.MultiChannelScraper(source, browser, pause_time, cutoff, group, about, overwrite, screen)
+        scraper = Base.MultiChannelScraper(source, browser, cutoff, group, about, overwrite, screen)
 
     scraper.process()
 
@@ -41,7 +40,6 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--about',     action='store_true', default=False, help='only scrape about page(s), not video URLs; else, both about and video URLS will be scraped')
     parser.add_argument('--limit',  '-lim', type=int, metavar='N', default=-1, help='maximum number of times to scroll the page when scraping videos')
     parser.add_argument('-b', '--browser',   default="Firefox", type=str, help='browser to use for scraping ("Firefox" or "Chrome")')
-    parser.add_argument('-w',  '--wait',    type=int, default=1, help='how long to pause between scrolls; increase for slower connections')
 
     # LingTube options
     parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite files rather than appending (applies to video lists only)')

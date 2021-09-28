@@ -196,8 +196,8 @@ class ChannelScraper:
                 options.set_headless()
                 with webdriver.Firefox(firefox_options=options) as driver:
                     self.info = self.scrape_info(driver, channel_id, channel_url)
-            except UnreachableBrowserException as e:
-                logging.critical("Could not open Firefox browser")
+            except FileNotFoundError as e:
+                logging.critical("Could not locate geckodriver (Firefox browser)")
         elif self.browser.lower() == "chrome":
             try:
                 options = Options()
@@ -205,8 +205,8 @@ class ChannelScraper:
                 options.add_argument("--window-size=1920x1080")
                 with webdriver.Chrome(chrome_options=options) as driver:
                     self.info = self.scrape_info(driver, channel_id, channel_url)
-            except UnreachableBrowserException as e:
-                logging.critical("Could not open Chrome browser")
+            except FileNotFoundError as e:
+                logging.critical("Could not open chromedriver (Chrome browser)")
         else:
             print('ERROR: Invalid browser. Please enter "chrome" or "firefox"')
 

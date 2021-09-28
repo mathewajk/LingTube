@@ -602,17 +602,31 @@ class MultiVideoScraper:
             if path.isfile(log_fp) and self.overwrite:
                 remove(log_fp)
 
+        out_audio_path = path.join("corpus", "raw_audio")
         if self.screen:
             out_path = path.join("corpus", "unscreened_urls", "subtitles")
             if self.group:
                 out_path = path.join("corpus", "unscreened_urls", self.group, "subtitles")
-            out_audio_path = None
+                out_audio_path = path.join(out_audio_path, self.group)
         else:
             out_path = path.join("corpus", "raw_subtitles")
-            out_audio_path = path.join("corpus", "raw_audio")
             if self.group:
                 out_path = path.join(out_path, self.group)
                 out_audio_path = path.join(out_audio_path, self.group)
+
+
+        if not path.exists(out_path):
+            makedirs(out_path)
+        if not path.exists(out_audio_path):
+            makedirs(out_audio_path)
+
+        if self.overwrite:
+            caption_files = glob.glob(out_path)
+            for f in caption_files:
+                os.remove(f)
+            audio_files = glob.glob(out_audio_path)
+            for f in audio_files:
+                os.remove(f)
 
         self.video_count = 0
         with open(self.f, "r") as urls_in:

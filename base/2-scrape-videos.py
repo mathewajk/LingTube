@@ -14,7 +14,7 @@ def main(args):
     screen = args.screen
     include_audio = args.audio
     include_auto = args.auto
-    convert_srt = (not args.xml)
+    convert_srt = args.srt
     limit_to = args.limit
     overwrite = args.overwrite
 
@@ -37,16 +37,18 @@ if __name__ == '__main__':
     parser.add_argument('urls_in', type=str, help='path to a file or directory containing the URLs to scrape')
 
     # LingTube organization
-    parser.add_argument('--language',  '-l', default=None, type=str, help='filter captions by language name (e.g. "Korean"); if unspecified, all captions will be downloaded')
-    parser.add_argument('--group',     '-g', default=None, metavar='NAME', type=str, help='a name for the group; if unspecified, channel names will be used')
-    parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite logs and files rather than appending')
-    parser.add_argument('--screen',         action='store_true', default=False, help='download video URLs into a separate folder ("unscreened_urls") for further screening; default folder is "screened_urls"')
+    parser.add_argument('-g', '--group',     default=None, metavar='NAME', type=str, help='a name for grouping the output files (will create a log file and subfolder under this name, e.g., raw_subtitles/$group); if unspecified, channel names will be used')
+    parser.add_argument('-l', '--language', default=None, type=str, help='filter captions by language name (e.g. "Korean"); if unspecified, all captions will be downloaded')
 
     # Download parameters
-    parser.add_argument('--auto',     '-a', action='store_true', default=False, help='include automatically-generated captions')
-    parser.add_argument('--audio',    '-s', action='store_true', default=False, help='download audio')
-    parser.add_argument('--srt',            action='store_true', default=False, help='convert captions to SRT format')
-    parser.add_argument('--limit',  '-lim', type=int, metavar='N', default=-1, help='limit processing to N videos or files')
+    parser.add_argument('-a','--auto',  action='store_true', default=False, help='include automatically-generated captions; else, only manual captions will be downloaded')
+    parser.add_argument('-aud', '--audio', action='store_true', default=False, help='include audio download; else, only captions will be downloaded')
+    parser.add_argument('--srt',            action='store_true', default=False, help='convert captions to SRT format; else, captions will be in XML format')
+    parser.add_argument('-lim', '--limit', type=int, metavar='N', default=-1, help='limit processing to N videos or files; if unspecfied, all available videos or files will be processed')
+
+    # LingTube options
+    parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite logs and files rather than appending')
+    parser.add_argument('-s',  '--screen',   action='store_true', default=False, help='download files into a folder for further screening ("unscreened_urls"); else, downloads into "raw_subtitles"')
 
     args = parser.parse_args()
 

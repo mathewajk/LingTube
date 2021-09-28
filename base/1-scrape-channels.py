@@ -30,9 +30,9 @@ def run(args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Scrape video URLs from a YouTube channel based on channel URL(s) [default] or video URL(s)')
+    parser = argparse.ArgumentParser(description='Scrape video URLs from a YouTube channel based on channel URL(s) or video URL(s)')
 
-    parser.add_argument('source', type=str, help='URL or file path to list of URLs to scrape (by default, source assumed to be channel URLs; to treat as video URLs, add -v)')
+    parser.add_argument('source', type=str, help='URL or file path to list of URLs to scrape')
 
     # LingTube organization
     parser.add_argument('-g', '--group',   default="ungrouped", type=str, help='a name for grouping the output files (will create a subfolder, e.g., screened_urls/$group)')

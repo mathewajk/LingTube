@@ -451,14 +451,16 @@ class VideoScraper:
         if not path.exists(out_path):
             makedirs(out_path)
 
-        #try:
-        if self.include_title:
-            audio.download(filename=safe_title + '.mp4', output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, self.yt_id), skip_existing=True)
-        else:
-            audio.download(filename=str(self.yt_id) + '.mp4', output_path=out_path, filename_prefix="{0}_".format(safe_author), skip_existing=True)
+        try:
+            if self.include_title:
+                audio.download(filename=safe_title + '.mp4', output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, self.yt_id), skip_existing=True)
+            else:
+                audio.download(filename=str(self.yt_id) + '.mp4', output_path=out_path, filename_prefix="{0}_".format(safe_author), skip_existing=True)
 
-        #except:
-        #    logging.critical("Video {0}: Could not save audio stream for video {0} from channel {1} ({2})".format(self.yt_id, self.video.author, self.video.title))
+        except:
+            logging.critical("Video {0}: Could not save audio stream for video {0} from channel {1} ({2})".format(self.yt_id, self.video.author, self.video.title))
+            return 0
+        return 1
 
         # Be polite
         time.sleep(1)
@@ -472,7 +474,7 @@ class VideoScraper:
 
         caption_list = []
         for track in self.video.captions:
-            if self.language is None or (self.language in track.name and (self.include_auto or "a." not in self.track.code)):
+            if (self.language is None or self.language in track.name) and (self.include_auto or "a." not in track.code):
 
                 success = self.write_captions(track)
                 if success:
@@ -547,14 +549,15 @@ class VideoScraper:
 
         caption_list = self.get_captions_by_language()
 
+        audio_success = 0
         if self.include_audio:
             audio = self.video.streams.filter(mime_type="audio/mp4").first()
-            self.write_audio(audio)
+            audio_success = self.write_audio(audio)
 
         if len(caption_list) or self.include_audio:
             self.write_metadata(caption_list)
 
-        return caption_list
+        return (len(caption_list) != 0 or audio_success)
 
 
 class MultiVideoScraper:
@@ -575,8 +578,9 @@ class MultiVideoScraper:
         self.overwrite     = overwrite
 
         # Other params
-        self.channel_dict = {}
-        self.video_count = 0
+        self.channel_dict  = {}
+        self.video_count   = 0
+        self.success_count = 0
 
 
     def process_videos(self):
@@ -645,13 +649,14 @@ class MultiVideoScraper:
                     if files:
                         continue
 
-
                 video = VideoScraper(url, yt_id, self.log_fp, channel_name, channel_id, self.language, self.include_audio, self.include_auto, self.group, self.screen, self.convert_srt, self.include_title)
-                video.process_video() # TODO: Return status
+                status = video.process_video() # TODO: Return status
+
                 self.video_count += 1
+                self.success_count += status
 
                 if self.limit != -1 and self.video_count == self.limit:
-                    print("{0}: Limit reached".format(url))
+                    print("Limit reached. Checked {0} videos; located captions and/or audio for {1} videos.".format(self.video_count, self.success_count))
                     break
 
 

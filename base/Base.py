@@ -116,6 +116,8 @@ class ChannelScraper:
             if self.url not in links:
                 links.append(self.url)
 
+        return links
+        
 
     def scrape_info(self, driver, channel_id, channel_url):
         """Scrape the channel's description.
@@ -170,7 +172,7 @@ class ChannelScraper:
         # Gather URLs, unless we only want about page info
         if not self.about:
             channel = Channel(channel_url) # Load channel in PyTube
-            print('Collecting video URLs from channel {0}'.format(channel_id))
+            print('Collecting video URLs from channel {0}'.format(channel.channel_id)
             self.links = self.scrape_links(channel)
 
         # Open a web browser in headless mode and scrape about page

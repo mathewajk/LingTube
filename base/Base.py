@@ -242,10 +242,10 @@ class ChannelScraper:
 
 class MultiChannelScraper:
 
-    def __init__(self, f, browser="Firefox", pause_time=1, cutoff=-1, group='ungrouped', about=False, overwrite=False, screen=False):
+    def __init__(self, source, browser="Firefox", pause_time=1, cutoff=-1, group='ungrouped', about=False, overwrite=False, screen=False):
 
         self.channels = []
-        self.f        = f
+        self.source  = source
 
         # To be passed to ChannelScraper objects
         self.browser       = browser
@@ -271,7 +271,13 @@ class MultiChannelScraper:
             if path.isdir(group_dir):
                 shutil.rmtree(group_dir)
 
-        try:
+        # Single URL
+        if 'http' in source:
+            scraper = Base.ChannelScraper(self.source, self.browser, self.cutoff, self.group, self.about, self.foverwrite, self.screen)
+            scraper.process()
+
+        # Multiple URLs
+        elif path.isfile(self.f)
             with open(self.f) as file_in:
                 for line in file_in:
                     line = line.split('\t')[0]
@@ -281,25 +287,17 @@ class MultiChannelScraper:
                     scraper.process()
                     time.sleep(1)
 
-        except FileNotFoundError as e:
-            print('Error: File {0} could not be found.'.format(self.f))
-
 
 class VideoScraper:
 
-    def __init__(self, url, yt_id, log_fp=None, channel_name="", channel_id="", language=None, include_audio=False, include_auto=False, group='', screen=False, convert_srt=False, include_title=False):
+    def __init__(self, url, yt_id, log_fp=None, channel_name="", channel_id="", language=None, include_audio=False, include_auto=False, group='ungrouped', screen=False, convert_srt=False, include_title=False):
 
         try:
             self.video = YouTube(url)
 
-        except KeyError as e: # Why is ths here?
-            logging.warning("ERROR: Could not retrieve URL ({0})".format(self.url))
-            exit(1)
-
         except exceptions.VideoUnavailable as e:
             logging.warning("ERROR: Video unavailable ({0}). Are you using the latest version of PyTube?".format(video_count, url))
             exit(1)
-
 
         self.url           = url
         self.yt_id         = yt_id
@@ -313,6 +311,7 @@ class VideoScraper:
         self.include_audio = include_audio
         self.include_auto  = include_auto
         self.include_title = include_title
+
 
     def write_captions(self, captions):
         """Write Caption object to a file. If an output folder is not specified, captions will be placed in a folder corresponding to the name of the video's author (i.e. channel).
@@ -371,11 +370,17 @@ class VideoScraper:
             new_caption_path = path.join(out_path, caption_fn_clean)
 
             if(self.convert_srt):
-                with open(old_caption_path, 'r') as xml_in, open(new_caption_path, 'w') as srt_out:
+                xml_string = ""
+                with open(old_caption_path, 'r') as xml_in:
                     xml_string = xml_in.read()
+                try:
                     srt_string = self.xml_caption_to_srt(xml_string)
-                    srt_out.write(srt_string)
-                remove(old_caption_path)
+                    with open(new_caption_path, 'w') as srt_out:
+                        srt_out.write(srt_string)
+                    remove(old_caption_path)
+                except IndexError as e:
+                    logging.critical("Could not convert {0} to SRT format".format(caption_fn_clean))
+
             else:
                 rename(old_caption_path, new_caption_path)
 
@@ -445,15 +450,12 @@ class VideoScraper:
         safe_author = helpers.safe_filename(self.video.author)
 
         if self.screen:
-            out_path = path.join("corpus", "unscreened_urls", "audio")
-            if self.group:
-                out_path = path.join("corpus", "unscreened_urls", self.group, "audio")
+            out_path = path.join("corpus", "unscreened_urls", self.group, "audio")
         else:
-            out_path = path.join("corpus", "raw_audio")
-            if self.group:
-                out_path = path.join(out_path, self.group)
+            out_path = path.join("corpus", "raw_audio", self.group)
 
         punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
+
         if self.channel_name and self.channel_id:
             safe_channel_name = sub(punc_and_whitespace, "", self.channel_name)
             safe_author = "{0}_{1}".format(safe_channel_name, self.channel_id)
@@ -531,12 +533,10 @@ class VideoScraper:
         }
 
         if not self.log_fp:
-            if self.group is None:
-                log_fn = "{0}_log.csv".format(safe_author)
-            else:
-                log_fn = "{0}_log.csv".format(self.group)
 
+            log_fn = "{0}_log.csv".format(self.group)
             self.log_fp = path.join("corpus", "logs")
+
             if self.screen:
                 self.log_fp = path.join("corpus", "unscreened_urls", "logs")
 
@@ -576,7 +576,7 @@ class VideoScraper:
 
 class MultiVideoScraper:
 
-    def __init__(self, f, log_fp=None, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, limit=-1, overwrite=False):
+    def __init__(self, f, log_fp=None, language=None, group="ungrouped", screen=None, include_audio=False, include_auto=False, convert_srt=False, limit=-1, overwrite=False):
 
         # Input params
         self.f             = f
@@ -686,8 +686,9 @@ class MultiVideoScraper:
                 self.success_count += status
 
                 if self.limit != -1 and self.video_count == self.limit:
-                    print("Limit reached. Checked {0} videos; located captions and/or audio for {1} videos.".format(self.video_count, self.success_count))
                     break
+
+            print("Checked {0} videos; located captions and/or audio for {1} videos.".format(self.video_count, self.success_count))
 
 
 class BatchVideoScraper:

@@ -8,8 +8,6 @@ from sys import path
 
 def run(args):
 
-    scraper = None
-
     source        = args.source
     browser       = args.browser
     group         = args.group
@@ -19,12 +17,7 @@ def run(args):
     overwrite     = args.overwrite
     screen        = args.screen
 
-
-    if 'http' in source:
-        scraper = Base.ChannelScraper(source, browser, pause_time, cutoff, group, about, overwrite, screen)
-    else:
-        scraper = Base.MultiChannelScraper(source, browser, pause_time, cutoff, group, about, overwrite, screen)
-
+    scraper = Base.MultiChannelScraper(source, browser, pause_time, cutoff, group, about, overwrite, screen)
     scraper.process()
 
 

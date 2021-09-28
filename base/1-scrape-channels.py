@@ -38,11 +38,11 @@ if __name__ == '__main__':
 
     # Scraping parameters
     parser.add_argument('-a', '--about',     action='store_true', default=False, help='only scrape about page(s), not video URLs; else, both about and video URLS will be scraped')
-    parser.add_argument('--limit',  '-lim', type=int, metavar='N', default=-1, help='maximum number of times to scroll the page when scraping videos')
-    parser.add_argument('-b', '--browser',   default="Firefox", type=str, help='browser to use for scraping ("Firefox" or "Chrome")')
+    parser.add_argument('--limit',  '-lim', type=int, metavar='N', default=-1, help='maximum number of (additional) channel URLs to collect; if unspecfied, collects all available channel URLs')
+    parser.add_argument('-b', '--browser',   default="Firefox", type=str, help='browser to use for scraping ("Firefox" or "Chrome"); if unspecfied, uses Firefox')
 
     # LingTube options
-    parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite files rather than appending (applies to video lists only)')
+    parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite full sub-folder rather than appending')
     parser.add_argument('-s',  '--screen',   action='store_true', default=False, help='download video URLs into a folder for further screening ("unscreened_urls"); else, downloads into "screened_urls"')
 
 

@@ -571,9 +571,6 @@ class VideoScraper:
             "corrected": 0,
         }
 
-        if not path.exists(path.join("corpus", "logs")):
-            makedirs(path.join("corpus", "logs"))
-
         if not self.log_fp:
             if self.group is None:
                 log_fn = "{0}_log.csv".format(safe_author)
@@ -619,7 +616,7 @@ class VideoScraper:
 
 class MultiVideoScraper:
 
-    def __init__(self, f, log_fp=None, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, resume_from=0, limit_to=-1, overwrite=False):
+    def __init__(self, f, log_fp=None, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, limit_to=-1, overwrite=False):
 
         # Input params
         self.f             = f
@@ -631,7 +628,6 @@ class MultiVideoScraper:
         self.include_auto  = include_auto
         self.include_title = False
         self.convert_srt   = convert_srt
-        self.resume_from   = resume_from
         self.limit_to      = limit_to
         self.overwrite     = overwrite
 
@@ -676,11 +672,6 @@ class MultiVideoScraper:
 
             for line in urls_in:
 
-                self.video_count += 1
-
-                if(self.video_count < self.resume_from):
-                    continue
-
                 url_data = line.strip('\n').split('\t')
 
                 # Get URL and title
@@ -701,6 +692,7 @@ class MultiVideoScraper:
                 punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
                 yt_id = sub(punc_and_whitespace, '', findall(r".+watch\?v=(.+)\b", url)[0])
 
+
                 # Check if yt_id already exists in some file; skip download if so
                 if not self.overwrite:
                     files = glob(path.join(out_path, "**", "*{0}*".format(yt_id)), recursive=True)
@@ -710,8 +702,10 @@ class MultiVideoScraper:
                     if files:
                         continue
 
+
                 video = VideoScraper(url, yt_id, self.log_fp, channel_name, channel_id, self.language, self.include_audio, self.include_auto, self.group, self.screen, self.convert_srt, self.include_title)
-                video.process_video()
+                video.process_video() # TODO: Return status
+                self.video_count += 1
 
                 if self.limit_to != -1 and self.video_count == self.resume_from + self.limit_to:
                     break
@@ -719,7 +713,7 @@ class MultiVideoScraper:
 
 class BatchVideoScraper:
 
-    def __init__(self, base_fn, batch=False, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, resume_from=0, limit_to=-1, overwrite=False):
+    def __init__(self, base_fn, batch=False, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, limit_to=-1, overwrite=False):
 
         self.base_fn       = base_fn
         self.batch         = batch
@@ -728,7 +722,6 @@ class BatchVideoScraper:
         self.screen        = screen
         self.include_audio = include_audio
         self.convert_srt   = convert_srt
-        self.resume_from   = resume_from
         self.limit_to      = limit_to
         self.overwrite     = overwrite
 
@@ -755,7 +748,7 @@ class BatchVideoScraper:
 
         # Need to make video objs
         for fn in all_fns:
-            scraper = MultiVideoScraper(fn, log_fp, self.language, self.group, self.screen, self.include_audio, self.include_auto, self.convert_srt, self.resume_from, self.limit_to, self.overwrite)
+            scraper = MultiVideoScraper(fn, log_fp, self.language, self.group, self.screen, self.include_audio, self.include_auto, self.convert_srt, self.limit_to, self.overwrite)
 
 
 class CaptionCleaner:

@@ -23,7 +23,7 @@ from selenium.webdriver.chrome.options import Options
 
 class ChannelScraper:
 
-    def __init__(self, url, browser="Firefox", pause_time=1, limit=-1, group='_ungrouped', about=False, overwrite=False, screen=False):
+    def __init__(self, url, browser="Firefox", limit=-1, group='_ungrouped', about=False, overwrite=False, screen=False):
 
         self.url = url
         if self.url[-1] == '/':
@@ -35,7 +35,6 @@ class ChannelScraper:
 
         # Default variables
         self.browser       = browser
-        self.pause_time    = pause_time
         self.group         = group
         self.about         = about
         self.overwrite     = overwrite
@@ -196,8 +195,8 @@ class ChannelScraper:
                 options.set_headless()
                 with webdriver.Firefox(firefox_options=options) as driver:
                     self.info = self.scrape_info(driver, channel_id, channel_url)
-            except UnreachableBrowserException as e:
-                logging.critical("Could not open Firefox browser")
+            except FileNotFoundError as e:
+                logging.critical("Could not locate geckodriver (Firefox browser)")
         elif self.browser.lower() == "chrome":
             try:
                 options = Options()
@@ -205,8 +204,8 @@ class ChannelScraper:
                 options.add_argument("--window-size=1920x1080")
                 with webdriver.Chrome(chrome_options=options) as driver:
                     self.info = self.scrape_info(driver, channel_id, channel_url)
-            except UnreachableBrowserException as e:
-                logging.critical("Could not open Chrome browser")
+            except FileNotFoundError as e:
+                logging.critical("Could not open chromedriver (Chrome browser)")
         else:
             print('ERROR: Invalid browser. Please enter "chrome" or "firefox"')
 
@@ -242,14 +241,13 @@ class ChannelScraper:
 
 class MultiChannelScraper:
 
-    def __init__(self, source, browser="Firefox", pause_time=1, cutoff=-1, group='ungrouped', about=False, overwrite=False, screen=False):
+    def __init__(self, source, browser="Firefox", cutoff=-1, group='ungrouped', about=False, overwrite=False, screen=False):
 
         self.channels = []
         self.source  = source
 
         # To be passed to ChannelScraper objects
         self.browser       = browser
-        self.pause_time    = pause_time
         self.cutoff        = cutoff
         self.group         = group
         self.about         = about
@@ -283,7 +281,7 @@ class MultiChannelScraper:
                     line = line.split('\t')[0]
                     line = sub('[\s\ufeff]+', '', line.strip('/')) # Handle whitespace and Excel nonsense?
 
-                    scraper = ChannelScraper(line, self.browser, self.pause_time, self.cutoff, self.group, self.about, self.overwrite, self.screen)
+                    scraper = ChannelScraper(line, self.browser, self.cutoff, self.group, self.about, self.overwrite, self.screen)
                     scraper.process()
                     time.sleep(1)
 

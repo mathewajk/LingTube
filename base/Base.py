@@ -270,13 +270,13 @@ class MultiChannelScraper:
                 shutil.rmtree(group_dir)
 
         # Single URL
-        if 'http' in source:
-            scraper = Base.ChannelScraper(self.source, self.browser, self.cutoff, self.group, self.about, self.foverwrite, self.screen)
+        if 'http' in self.source:
+            scraper = ChannelScraper(self.source, self.browser, self.cutoff, self.group, self.about, self.overwrite, self.screen)
             scraper.process()
 
         # Multiple URLs
-        elif path.isfile(self.f)
-            with open(self.f) as file_in:
+        elif path.isfile(self.source):
+            with open(self.source) as file_in:
                 for line in file_in:
                     line = line.split('\t')[0]
                     line = sub('[\s\ufeff]+', '', line.strip('/')) # Handle whitespace and Excel nonsense?

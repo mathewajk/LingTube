@@ -1,4 +1,4 @@
-import math, time, logging
+import math, time, logging, shutil
 import pandas as pd
 
 import xml.etree.ElementTree as ElementTree
@@ -614,19 +614,21 @@ class MultiVideoScraper:
                 out_path = path.join(out_path, self.group)
                 out_audio_path = path.join(out_audio_path, self.group)
 
+        # Remove old directories if we are overwriting
+        if self.overwrite:
+            try:
+                shutil.rmtree(out_path)
+            except FileNotFoundError as e:
+                pass
+            try:
+                shutil.rmtree(out_audio_path)
+            except FileNotFoundError as e:
+                pass
 
         if not path.exists(out_path):
-            makedirs(out_path)
+           makedirs(out_path)
         if not path.exists(out_audio_path):
-            makedirs(out_audio_path)
-
-        if self.overwrite:
-            caption_files = glob.glob(out_path)
-            for f in caption_files:
-                os.remove(f)
-            audio_files = glob.glob(out_audio_path)
-            for f in audio_files:
-                os.remove(f)
+           makedirs(out_audio_path)
 
         self.video_count = 0
         with open(self.f, "r") as urls_in:

@@ -35,7 +35,7 @@ if __name__ == '__main__':
     parser.add_argument('source', type=str, help='URL or file path to list of URLs to scrape (by default, source assumed to be channel URLs; to treat as video URLs, add -v)')
 
     # LingTube organization
-    parser.add_argument('-g', '--group',   default=None, type=str, help='a name for grouping the output files (will create a subfolder, e.g., screened_urls/$group)')
+    parser.add_argument('-g', '--group',   default="ungrouped", type=str, help='a name for grouping the output files (will create a subfolder, e.g., screened_urls/$group)')
 
     # Scraping parameters
     parser.add_argument('-a', '--about',     action='store_true', default=False, help='only scrape about page(s), not video URLs; else, both about and video URLS will be scraped')

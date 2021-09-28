@@ -37,7 +37,7 @@ if __name__ == '__main__':
     parser.add_argument('urls_in', type=str, help='path to a file or directory containing the URLs to scrape')
 
     # LingTube organization
-    parser.add_argument('-g', '--group',     default=None, metavar='NAME', type=str, help='a name for grouping the output files (will create a log file and subfolder under this name, e.g., raw_subtitles/$group); if unspecified, channel names will be used')
+    parser.add_argument('-g', '--group',     default="ungrouped", metavar='NAME', type=str, help='a name for grouping the output files (will create a log file and subfolder under this name, e.g., raw_subtitles/$group); if unspecified, channel names will be used')
     parser.add_argument('-l', '--language', default=None, type=str, help='filter captions by language name (e.g. "Korean"); if unspecified, all captions will be downloaded')
 
     # Download parameters

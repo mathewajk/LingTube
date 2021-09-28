@@ -23,7 +23,7 @@ from selenium.webdriver.chrome.options import Options
 
 class ChannelScraper:
 
-    def __init__(self, url, browser="Firefox", pause_time=1, limit=-1, group='', about=False, overwrite=False, screen=False):
+    def __init__(self, url, browser="Firefox", pause_time=1, limit=-1, group='_ungrouped', about=False, overwrite=False, screen=False):
 
         self.url = url
         if self.url[-1] == '/':
@@ -42,17 +42,8 @@ class ChannelScraper:
         self.screen        = screen
         self.limit         = limit
 
-    def process(self):
-        """Scrape the channel and save
-        """
 
-        self.scrape()
-        self.save()
-
-
-    def save(self):
-        """Save info and (if applicable) list of video URLs as text files
-        """
+    def init_files(self):
 
         # If videos need to be screened, save to separate folder
         if self.screen:
@@ -60,63 +51,86 @@ class ChannelScraper:
         else:
             base_path = path.join("corpus", "screened_urls")
 
-        # Create info output path
-        if not self.group:
-            info_out_dir = path.join(base_path, "about")
-        else:
-            info_out_dir = path.join(base_path, self.group, "about")
+        # Generate output directory paths
+        out_dirs = {"info_out_dir": path.join(base_path, self.group, "about"),
+                     "log_out_dir": path.join(base_path, self.group),
+                    "urls_out_dir": path.join(base_path, self.group, "channel_urls")}
 
-        if not path.exists(info_out_dir):
-            makedirs(info_out_dir)
+        # Make directories if they don't exist
+        for key in out_dirs:
+            if not path.exists(out_dirs[key]):
+                makedirs(out_dirs[key])
 
-        # Create filename based on channel name and unique ID
+        # Generate output filenames
+        log_out_fn  = "{0}_videos.txt".format(self.group) # One video log file per group
         info_out_fn = "{0}_{1}_info.txt".format(self.info["SafeChannelName"], self.info["SafeChannelID"])
-        info_out_fn = path.join(info_out_dir, info_out_fn)
+        urls_out_fn = "{0}_{1}_videos.txt".format(self.info["SafeChannelName"], self.info["SafeChannelID"])
 
-        # Save channel info
-        with open(info_out_fn, 'w') as info_out:
+        # Generate output file paths
+        self.log_path        = path.join(out_dirs["log_out_dir"], log_out_fn)
+        self.info_out_path   = path.join(out_dirs["info_out_dir"], info_out_fn)
+        self.urls_out_path   = path.join(out_dirs["urls_out_dir"], urls_out_fn)
 
-            for key in self.info.keys():
-                info_out.write("# {0}\n\n".format(key))
-                info_out.write("{0}\n\n".format(self.info[key]))
+
+    def process(self):
+        """Scrape the channel and save
+        """
+
+        self.scrape()
+        self.init_files() # TODO: Better name?
+
+        # If we are working from a video, log the video URL
+        if self.from_video:
+            self.log_video()
+        self.save()
+
+
+    def save(self):
+        """Save info and (if applicable) list of video URLs as text files
+        """
+
+        # Save channel info if it was scraped and file doesn't exist already
+        if self.info and not path.isfile(self.info_out_path):
+            with open(self.info_out_path, 'w') as info_out:
+                for key in self.info.keys():
+                    info_out.write("# {0}\n\n".format(key))
+                    info_out.write("{0}\n\n".format(self.info[key]))
 
         # Don't save the links if we didn't scrape anything
         if self.about:
             return
 
-        # Create URL out path
-        if not self.group:
-            url_out_dir = path.join(base_path, "channel_urls")
-        else:
-            url_out_dir = path.join(base_path, self.group, "channel_urls")
-        if not path.exists(url_out_dir):
-            makedirs(url_out_dir)
+        # TODO: This is a mess.
+        previous_urls = []
+        if path.isfile(self.urls_out_path):
+            with open(self.urls_out_path, 'r') as urls_in:
+                previous_urls = [line.split('\t')[0] for line in urls_in]
+        previous_urls.append(self.url)
 
-        # Create filename based on channel name and unique ID
-        videos_out_fn = "{0}_{1}_videos.txt".format(self.info["SafeChannelName"], self.info["SafeChannelID"])
-        videos_out_fn = path.join(url_out_dir, videos_out_fn)
+        # Scrape up to LIMIT new video URLs; if no limit, scrape all video URLs
+        new_urls = set(self.urls).symmetric_difference(set(previous_urls))
 
-        with open(videos_out_fn, 'w') as videos_out:
-            for link in self.links:
-                videos_out.write("{0}\t{1}\t{2}\n".format(link, self.info["ChannelName"], self.info["SafeChannelID"]))
+        # Save new video URLs
+        url_count = 0
+        if new_urls:
+            with open(self.urls_out_path, 'a') as urls_out:
+                for url in new_urls:
+
+                    formatted_url = "{0}\t{1}\t{2}\n".format(url, self.info["ChannelName"], self.info["SafeChannelID"])
+                    urls_out.write(formatted_url)
+
+                    url_count += 1
+                    if url_count == self.limit:
+                        break
 
 
-    def scrape_links(self, channel):
+    def scrape_urls(self, channel):
         """Scrape the URLs from a YouTube channel.
 
         :return : List of videos URLs
         """
 
-        if self.limit > 0:
-            links = channel.video_urls[:self.limit-1]
-        else:
-            links = channel.video_urls
-
-        if self.from_video:
-            if self.url not in links:
-                links.append(self.url)
-
-        return links
+        return channel.video_urls
 
 
     def scrape_info(self, driver, channel_id, channel_url):
@@ -158,80 +172,60 @@ class ChannelScraper:
         """Collect video URLs (if scraping URLs) and about page info from the channel
         """
 
-        # Get the channel's ID and URL
+        # Get the channel's ID and URL from video (if input is a video)
+        # Get from input channel URL otherwise
         if self.from_video:
-            video = YouTube(self.url) # Must use video to get channel ID
+            video = YouTube(self.url)
             channel_id = video.channel_id
             channel_url = 'https://www.youtube.com/channel/' + video.channel_id
         else:
             channel_id = self.url.split('/')[-1]
             channel_url = self.url
 
-        self.links = None
-
-        # Gather URLs, unless we only want about page info
+        # Gather URLs, unless we only want About page info
+        self.urls = None
         if not self.about:
             channel = Channel(channel_url) # Load channel in PyTube
             print('Collecting video URLs from channel {0}'.format(channel.channel_id))
-            self.links = self.scrape_links(channel)
+            self.urls = self.scrape_urls(channel)
 
-        # Open a web browser in headless mode and scrape about page
+        # Open a web browser in headless mode and scrape the About page
         if self.browser.lower() == "firefox":
             try:
                 options = webdriver.FirefoxOptions()
                 options.set_headless()
                 with webdriver.Firefox(firefox_options=options) as driver:
                     self.info = self.scrape_info(driver, channel_id, channel_url)
-            except:
+            except UnreachableBrowserException as e:
                 logging.critical("Could not open Firefox browser")
-        else:
+        elif self.browser.lower() == "chrome":
             try:
                 options = Options()
                 options.add_argument("--headless")
                 options.add_argument("--window-size=1920x1080")
                 with webdriver.Chrome(chrome_options=options) as driver:
                     self.info = self.scrape_info(driver, channel_id, channel_url)
-            except:
+            except UnreachableBrowserException as e:
                 logging.critical("Could not open Chrome browser")
-
-        if self.from_video:
-            self.log_video()
+        else:
+            print('ERROR: Invalid browser. Please enter "chrome" or "firefox"')
 
 
     def log_video(self):
         """Log the video URL, channel name, and channel ID in LingTube format
         """
 
-        # TODO: Genertion of base_path is redundant given the save() function
-
-        if self.screen:
-            base_path = path.join("corpus", "unscreened_urls")
-        else:
-            base_path = path.join("corpus", "screened_urls")
-
-        videos_out_dir = base_path
-        if self.group:
-            videos_out_dir = path.join(base_path, self.group)
-            videos_fn = "{0}_videos.txt".format(self.group)
-        else:
-            videos_fn = "{0}_videos.txt".format(self.info["SafeChannelName"])
-
-        if not path.exists(videos_out_dir):
-            makedirs(videos_out_dir)
-
-        videos_path = path.join(videos_out_dir, videos_fn)
-
+        # Grab the previously logged videos
         logged_videos = []
-        try:
-            with open(videos_path, 'r') as videos_in:
-                logged_videos = [line.split('\t')[0] for line in videos_in]
-        except FileNotFoundError as e:
-            pass
+        if path.exists(self.log_path):
+            with open(self.log_path, 'r') as log_in:
+                logged_videos = [line.split('\t')[0] for line in log_in]
 
-        # Log input video info
-        with open(videos_path, 'a') as videos_out:
+        # Check for overlap and log new URLs
+        with open(self.log_path, 'a') as log_out:
             if self.url not in logged_videos:
-                videos_out.write("{0}\t{1}\t{2}\n".format(self.url, self.info["ChannelName"], self.info["SafeChannelID"]))
+                formatted_url = "{0}\t{1}\t{2}\n".format(self.url, self.info["ChannelName"], self.info["SafeChannelID"])
+                log_out.write(formatted_url)
 
 
     def get_info(self):
@@ -239,7 +233,7 @@ class ChannelScraper:
 
 
     def get_links(self):
-        return self.links
+        return self.urls
 
 
     def get_url(self):
@@ -248,7 +242,7 @@ class ChannelScraper:
 
 class MultiChannelScraper:
 
-    def __init__(self, f, browser="Firefox", pause_time=1, cutoff=-1, group='', about=False, overwrite=False, screen=False):
+    def __init__(self, f, browser="Firefox", pause_time=1, cutoff=-1, group='ungrouped', about=False, overwrite=False, screen=False):
 
         self.channels = []
         self.f        = f
@@ -265,21 +259,17 @@ class MultiChannelScraper:
 
     def process(self):
 
-        if self.screen:
-            base_path = path.join("corpus", "unscreened_urls")
-        else:
-            base_path = path.join("corpus", "screened_urls")
+        # If overwriting, delete entire group subfolder
+        if self.overwrite:
 
-        videos_out_dir = base_path
-        if self.group:
-            videos_out_dir = path.join(base_path, self.group)
-            videos_fn = "{0}_videos.txt".format(self.group)
-        else:
-            videos_fn = "{0}_videos.txt".format(self.info["SafeChannelName"])
-        videos_path = path.join(videos_out_dir, videos_fn)
+            if self.screen:
+                base_path = path.join("corpus", "unscreened_urls")
+            else:
+                base_path = path.join("corpus", "screened_urls")
 
-        if path.isfile(videos_path) and self.overwrite:
-            remove(videos_path)
+            group_dir = path.join(base_path, self.group)
+            if path.isdir(group_dir):
+                shutil.rmtree(group_dir)
 
         try:
             with open(self.f) as file_in:
@@ -293,7 +283,6 @@ class MultiChannelScraper:
 
         except FileNotFoundError as e:
             print('Error: File {0} could not be found.'.format(self.f))
-
 
 
 class VideoScraper:

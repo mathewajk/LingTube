@@ -244,7 +244,7 @@ class MultiChannelScraper:
     def __init__(self, source, browser="Firefox", cutoff=-1, group='ungrouped', about=False, overwrite=False, screen=False):
 
         self.channels = []
-        self.source  = source
+        self.source   = source
 
         # To be passed to ChannelScraper objects
         self.browser       = browser
@@ -323,13 +323,9 @@ class VideoScraper:
         out_path = ""
 
         if self.screen:
-            out_path = path.join("corpus", "unscreened_urls", "subtitles")
-            if self.group:
-                out_path = path.join("corpus", "unscreened_urls", self.group, "subtitles")
+            out_path = path.join("corpus", "unscreened_urls", self.group, "subtitles")
         else:
-            out_path = path.join("corpus", "raw_subtitles")
-            if self.group:
-                out_path = path.join(out_path, self.group)
+            out_path = path.join("corpus", "raw_subtitles", self.group)
 
         if "a." in captions.code:
             out_path = path.join(out_path, "auto", captions.code.split(".")[1])
@@ -356,7 +352,6 @@ class VideoScraper:
         try:
             if self.include_title:
                 captions.download(helpers.safe_filename(safe_title), srt=False, output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, self.yt_id))
-                caption_fn = "".join(["{0}_{1}_".format(safe_author, self.yt_id), " ", helpers.safe_filename(safe_title), " ({0})".format(captions.code), '.xml'])
             else:
                 captions.download(str(self.yt_id), srt=False, output_path=out_path, filename_prefix="{0}_".format(safe_author))
                 caption_fn = "".join(["{0}_".format(safe_author), self.yt_id, " ({0})".format(captions.code), '.xml'])
@@ -530,11 +525,9 @@ class VideoScraper:
             "corrected": 0,
         }
 
+        log_fn = "{0}_log.csv".format(self.group)
         if not self.log_fp:
-
-            log_fn = "{0}_log.csv".format(self.group)
             self.log_fp = path.join("corpus", "logs")
-
             if self.screen:
                 self.log_fp = path.join("corpus", "unscreened_urls", "logs")
 
@@ -599,13 +592,18 @@ class MultiVideoScraper:
         """Download captions, audio (optional), and metadata for a list of videos.
         """
 
+        out_audio_path = path.join("corpus", "raw_audio")
+        if self.screen:
+            out_path = path.join("corpus", "unscreened_urls", self.group, "subtitles")
+            out_audio_path = path.join(out_audio_path, self.group)
+        else:
+            out_path = path.join("corpus", "raw_subtitles", self.group)
+            out_audio_path = path.join(out_audio_path, self.group)
+
+        print(self.log_fp)
         if not self.log_fp: # No file passed, i.e. not a grouped batch
 
-            if self.group is None:
-                log_fn = "{0}_log.csv".format(path.splitext(path.split(self.f)[1])[0])
-            else:
-                log_fn = "{0}_log.csv".format(self.group)
-
+            log_fn = "{0}_log.csv".format(self.group)
             log_fp = path.join("corpus", "logs", log_fn)
             if self.screen:
                 log_fp = path.join("corpus", "unscreened_urls", "logs", log_fn)
@@ -614,28 +612,16 @@ class MultiVideoScraper:
             if path.isfile(log_fp) and self.overwrite:
                 remove(log_fp)
 
-        out_audio_path = path.join("corpus", "raw_audio")
-        if self.screen:
-            out_path = path.join("corpus", "unscreened_urls", "subtitles")
-            if self.group:
-                out_path = path.join("corpus", "unscreened_urls", self.group, "subtitles")
-                out_audio_path = path.join(out_audio_path, self.group)
-        else:
-            out_path = path.join("corpus", "raw_subtitles")
-            if self.group:
-                out_path = path.join(out_path, self.group)
-                out_audio_path = path.join(out_audio_path, self.group)
-
-        # Remove old directories if we are overwriting
-        if self.overwrite:
-            try:
-                shutil.rmtree(out_path)
-            except FileNotFoundError as e:
-                pass
-            try:
-                shutil.rmtree(out_audio_path)
-            except FileNotFoundError as e:
-                pass
+            # Remove old directories if we are overwriting but ONLY if not a batch!!
+            if self.overwrite:
+                try:
+                    shutil.rmtree(out_path)
+                except FileNotFoundError as e:
+                    pass
+                try:
+                    shutil.rmtree(out_audio_path)
+                except FileNotFoundError as e:
+                    pass
 
         if not path.exists(out_path):
            makedirs(out_path)
@@ -678,11 +664,13 @@ class MultiVideoScraper:
                         continue
 
                 video = VideoScraper(url, yt_id, self.log_fp, channel_name, channel_id, self.language, self.include_audio, self.include_auto, self.group, self.screen, self.convert_srt, self.include_title)
-                status = video.process_video() # TODO: Return status
+                print(yt_id)
+                status = video.process_video()
 
                 self.video_count += 1
                 self.success_count += status
 
+                print(self.limit)
                 if self.limit != -1 and self.video_count == self.limit:
                     break
 
@@ -691,42 +679,64 @@ class MultiVideoScraper:
 
 class BatchVideoScraper:
 
-    def __init__(self, base_fn, batch=False, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, limit=-1, overwrite=False):
+    def __init__(self, base_fn, language=None, group="ungrouped", screen=None,  include_audio=False, include_auto=False, convert_srt=False, limit=-1, overwrite=False):
 
         self.base_fn       = base_fn
-        self.batch         = batch
         self.language      = language
         self.group         = group
         self.screen        = screen
         self.include_audio = include_audio
+        self.include_auto  = include_auto
         self.convert_srt   = convert_srt
-        self.limit      = limit
+        self.limit         = limit
         self.overwrite     = overwrite
 
 
-    def process_files():
+    def process_files(self):
         """Download captions, audio (optional), and metadata from a directory of video lists.
         """
 
         URL_fns_txt = sorted(glob(path.join(self.base_fn, "*.txt")))
         URL_fns_csv = sorted(glob(path.join(self.base_fn, "*.csv")))
 
-        log_fp = None
-        if self.group:
-            log_fn = "{0}_log.csv".format(self.group)
-            log_fp = path.join("corpus", "logs", log_fn)
-            if self.screen:
-                log_fp = path.join("corpus", "unscreened_urls", "logs", log_fn)
+        out_audio_path = path.join("corpus", "raw_audio")
+        if self.screen:
+            out_path = path.join("corpus", "unscreened_urls", self.group, "subtitles")
+            out_audio_path = path.join(out_audio_path, self.group)
+        else:
+            out_path = path.join("corpus", "raw_subtitles", self.group)
+            out_audio_path = path.join(out_audio_path, self.group)
 
-            if path.isfile(log_fp) and self.overwrite:
-                path.remove(log_fp)
+        if self.overwrite:
+            try:
+                shutil.rmtree(out_path)
+            except FileNotFoundError as e:
+                pass
+            try:
+                shutil.rmtree(out_audio_path)
+            except FileNotFoundError as e:
+                pass
 
+        if not path.exists(out_path):
+           makedirs(out_path)
+        if not path.exists(out_audio_path):
+           makedirs(out_audio_path)
+
+        log_fn = "{0}_log.csv".format(self.group)
+        log_path = path.join("corpus", "logs")
+        if self.screen:
+            log_fp = path.join("corpus", "unscreened_urls", "logs")
+        log_fp = path.join(log_path, log_fn)
+
+        if path.isfile(log_fp) and self.overwrite:
+            remove(log_fp)
 
         all_fns = URL_fns_txt + URL_fns_csv
 
         # Need to make video objs
         for fn in all_fns:
-            scraper = MultiVideoScraper(fn, log_fp, self.language, self.group, self.screen, self.include_audio, self.include_auto, self.convert_srt, self.limit, self.overwrite)
+            scraper = MultiVideoScraper(fn, log_path, self.language, self.group, self.screen, self.include_audio, self.include_auto, self.convert_srt, self.limit, self.overwrite)
+            scraper.process_videos()
 
 
 class CaptionCleaner:

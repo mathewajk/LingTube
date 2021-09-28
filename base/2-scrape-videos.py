@@ -8,6 +8,7 @@ import Base
 
 def main(args):
 
+    urls_in = args.urls_in
     log_fp = None
     language = args.language
     group = args.group
@@ -15,18 +16,15 @@ def main(args):
     include_audio = args.audio
     include_auto = args.auto
     convert_srt = args.srt
-    limit_to = args.limit
+    limit = args.limit
     overwrite = args.overwrite
 
-    if limit_to != -1:
-        print("Limiting to {0} videos".format(limit_to))
-
-    if path.isfile(args.urls_in):
-        scraper = Base.MultiVideoScraper(args.urls_in, None, language, group, screen, include_audio, include_auto, convert_srt, limit_to, overwrite)
+    if path.isfile(urls_in):
+        scraper = Base.MultiVideoScraper(urls_in, log_fp, language, group, screen, include_audio, include_auto, convert_srt, limit, overwrite)
         scraper.process_videos()
 
     if path.isdir(args.urls_in):
-        scraper = Base.BatchVideoScraper(args.urls_in, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.limit, args.overwrite)
+        scraper = Base.BatchVideoScraper(urls_in, language, group, screen, include_audio, include_auto, convert_srt, limit, overwrite)
         scraper.process_files()
 
 

@@ -27,7 +27,7 @@ def main(args):
 
     if path.isdir(args.urls_in):
         scraper = Base.BatchVideoScraper(args.urls_in, args.language, args.group, args.screen, args.audio, args.auto, args.srt, args.limit, args.overwrite)
-        scraper.process_videos()
+        scraper.process_files()
 
 
 if __name__ == '__main__':

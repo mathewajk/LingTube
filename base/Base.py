@@ -275,7 +275,7 @@ class MultiChannelScraper:
             scraper.process()
 
         # Multiple URLs
-        elif path.isfile(self.f)
+        elif path.isfile(self.f):
             with open(self.f) as file_in:
                 for line in file_in:
                     line = line.split('\t')[0]

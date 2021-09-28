@@ -108,7 +108,7 @@ class ChannelScraper:
         """
 
         if self.limit > 0:
-            links = channel.video_urls[:self.limit]
+            links = channel.video_urls[:self.limit-1]
         else:
             links = channel.video_urls
 
@@ -222,9 +222,13 @@ class ChannelScraper:
         if path.isfile(videos_path) and self.overwrite:
             remove(videos_path)
 
+        logged_videos = []
+        with open(videos_path, 'r') as videos_in:
+            logged_videos = [line.split('\t')[0] for line in videos_in]
         # Log input video info
         with open(videos_path, 'a') as videos_out:
-            videos_out.write("{0}\t{1}\t{2}\n".format(self.url, self.info["ChannelName"], self.info["SafeChannelID"]))
+            if self.url not in logged_videos:
+                videos_out.write("{0}\t{1}\t{2}\n".format(self.url, self.info["ChannelName"], self.info["SafeChannelID"]))
 
 
     def get_info(self):

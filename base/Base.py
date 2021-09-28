@@ -46,7 +46,7 @@ class ChannelScraper:
 
         # If videos need to be screened, save to separate folder
         if self.screen:
-            base_path = path.join("corpus", "unscreened_urls")
+            base_path = path.join("corpus", "unscreened_videos")
         else:
             base_path = path.join("corpus", "screened_urls")
 
@@ -261,7 +261,7 @@ class MultiChannelScraper:
         if self.overwrite:
 
             if self.screen:
-                base_path = path.join("corpus", "unscreened_urls")
+                base_path = path.join("corpus", "unscreened_videos")
             else:
                 base_path = path.join("corpus", "screened_urls")
 
@@ -323,9 +323,9 @@ class VideoScraper:
         out_path = ""
 
         if self.screen:
-            out_path = path.join("corpus", "unscreened_urls", "subtitles")
+            out_path = path.join("corpus", "unscreened_videos", "subtitles")
             if self.group:
-                out_path = path.join("corpus", "unscreened_urls", self.group, "subtitles")
+                out_path = path.join("corpus", "unscreened_videos", self.group, "subtitles")
         else:
             out_path = path.join("corpus", "raw_subtitles")
             if self.group:
@@ -448,7 +448,7 @@ class VideoScraper:
         safe_author = helpers.safe_filename(self.video.author)
 
         if self.screen:
-            out_path = path.join("corpus", "unscreened_urls", self.group, "audio")
+            out_path = path.join("corpus", "unscreened_videos", self.group, "audio")
         else:
             out_path = path.join("corpus", "raw_audio", self.group)
 
@@ -536,7 +536,7 @@ class VideoScraper:
             self.log_fp = path.join("corpus", "logs")
 
             if self.screen:
-                self.log_fp = path.join("corpus", "unscreened_urls", "logs")
+                self.log_fp = path.join("corpus", "unscreened_videos", "logs")
 
         if not path.exists(self.log_fp):
             makedirs(self.log_fp)
@@ -608,7 +608,7 @@ class MultiVideoScraper:
 
             log_fp = path.join("corpus", "logs", log_fn)
             if self.screen:
-                log_fp = path.join("corpus", "unscreened_urls", "logs", log_fn)
+                log_fp = path.join("corpus", "unscreened_videos", "logs", log_fn)
 
             # Delete previous if overwriting, but only if NOT a batch
             if path.isfile(log_fp) and self.overwrite:
@@ -616,9 +616,9 @@ class MultiVideoScraper:
 
         out_audio_path = path.join("corpus", "raw_audio")
         if self.screen:
-            out_path = path.join("corpus", "unscreened_urls", "subtitles")
+            out_path = path.join("corpus", "unscreened_videos", "subtitles")
             if self.group:
-                out_path = path.join("corpus", "unscreened_urls", self.group, "subtitles")
+                out_path = path.join("corpus", "unscreened_videos", self.group, "subtitles")
                 out_audio_path = path.join(out_audio_path, self.group)
         else:
             out_path = path.join("corpus", "raw_subtitles")
@@ -716,7 +716,7 @@ class BatchVideoScraper:
             log_fn = "{0}_log.csv".format(self.group)
             log_fp = path.join("corpus", "logs", log_fn)
             if self.screen:
-                log_fp = path.join("corpus", "unscreened_urls", "logs", log_fn)
+                log_fp = path.join("corpus", "unscreened_videos", "logs", log_fn)
 
             if path.isfile(log_fp) and self.overwrite:
                 path.remove(log_fp)

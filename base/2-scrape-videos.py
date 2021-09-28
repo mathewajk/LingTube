@@ -48,7 +48,7 @@ if __name__ == '__main__':
 
     # LingTube options
     parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite logs and files rather than appending')
-    parser.add_argument('-s',  '--screen',   action='store_true', default=False, help='download files into a folder for further screening ("unscreened_urls"); else, downloads into "raw_subtitles"')
+    parser.add_argument('-s',  '--screen',   action='store_true', default=False, help='download files into a folder for further screening ("unscreened_videos"); else, downloads into "raw_subtitles"')
 
     args = parser.parse_args()
 

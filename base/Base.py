@@ -3,7 +3,7 @@ import pandas as pd
 
 import xml.etree.ElementTree as ElementTree
 
-from pytube import YouTube, exceptions, helpers
+from pytube import YouTube, Channel, exceptions, helpers
 from os import path, makedirs, remove, rename, listdir
 from re import sub, findall
 from glob import glob
@@ -15,74 +15,32 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
 
 
 # TODO: Need to implement robust error handling
-# TODO: PyTube now supports channels
 
 
 class ChannelScraper:
 
-    def __init__(self, url, browser="Firefox", pause_time=1, cutoff=-1, group='', about=False, overwrite=False, screen=False):
+    def __init__(self, url, browser="Firefox", pause_time=1, limit=-1, group='', about=False, overwrite=False, screen=False):
 
         self.url = url
+        if self.url[-1] == '/':
+            self.url = self.url[:-1]
         self.from_video = False
 
         if "watch?" in self.url:
             self.from_video = True
 
         # Default variables
-        self.video_url     = None
         self.browser       = browser
         self.pause_time    = pause_time
-        self.cutoff        = cutoff
         self.group         = group
         self.about         = about
         self.overwrite     = overwrite
         self.screen        = screen
-
-
-    def init_info(self, driver):
-        """Initialize *info* with the channel's ID
-        """
-
-        punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-
-        # Remove trailing forward slash
-        if self.url[-1] == '/':
-            self.url = self.url[:-1]
-
-        if self.from_video:
-            driver.get(self.url)
-
-            try:
-                WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'ytd-channel-name')))
-
-                time.sleep(2)
-
-                channel_url = driver.find_element(By.CLASS_NAME, "ytd-channel-name").find_element(By.TAG_NAME, 'a').get_attribute('href')
-                logging.info("Gathering information from channel: " + channel_url)
-
-                # TODO: Not really the safest way to update the URL. Video and channel URL should be kept clearly distinct.
-                self.video_url = self.url
-                self.url = channel_url
-
-                channel_id = channel_url.split('/')[-1]
-                info = {"ChannelID": channel_id, "SafeChannelID": sub(punc_and_whitespace, "", channel_id)}
-
-                return info
-
-            except:
-                logging.critical("Could not locate channel URL")
-                exit(1)
-
-        else:
-            # TODO: We are assuming URLs are frmatted correctly
-            channel_id = self.url.split('/')[-1]
-            info = {"ChannelID": channel_id, "SafeChannelID": sub(punc_and_whitespace, "", channel_id)}
-
-        return info
-
+        self.limit         = limit
 
     def process(self):
         """Scrape the channel and save
@@ -143,74 +101,38 @@ class ChannelScraper:
                 videos_out.write("{0}\t{1}\t{2}\n".format(link, self.info["ChannelName"], self.info["SafeChannelID"]))
 
 
-    def scroll(self, driver):
-        """Scroll the channel to load more videos.
-
-        :return continue: 1 if scroll was successful, 0 if page bottom has been reached
-        """
-
-        # Get scroll height
-        last_height = driver.execute_script('return document.querySelector("#page-manager").scrollHeight')
-
-        # Scroll down to bottom of current view
-        driver.execute_script('window.scrollTo(0,document.querySelector("#page-manager").scrollHeight);')
-
-        # Wait to load page
-        time.sleep(self.pause_time)
-
-        # Calculate new scroll height and compare with last scroll height
-        new_height = driver.execute_script('return document.querySelector("#page-manager").scrollHeight')
-        if new_height == last_height: # End of list
-            return 0
-        return 1
-
-
-    def scrape_links(self, driver):
+    def scrape_links(self, channel):
         """Scrape the URLs from a YouTube channel.
 
         :return : List of videos URLs
         """
 
-        # Load the page
-        driver.get(self.url + "/videos")
-
-        try:
-            # Wait for the "items" div to appear
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, 'items')))
-        except:
-            logging.warning("Could not locate 'items' div")
-        finally:
-            # Scroll to the bottom of the page to load videos
-            count = 0
-            while (self.cutoff == -1 or count < self.cutoff) and self.scroll(driver):
-                count += 1
-                print("Loading... ({0})".format(count))
-
-            # Gather urls and metadata
-            elements = driver.find_elements_by_xpath('//*[@id="video-title"]')
-            return [element.get_attribute('href') for element in elements]
+        if self.limit > 0:
+            links = channel.video_urls[:self.limit]
+        else:
+            links = channel.video_urls
 
         if self.from_video:
-            self.log_video()
+            if self.url not in links:
+                links.append(self.url)
 
 
-    def scrape_info(self, driver):
+    def scrape_info(self, driver, channel_id, channel_url):
         """Scrape the channel's description.
 
         :return: A dictionary containing the channel's description, bio, and metadata.
         """
 
-        info = self.init_info(driver)
+        punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
+        info = {"ChannelID": channel_id, "SafeChannelID": sub(punc_and_whitespace, "", channel_id)}
+        info.update({"ChannelName": "", "SafeChannelName": "", "Description": "", "Bio": "", "Metadata": ""})
 
         # Load the about page
-        driver.get(self.url + "/about")
-
-        info.update({"ChannelName": "", "Description": "", "Bio": "", "Metadata": ""})
+        driver.get(channel_url + "/about")
 
         try:
             WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'ytd-channel-name')))
 
-            punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
             channel_name = driver.find_element(By.CLASS_NAME, "ytd-channel-name").text
 
             info["ChannelName"] = channel_name
@@ -221,7 +143,6 @@ class ChannelScraper:
 
         try:
             WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, 'description')))
-            time.sleep(2)
             info["Description"] = driver.find_element(By.ID, "description-container").text
             info["Bio"]         = driver.find_element(By.ID, "bio").text
             info["Metadata"]    = driver.find_element(By.ID, "details-container").find_element(By.TAG_NAME, "table").text
@@ -231,26 +152,48 @@ class ChannelScraper:
         return info
 
 
-    def scrape_about_links(self, driver):
-
-        self.info = self.scrape_info(driver)
-        print(self.about)
-        if self.about:
-            self.links = None
-        else:
-            self.links = self.scrape_links(driver)
-
-
     def scrape(self):
         """Collect video URLs (if scraping URLs) and about page info from the channel
         """
 
-        if self.browser.lower() == "firefox":
-            with webdriver.Firefox() as driver:
-                self.scrape_about_links(driver)
+        # Get the channel's ID and URL
+        if self.from_video:
+            video = YouTube(self.url) # Must use video to get channel ID
+            channel_id = video.channel_id
+            channel_url = 'https://www.youtube.com/channel/' + video.channel_id
         else:
-            with webdriver.Chrome() as driver:
-                self.scrape_about_links(driver)
+            channel_id = self.url.split('/')[-1]
+            channel_url = self.url
+
+        self.links = None
+
+        # Gather URLs, unless we only want about page info
+        if not self.about:
+            channel = Channel(channel_url) # Load channel in PyTube
+            print('Collecting video URLs from channel {0}'.format(channel_id))
+            self.links = self.scrape_links(channel)
+
+        # Open a web browser in headless mode and scrape about page
+        if self.browser.lower() == "firefox":
+            try:
+                options = webdriver.FirefoxOptions()
+                options.set_headless()
+                with webdriver.Firefox(firefox_options=options) as driver:
+                    self.info = self.scrape_info(driver, channel_id, channel_url)
+            except:
+                logging.critical("Could not open Firefox browser")
+        else:
+            try:
+                options = Options()
+                options.add_argument("--headless")
+                options.add_argument("--window-size=1920x1080")
+                with webdriver.Chrome(chrome_options=options) as driver:
+                    self.info = self.scrape_info(driver, channel_id, channel_url)
+            except:
+                logging.critical("Could not open Chrome browser")
+
+        if self.from_video:
+            self.log_video()
 
 
     def log_video(self):
@@ -265,11 +208,10 @@ class ChannelScraper:
             base_path = path.join("corpus", "screened_urls")
 
         if self.group:
-            videos_out_dir = path.join(base_path, self.group, "urls")
-            videos_fn = "{0}.txt".format(self.group)
+            videos_out_dir = path.join(base_path, self.group)
+            videos_fn = "{0}_videos.txt".format(self.group)
         else:
-            videos_out_dir = path.join(base_path, "urls")
-            videos_fn = "{0}.txt".format(self.info["SafeChannelName"])
+            videos_fn = "{0}_videos.txt".format(self.info["SafeChannelName"])
         if not path.exists(videos_out_dir):
             makedirs(videos_out_dir)
 
@@ -280,7 +222,7 @@ class ChannelScraper:
 
         # Log input video info
         with open(videos_path, 'a') as videos_out:
-            videos_out.write("{0}\t{1}\t{2}\n".format(self.video_url, self.info["ChannelName"], self.info["SafeChannelID"]))
+            videos_out.write("{0}\t{1}\t{2}\n".format(self.url, self.info["ChannelName"], self.info["SafeChannelID"]))
 
 
     def get_info(self):
@@ -463,7 +405,7 @@ class VideoScraper:
                 )
             segments.append(line)
             i += 1
-      return "\n".join(segments).strip()
+        return "\n".join(segments).strip()
 
 
     def float_to_srt_time_format(self, d: float) -> str:
@@ -479,6 +421,7 @@ class VideoScraper:
         time_fmt = time.strftime("%H:%M:%S,", time.gmtime(whole))
         ms = f"{fraction:.3f}".replace("0.", "")
         return time_fmt + ms
+
 
     def write_audio(self, audio):
         """Write audio Stream object to a file. If an output folder is not specified, audio will be placed in a folder corresponding to the name of the video's author (i.e. channel).
@@ -616,7 +559,7 @@ class VideoScraper:
 
 class MultiVideoScraper:
 
-    def __init__(self, f, log_fp=None, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, limit_to=-1, overwrite=False):
+    def __init__(self, f, log_fp=None, language=None, group=None, screen=None, include_audio=False, include_auto=False, convert_srt=False, limit=-1, overwrite=False):
 
         # Input params
         self.f             = f
@@ -628,7 +571,7 @@ class MultiVideoScraper:
         self.include_auto  = include_auto
         self.include_title = False
         self.convert_srt   = convert_srt
-        self.limit_to      = limit_to
+        self.limit         = limit
         self.overwrite     = overwrite
 
         # Other params
@@ -707,14 +650,14 @@ class MultiVideoScraper:
                 video.process_video() # TODO: Return status
                 self.video_count += 1
 
-                if self.limit_to != -1 and self.video_count == self.limit_to:
+                if self.limit != -1 and self.video_count == self.limit:
                     print("{0}: Limit reached".format(url))
                     break
 
 
 class BatchVideoScraper:
 
-    def __init__(self, base_fn, batch=False, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, limit_to=-1, overwrite=False):
+    def __init__(self, base_fn, batch=False, language=None, group=None, screen=None,  include_audio=False, include_auto=False, convert_srt=False, limit=-1, overwrite=False):
 
         self.base_fn       = base_fn
         self.batch         = batch
@@ -723,7 +666,7 @@ class BatchVideoScraper:
         self.screen        = screen
         self.include_audio = include_audio
         self.convert_srt   = convert_srt
-        self.limit_to      = limit_to
+        self.limit      = limit
         self.overwrite     = overwrite
 
 
@@ -749,7 +692,7 @@ class BatchVideoScraper:
 
         # Need to make video objs
         for fn in all_fns:
-            scraper = MultiVideoScraper(fn, log_fp, self.language, self.group, self.screen, self.include_audio, self.include_auto, self.convert_srt, self.limit_to, self.overwrite)
+            scraper = MultiVideoScraper(fn, log_fp, self.language, self.group, self.screen, self.include_audio, self.include_auto, self.convert_srt, self.limit, self.overwrite)
 
 
 class CaptionCleaner:

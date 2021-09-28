@@ -14,7 +14,7 @@ def main(args):
     screen = args.screen
     include_audio = args.audio
     include_auto = args.auto
-    convert_srt = (not args.xml)
+    convert_srt = args.srt
     limit_to = args.limit
     overwrite = args.overwrite
 

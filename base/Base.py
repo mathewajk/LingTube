@@ -707,7 +707,7 @@ class MultiVideoScraper:
                 video.process_video() # TODO: Return status
                 self.video_count += 1
 
-                if self.limit_to != -1 and self.video_count == self.resume_from + self.limit_to:
+                if self.limit_to != -1 and self.video_count == self.limit_to:
                     break
 
 

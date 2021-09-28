@@ -209,6 +209,7 @@ class ChannelScraper:
         else:
             base_path = path.join("corpus", "screened_urls")
 
+        videos_out_dir = base_path
         if self.group:
             videos_out_dir = path.join(base_path, self.group)
             videos_fn = "{0}_videos.txt".format(self.group)
@@ -226,7 +227,7 @@ class ChannelScraper:
                 logged_videos = [line.split('\t')[0] for line in videos_in]
         except FileNotFoundError as e:
             pass
-            
+
         # Log input video info
         with open(videos_path, 'a') as videos_out:
             if self.url not in logged_videos:
@@ -269,6 +270,7 @@ class MultiChannelScraper:
         else:
             base_path = path.join("corpus", "screened_urls")
 
+        videos_out_dir = base_path
         if self.group:
             videos_out_dir = path.join(base_path, self.group)
             videos_fn = "{0}_videos.txt".format(self.group)

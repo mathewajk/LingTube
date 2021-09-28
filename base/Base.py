@@ -214,17 +214,19 @@ class ChannelScraper:
             videos_fn = "{0}_videos.txt".format(self.group)
         else:
             videos_fn = "{0}_videos.txt".format(self.info["SafeChannelName"])
+
         if not path.exists(videos_out_dir):
             makedirs(videos_out_dir)
 
         videos_path = path.join(videos_out_dir, videos_fn)
 
-        if path.isfile(videos_path) and self.overwrite:
-            remove(videos_path)
-
         logged_videos = []
-        with open(videos_path, 'r') as videos_in:
-            logged_videos = [line.split('\t')[0] for line in videos_in]
+        try:
+            with open(videos_path, 'r') as videos_in:
+                logged_videos = [line.split('\t')[0] for line in videos_in]
+        except FileNotFoundError as e:
+            pass
+            
         # Log input video info
         with open(videos_path, 'a') as videos_out:
             if self.url not in logged_videos:
@@ -262,6 +264,21 @@ class MultiChannelScraper:
 
     def process(self):
 
+        if self.screen:
+            base_path = path.join("corpus", "unscreened_urls")
+        else:
+            base_path = path.join("corpus", "screened_urls")
+
+        if self.group:
+            videos_out_dir = path.join(base_path, self.group)
+            videos_fn = "{0}_videos.txt".format(self.group)
+        else:
+            videos_fn = "{0}_videos.txt".format(self.info["SafeChannelName"])
+        videos_path = path.join(videos_out_dir, videos_fn)
+
+        if path.isfile(videos_path) and self.overwrite:
+            remove(videos_path)
+
         try:
             with open(self.f) as file_in:
                 for line in file_in:
@@ -273,7 +290,7 @@ class MultiChannelScraper:
                     time.sleep(1)
 
         except FileNotFoundError as e:
-            print('Error: File {0} could not be found.'.format(self.channels_f))
+            print('Error: File {0} could not be found.'.format(self.f))
 
 
 

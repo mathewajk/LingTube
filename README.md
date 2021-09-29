@@ -10,6 +10,7 @@ Tools for scraping and doing linguistic analysis with YouTube data.
 ## Dependencies
 
 *Out of date: To be updated by Oct 20*
+
 Dependencies are provided in the `requirements/` folder. To install all dependencies, run
 
 `pip install -r $FileName`
@@ -33,8 +34,6 @@ to install the version of Python that is bundled with TK. By default, `brew inst
 
 ### Base
 
-*Details coming soon!*
-
 The LingTube base scripts are used first to access YouTube data and pre-process captions prior to more specific processing (via YouDep or YouSpeak pipeline components). Before using the base scripts, you should have identified YouTube channel(s) or video(s) that you intend to scrape. Base is intended to be run in this order:
 
 1. [`1-scrape-channels.py`](#1-scrape-channels.py)
@@ -44,6 +43,8 @@ The LingTube base scripts are used first to access YouTube data and pre-process 
 
 
 <!-- Add information about install drivers for Firefox or Chrome -->
+
+---
 
 #### 1-scrape-channels.py
 
@@ -68,7 +69,7 @@ To scrape all video URLs from multiple channels at once into an "ungrouped" sub-
 python3 base/1-scrape-channels.py $channel_url_list.txt
 ```
 
-To scrape a single channel or multiple channels from (a) video URL(s) into an "ungrouped" sub-folder, use video URLs instead of channel URLs as in:
+To scrape a single channel or multiple channels from video URL(s) into an "ungrouped" sub-folder, use video URLs instead of channel URLs as in:
 
 ```
 python3 base/1-scrape-channels.py $video_url
@@ -119,6 +120,7 @@ python3 base/1-scrape-channels.py -s $channel_url_list.txt
 
 `python3 base/1-scrape-channels.py -lim 10 -g groupA -s channel_urls.txt
 `
+
 This call:
 1. Takes a file with a list of channel URLs as its input (`channel_urls.txt`)
 2. Using the default Firefox browser, scrapes each channel collecting 10 (additional) video URLs and the About page info
@@ -129,6 +131,7 @@ This call:
 
 `python3 base/1-scrape-channels.py -o -b Chrome video_urls.txt
 `
+
 This call:
 1. Takes a file with a list of video URLs as its input (`video_urls.txt`)
 2. Checks for and deletes the subfolder called `ungrouped` if it exists
@@ -136,6 +139,7 @@ This call:
 3. Saves the resulting video URLs under a subfolder called `ungrouped`
 4. In addition, outputs the list of video URLs with columns for the scraped channel name and ID
 
+---
 
 #### 2-scrape-videos.py
 

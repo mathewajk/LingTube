@@ -9,6 +9,7 @@ Tools for scraping and doing linguistic analysis with YouTube data.
 
 ## Dependencies
 
+*Out of date: To be updated by Oct 20*
 Dependencies are provided in the `requirements/` folder. To install all dependencies, run
 
 `pip install -r $FileName`
@@ -34,118 +35,107 @@ to install the version of Python that is bundled with TK. By default, `brew inst
 
 *Details coming soon!*
 
-<!-- Add details -->
+The LingTube base scripts are used first to access YouTube data and pre-process captions prior to more specific processing (via YouDep or YouSpeak pipeline components). Before using the base scripts, you should have identified YouTube channel(s) or video(s) that you intend to scrape. Base is intended to be run in this order:
+
+1. [`1-scrape-channels.py`](#1-scrape-channels.py)
+2. [`2-scrape-videos.py`](#2-scrape-videos.py)
+4. [`3-clean-captions.py`](#3-clean-captions.py)
+5. [`4-correct-captions.py`](#4-correct-captions.py)
+
+
+<!-- Add information about install drivers for Firefox or Chrome -->
 
 #### 1-scrape-channels.py
 
-This script allows the user to scrape video URLs from a specified channel or list of channels. The user can also input a list of videos in order to scrape the uploading channel's info and/or scrape the remaining videos from their channel.
+This script allows the user to scrape video URLs from a specified channel or list of channels, along with the channel info (e.g., channel name, channel ID, *About* page). The user can also input a video URL or list of video URLs in order to scrape the uploading channel's info and/or scrape additional videos from their channel. This second option also outputs a formatted version of the input video URLs for use in `2-scrape-videos.py` (see below for more info).
 
 ##### Usage
 
-General usage:
-
 ```
-python3 yt-tools/scrape-channels.py -h
-usage: scrape-channels.py [-h] {single,multi,video} ...
-
-Scrape video URLs from a YouTube channel.
-
-positional arguments:
-  {single,multi,video}  process one channel, a list of channels, or a list of
-                        videos
-    single              process a single channel (see scrape_channels.py single
-                        -h for more help)
-    multi               process a list of channels (see scrape_channels.py
-                        multi -h for more help)
-    video               process channels from a list of videos (see
-                        scrape_channels.py video -h for more help)
-
-optional arguments:
-  -h, --help            show this help message and exit
+usage: 1-scrape-channels.py [-h] [-g GROUP] [-a] [-lim N] [-b BROWSER] [-o]
+                            [-s] source
 ```
 
-Scraping a single channel with the `single` argument:
+###### Source
+To scrape all video URLs from a single channel into an "ungrouped" sub-folder, include a YouTube channel URL as the source:
 
 ```
-python3 yt-tools/scrape-channels.py single -h
-usage: scrape-channels.py single [-h] [-g NAME] [--cutoff CUTOFF] [--overwrite]
-                                 [--screen] [-l]
-                                 channel
-
-positional arguments:
-  channel               URL pointing to the channel's main page, e.g.
-                        https://www.youtube.com/c/ChannelNameHere
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -g NAME, --group NAME
-                        grouping for the output files (will create a subfolder:
-                        screened_urls/$group)
-  --cutoff CUTOFF       maximum number of times to scroll the page when
-                        scraping
-  --overwrite, -o       overwrite files rather than appending
-  --screen              download files for screening purposes
-  -l, --log             log events to file
+python3 base/1-scrape-channels.py $channel_url
 ```
 
-Scraping multiple channels with the `multi` argument:
-
+To scrape all video URLs from multiple channels at once into an "ungrouped" sub-folder, include a text file containing a list of YouTube channel URLs:
 ```
-python3 yt-tools/scrape-channels.py multi -h
-usage: scrape-channels.py multi [-h] [-g NAME] [--cutoff CUTOFF] [--overwrite]
-                                [--screen] [-l]
-                                file
-
-positional arguments:
-  file                  file containing a newline-separated list of channel
-                        URLs (e.g. https://www.youtube.com/c/Channel1NameHere\n
-                        https://www.youtube.com/c/Channel2NameHere\n)
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -g NAME, --group NAME
-                        grouping for the output files (will create a subfolder:
-                        screened_urls/$group)
-  --cutoff CUTOFF       maximum number of times to scroll the page when
-                        scraping
-  --overwrite, -o       overwrite files rather than appending
-  --screen              download files for screening purposes
-  -l, --log             log events to file
+python3 base/1-scrape-channels.py $channel_url_list.txt
 ```
 
-Scraping channels based on a list of videos with the `video` argument:
+To scrape a single channel or multiple channels from (a) video URL(s) into an "ungrouped" sub-folder, use video URLs instead of channel URLs as in:
 
 ```
-python3 yt-tools/scrape-channels.py video -h
-usage: scrape-channels.py video [-h] [-n] [-g NAME] [--cutoff CUTOFF]
-                                [--overwrite] [--screen] [-l]
-                                file
+python3 base/1-scrape-channels.py $video_url
+```
+and
 
-positional arguments:
-  file                  file containing a newline-separated list of video URLs
+```
+python3 base/1-scrape-channels.py $video_url_list.txt
+```
 
-optional arguments:
-  -h, --help            show this help message and exit
-  -n, --noscrape        don't scrape the channel; only gather about info
-  -g NAME, --group NAME
-                        grouping for the output files (will create a subfolder:
-                        screened_urls/$group)
-  --cutoff CUTOFF       maximum number of times to scroll the page when
-                        scraping
-  --overwrite, -o       overwrite files rather than appending
-  --screen              download files for screening purposes
-  -l, --log             log events to file
+These latter two commands will also output a separate file containing the same video URLs you input formatted with additional columns for the channel name and channel ID.
+
+###### Options
+
+To scrape all video URLs from multiple channels where channel files are grouped under a named group sub-folder, specify a group name with `-g` or `--group`:
+```
+python3 base/1-scrape-channels.py --group $group_name $channel_url_list.txt
+```
+
+To scrape only the channel name/ID and About page info per channel, use the `-a` or `--about` flag. When video URLs are the source, the outputs the formatted video URL list along with the About page info:
+```
+python3 base/1-scrape-channels.py --about $video_url_list.txt
+```
+
+To scrape only a certain number of video URLs per channel, specify a number (*N*) with the `-lim` or `--limit` flag. This can be repeated to add a specified number of video URLs in addition to what has already been scraped:
+```
+python3 base/1-scrape-channels.py -lim N $channel_url_list.txt
+```
+
+To specify a browser to use for scraping (either "Firefox" or "Chrome"), use `-b` or `--browser`. The default browser option is Firefox:
+```
+python3 base/1-scrape-channels.py -b $browser_name $channel_url_list.txt
+```
+
+To completely overwrite the grouping folder containing previously scraped info and video URL files (if group is unspecified, this will be the "ungrouped" folder) with newly scraped data, use the `-o` or `--overwrite` flag. This is useful for testing purposes or if data needs to be completely re-done, but may result in data loss/change if not used carefully:
+```
+python3 base/1-scrape-channels.py -o $channel_url_list.txt
+```
+
+To scrape video URLs and channel info for (manual) screening purposes, you can use the `-s` or `--screen` flag to download data into a separate temporary folder named "unscreened_videos":
+```
+python3 base/1-scrape-channels.py -s $channel_url_list.txt
 ```
 
 ##### Examples
 
-`python3 yt-tools/scrape-channels.py -h -g cali-tw --cutoff 10 --screen multi urls.txt`
+<!-- https://www.youtube.com/channel/UCgWfS_47YPVbKx5EK4FLm4A = Jenn Im -->
 
+`python3 base/1-scrape-channels.py -lim 10 -g groupA -s channel_urls.txt
+`
 This call:
-1. Takes a file with a list of channel URLs as its input (`urls.txt`)
-2. Scrapes each channel, scrolling the list of videos up to 10 times
-3. Groups the resulting video URLs under a subfolder called `cali-tw`
-4. Additionally groups them under a folder called `unscreened_videos` indicating that the videos need to be checked for usability
+1. Takes a file with a list of channel URLs as its input (`channel_urls.txt`)
+2. Using the default Firefox browser, scrapes each channel collecting 10 (additional) video URLs and the About page info
+3. Groups the resulting video URLs under a subfolder called `groupA`
+4. Additionally places the group subfolder under a folder called `unscreened_videos` indicating that the videos need to be checked for usability
+
+
+
+`python3 base/1-scrape-channels.py -o -b Chrome video_urls.txt
+`
+This call:
+1. Takes a file with a list of video URLs as its input (`video_urls.txt`)
+2. Checks for and deletes the subfolder called `ungrouped` if it exists
+3. Using the Chrome browser, scrapes each channel collecting all available video URLs and the About page info
+3. Saves the resulting video URLs under a subfolder called `ungrouped`
+4. In addition, outputs the list of video URLs with columns for the scraped channel name and ID
+
 
 #### 2-scrape-videos.py
 

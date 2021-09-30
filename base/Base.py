@@ -892,9 +892,9 @@ class CaptionCleaner:
 
         timed_lines = []
         for line in subs:
-            time_start_s = convert_to_seconds(line[0])
-            time_end_s = convert_to_seconds(line[1])
-            sub_text = clean_text(line[2], langcode)
+            time_start_s = self.convert_to_seconds(line[0])
+            time_end_s = self.convert_to_seconds(line[1])
+            sub_text = self.clean_text(line[2], langcode)
             timed_lines.append((time_start_s, time_end_s, sub_text))
 
         lasti = len(timed_lines)

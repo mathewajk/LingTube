@@ -651,7 +651,10 @@ class MultiVideoScraper:
                     exit(2)
 
                 punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-                yt_id = sub(punc_and_whitespace, '', findall(r".+watch\?v=(.+)\b", url)[0])
+                try:
+                    yt_id = sub(punc_and_whitespace, '', findall(r".+watch\?v=(.+)\b", url)[0])
+                except IndexError as e:
+                    pass
 
 
                 # Check if yt_id already exists in some file; skip download if so

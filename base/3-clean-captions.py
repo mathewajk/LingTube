@@ -17,14 +17,14 @@ def main(args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Convert scraped YouTube captions to cleaned transcript format.')
+    parser = argparse.ArgumentParser(description='Convert scraped YouTube SRT captions to cleaned transcript text format.')
 
     parser.set_defaults(func=None)
-    parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: cleaned_subtitles/$group)')
-    parser.add_argument('--lang_code', '-l', default=None, type=str, help='open captions with a specific a language code (e.g., "en"); if unspecified, goes through all available language code in subtitle directory')
-    parser.add_argument('--fave', '-f', action='store_true', default=False, help='additionally output Fave-format file')
-    parser.add_argument('--text', '-t', action='store_true', default=False, help='additionally output text-only file')
-    parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
+    parser.add_argument('-g', '--group', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: cleaned_subtitles/$group)')
+    parser.add_argument('-l','--lang_code',  default=None, type=str, help='open captions with a specific a language code (e.g., "en"); if unspecified, goes through all available language code in subtitle directory')
+    parser.add_argument('-f', '--fave', action='store_true', default=False, help='additionally output Fave-format file')
+    parser.add_argument('-t', '--text', action='store_true', default=False, help='additionally output text-only file')
+    parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite files rather than appending')
 
     args = parser.parse_args()
 

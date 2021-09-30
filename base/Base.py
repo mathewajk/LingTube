@@ -415,7 +415,7 @@ class VideoScraper:
                     end=self.float_to_srt_time_format(end),
                     text=caption,
                 )
-            segments.append(line)
+                segments.append(line)
             i += 1
         return "\n".join(segments).strip()
 

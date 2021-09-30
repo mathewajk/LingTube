@@ -30,13 +30,13 @@ def main(args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Download available subtitles and audio from a list of YouTube video urls.')
+    parser = argparse.ArgumentParser(description='Download available subtitles and audio from a list or lists of YouTube video urls.')
 
     parser.add_argument('urls_in', type=str, help='path to a file or directory containing the URLs to scrape')
 
     # LingTube organization
-    parser.add_argument('-g', '--group',     default="ungrouped", metavar='NAME', type=str, help='a name for grouping the output files (will create a log file and subfolder under this name, e.g., raw_subtitles/$group); if unspecified, channel names will be used')
-    parser.add_argument('-l', '--language', default=None, type=str, help='filter captions by language name (e.g. "Korean"); if unspecified, all captions will be downloaded')
+    parser.add_argument('-g', '--group',     default="ungrouped", metavar='NAME', type=str, help='a name for grouping the output files (will create a log file and subfolder under this name, e.g., raw_subtitles/$group); if unspecified, name will be "ungrouped"')
+    parser.add_argument('-l', '--language', default=None, type=str, help='filter captions by language name (e.g. "Korean", "English"); if unspecified, all captions will be downloaded')
 
     # Download parameters
     parser.add_argument('-a','--auto',  action='store_true', default=False, help='include automatically-generated captions; else, only manual captions will be downloaded')
@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     # LingTube options
     parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite logs and files rather than appending')
-    parser.add_argument('-s',  '--screen',   action='store_true', default=False, help='download files into a folder for further screening ("unscreened_videos"); else, downloads into "raw_subtitles"')
+    parser.add_argument('-s',  '--screen',   action='store_true', default=False, help='download files into a folder for further screening (e.g., unscreened_videos/subtitles); else, downloads into "raw_subtitles"')
 
     args = parser.parse_args()
 

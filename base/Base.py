@@ -744,7 +744,7 @@ class BatchVideoScraper:
 
 class CaptionCleaner:
 
-    def __init__(self, group=None, lang_code=None, fave=False, text=False, overwrite=False):
+    def __init__(self, group="_ungrouped", lang_code=None, fave=False, text=False, overwrite=False):
 
         self.group     = group
         self.lang_code = lang_code

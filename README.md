@@ -1,7 +1,7 @@
 # LingTube
-Tools for scraping and doing linguistic analysis with YouTube data.
+Tools for scraping and doing linguistic analysis with YouTube data. This pipeline is intended as a resource for language researchers to download YouTube video captions and audio for textual or phonetic analysis.
 
-*[Note: Currently only tested on MacOS and English speech.]*
+**Disclaimer/Important Note: Scripts have been developed and thoroughly tested only on MacOS. In addition, while the scraping scripts can be used for any language, processing of captions and audio have only been developed for and tested on English speech at the moment.**
 
 ## Updates
 * 08/12/21: Scripts reorganized and renamed (with order); structure and documentation update underway
@@ -50,7 +50,7 @@ The LingTube base scripts are used first to access YouTube data and pre-process 
 
 This script allows the user to scrape video URLs from a specified channel or list of channels, along with the channel info (e.g., channel name, channel ID, *About* page). The user can also input a video URL or list of video URLs in order to scrape the uploading channel's info and/or scrape additional videos from their channel. This second option also outputs a formatted version of the input video URLs for use in `2-scrape-videos.py` (see below for more info).
 
-##### Usage
+###### Usage
 
 ```
 usage: 1-scrape-channels.py [-h] [-g GROUP] [-a] [-lim N] [-b BROWSER] [-o]
@@ -176,28 +176,53 @@ optional arguments:
                         langcode
 ```
 
-### 3-clean-captions.py
-#### Usage
-```
-usage: clean-captions.py [-h] [--group GROUP] [--lang_code LANG_CODE] [--fave]
-                         [--text] [--corrected] [--overwrite]
+#### 3-clean-captions.py
 
-Convert scraped YouTube captions to cleaned transcript format.
+This script allows the user to convert scraped YouTube SRT captions to a cleaned transcript text format that has three columns for: (i) start time, (ii) end time, (iii) caption text. (Note that to use this script, you must have downloaded captions as SRT and not XML files.)
 
-optional arguments:
-  -h, --help            show this help message and exit
-  --group GROUP, -g GROUP
-                        name to group files under (create and /or assume files
-                        are located in a subfolder: cleaned_subtitles/$group)
-  --lang_code LANG_CODE, -l LANG_CODE
-                        open captions with a specific a language code (e.g.,
-                        "en"); if unspecified, goes through all available
-                        language code in subtitle directory
-  --fave, -f            additionally output Fave-format file
-  --text, -t            additionally output text-only file
-  --corrected, -c       only run on corrected subtitles
-  --overwrite, -o       overwrite files rather than appending
+##### Usage
+To clean all scraped SRT files from an "ungrouped" sub-folder:
+
 ```
+python3 base/3-clean-captions.py
+```
+
+To clean all scraped SRT files from a grouped sub-folder, specify a group name with `-g` or `--group`:
+
+```
+python3 base/3-clean-captions.py -g $group_name
+```
+
+To clean all scraped SRT files from a particular language, specify a language code (e.g., 'en', 'ko', 'jp') with `-l` or `--language`:
+
+```
+python3 base/3-clean-captions.py -l $lang_code
+```
+
+To additionally output a text file with only the transcript text, use the `-t` or `--text` flag:
+
+```
+python3 base/3-clean-captions.py -t
+```
+
+To overwrite all previously cleaned text files with new cleaned files, use the `-o` or `--overwrite` flag. :
+
+```
+python3 base/3-clean-captions.py -o
+```
+
+
+##### Examples
+
+`python3 base/3-clean-captions.py -g kor -l ko -t
+`
+
+This call:
+1. Takes a group name and locates the group folder `kor` under the folder of scraped YouTube captions called `raw_subtitles`
+2. For each .srt caption file under the `ko` language folder, outputs a reformatted .txt file with start time, end time and transcript text columns under `cleaned_subtitles/kor` (in a folder called `cleans`).
+3. Additionally outputs a transcript text-only file (in a folder called `texts`)
+
+
 
 #### 4-correct-captions.py
 

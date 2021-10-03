@@ -561,7 +561,7 @@ class VideoScraper:
                 audio = self.video.streams.filter(mime_type="audio/mp4").first()
                 audio_success = self.write_audio(audio)
         except exceptions.VideoUnavailable as e:
-            logging.warning("ERROR: Video unavailable ({0}). Are you using the latest version of PyTube?".format(video_count, url))
+            logging.critical("Video unavailable {0}: Are you using the latest version of PyTube?".format(self.url))
 
         if len(caption_list):
             self.write_metadata(caption_list)

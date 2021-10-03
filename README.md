@@ -143,38 +143,60 @@ This call:
 
 #### 2-scrape-videos.py
 
+This script allows the user to scrape manual and/or automated captions and audio from a specified file containing list of video URLs. Alternatively the user can specify a directory containing multiple lists of URLs, or the user can specify a group name (i.e., the name of a group sub-folder under `screened_urls`) which will access the `channel_urls` directory, assumed to contain lists of URLs.
+
+
 ##### Usage
 
+###### Source
+To scrape all manual video captions from a list of URLs into an "ungrouped" sub-folder, include a text file containing a list of YouTube video URLs:
+
 ```
-python3 yt-tools/scrape-videos.py -h
-usage: scrape-videos.py [-h] [--language LANGUAGE] [--group NAME] [--overwrite]
-                        [--auto] [--audio] [--srt] [--resume N] [--limit N]
-                        [--screen] [--clean]
-                        urls_in
-
-Download available subtitles and audio from a list of YouTube video urls.
-
-positional arguments:
-  urls_in               path to a file or directory containing the URLs to scrape
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --language LANGUAGE, -l LANGUAGE
-                        filter captions by language name (e.g. "Korean"); if
-                        unspecified, all captions will be downloaded
-  --group NAME, -g NAME
-                        a name for the group; if unspecified, channel names will be
-                        used
-  --overwrite, -o       overwrite logs and files rather than appending
-  --auto, -a            include automatically-generated captions
-  --audio, -s           download audio
-  --srt                 download captions in SRT format
-  --resume N, -res N    resume downloading from Nth video or file
-  --limit N, -lim N     limit processing to N videos or files
-  --screen              downloading files for screening purposes
-  --clean               skip scraping and only clean dowloaded caption filenames of
-                        langcode
+python3 base/2-scrape-videos.py $video_url_list.txt
 ```
+
+To scrape all manual video captions from multiple lists of URLs at once into an "ungrouped" sub-folder, include a directory containing text files of video URLs:
+
+```
+python3 base/2-scrape-videos.py $urls_directory
+```
+
+To scrape all manual video captions from multiple lists of URLs via a specific group folder into group sub-folders of the same name, include a group name (specifying -g [see below] is not necessary):
+
+```
+python3 base/2-scrape-videos.py $group_name
+```
+
+
+###### Options
+To scrape all manual video captions from a list of URLs where channel files are grouped under a named group sub-folder, specify a group name with `-g` or `--group`:
+```
+python3 base/2-scrape-videos.py --group $group_name $video_url_list.txt
+```
+
+
+##### Examples
+
+<!-- `python3 base/2-scrape-videos.py -lim 10 -g groupA -s channel_urls.txt
+`
+
+This call:
+1. Takes a file with a list of channel URLs as its input (`channel_urls.txt`)
+2. Using the default Firefox browser, scrapes each channel collecting 10 (additional) video URLs and the About page info
+3. Groups the resulting video URLs under a subfolder called `groupA`
+4. Additionally places the group subfolder under a folder called `unscreened_videos` indicating that the videos need to be checked for usability
+
+`python3 base/2-scrape-videos.py -o -b Chrome video_urls.txt
+`
+
+This call:
+1. Takes a file with a list of video URLs as its input (`video_urls.txt`)
+2. Checks for and deletes the subfolder called `ungrouped` if it exists
+3. Using the Chrome browser, scrapes each channel collecting all available video URLs and the About page info
+3. Saves the resulting video URLs under a subfolder called `ungrouped`
+4. In addition, outputs the list of video URLs with columns for the scraped channel name and ID -->
+
+
 
 ---
 

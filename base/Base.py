@@ -557,14 +557,14 @@ class VideoScraper:
 
         audio_success = 0
         try:
-            if self.include_audio:
+            if len(caption_list) and self.include_audio:
                 audio = self.video.streams.filter(mime_type="audio/mp4").first()
                 audio_success = self.write_audio(audio)
-
-                if len(caption_list) or self.include_audio:
-                    self.write_metadata(caption_list)
         except exceptions.VideoUnavailable as e:
             logging.warning("ERROR: Video unavailable ({0}). Are you using the latest version of PyTube?".format(video_count, url))
+
+        if len(caption_list):
+            self.write_metadata(caption_list)
 
         return ((len(caption_list) != 0), audio_success)
 
@@ -676,7 +676,7 @@ class MultiVideoScraper:
                 self.caption_success_count += caption_status
                 self.audio_success_count += audio_status
 
-                if self.limit != -1 and (self.caption_success_count == self.limit or self.audio_success_count == self.limit):
+                if self.limit != -1 and self.caption_success_count >= self.limit and self.audio_success_count >= self.limit:
                     break
 
             print("Checked {0} videos; located captions for {1} videos and audio for {2} videos.".format(self.video_count, self.caption_success_count, self.audio_success_count))

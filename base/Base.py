@@ -365,13 +365,13 @@ class VideoScraper:
                 xml_string = ""
                 with open(old_caption_path, 'r') as xml_in:
                     xml_string = xml_in.read()
-                try:
-                    srt_string = self.xml_caption_to_srt(xml_string)
-                    with open(new_caption_path, 'w') as srt_out:
-                        srt_out.write(srt_string)
-                    remove(old_caption_path)
-                except IndexError as e:
-                    logging.critical("Could not convert {0} to SRT format".format(caption_fn_clean))
+                #try:
+                srt_string = self.xml_caption_to_srt(xml_string)
+                with open(new_caption_path, 'w') as srt_out:
+                    srt_out.write(srt_string)
+                remove(old_caption_path)
+                #except IndexError as e:
+                #    logging.critical("Could not convert {0} to SRT format".format(caption_fn_clean))
 
             else:
                 rename(old_caption_path, new_caption_path)
@@ -389,8 +389,13 @@ class VideoScraper:
         :param str xml_captions:
         XML formatted caption tracks.
         """
+
         segments = []
-        root = ElementTree.fromstring(xml_captions)[1]
+        try:
+            root = ElementTree.fromstring(xml_captions)[1]
+        except IndexError as e:
+            root = ElementTree.fromstring(xml_captions)[0]
+
         i=0
         for child in list(root):
             if child.tag == 'p':
@@ -599,7 +604,7 @@ class MultiVideoScraper:
 
         out_audio_path = path.join("corpus", "raw_audio")
         if self.screen:
-            out_path = path.join("corpus", "unscreened_urls", self.group, "subtitles")
+            out_path = path.join("corpus", "unscreened_videos", self.group, "subtitles")
             out_audio_path = path.join("corpus", "unscreened_videos", self.group, "audio")
         else:
             out_path = path.join("corpus", "raw_subtitles", self.group)

@@ -287,7 +287,14 @@ This call:
 
 ### YouSpeak
 
-*[Note: More details forthcoming!]*
+The YouSpeak scripts are used to process scraped audio for use in forced alignment programs; specifically, these scripts identify usable speech utterances and match them to transcript text. Before using scripts under YouSpeak, you should have already run the relevant scripts in `base`. That is, you should have (1) downloaded audio and caption files, and optionally (2) corrected the original captions (though corrections can also be done after `2-chunk-audio.py` but before `3-validate-chunks.py`). YouSpeak is intended to be run in this order:
+
+1. [`1-convert-audio.py`](#1-convert-audio.py)
+2. [`2-chunk-audio.py`](#2-chunk-audio.py)
+4. [`3-validate-chunks.py`](#3-validate-chunks.py)
+5. [`4-create-textgrids.py`](#4-create-textgrids.py)
+
+After this stage, you can run forced alignment (using the Montreal Forced Aligner or other compatible aligner).
 
 #### Dependencies
 
@@ -302,17 +309,6 @@ For the scripts that rely on [pydub](https://github.com/jiaaro/pydub), you will 
 For the scripts requiring `parselmouth-praat`, the Praat application is required. It can be downloaded from the [Praat website](https://www.fon.hum.uva.nl/praat/).  If you are on MacOS and using Homebrew, simply run
 
 `brew install --cask praat`
-
-#### Pipeline Components
-
-Before using scripts under YouSpeak, you should have already run the relevant scripts in `base`. That is, you should have (1) downloaded audio and caption files, and (2) corrected the original captions (though corrections can also be done later). YouSpeak is intended to be run in this order:
-
-1. [`1-convert-audio.py`](#1-convert-audio.py)
-2. [`2-chunk-audio.py`](#2-chunk-audio.py)
-4. [`3-validate-chunks.py`](#3-validate-chunks.py)
-5. [`4-create-textgrids.py`](#4-create-textgrids.py)
-
-After this stage, you can run forced alignment (using the Montreal Forced Aligner or other compatible aligner).
 
 ---
 

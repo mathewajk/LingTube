@@ -564,7 +564,7 @@ class VideoScraper:
         if len(caption_list) or self.include_audio:
             self.write_metadata(caption_list)
 
-        return (len(caption_list) != 0 or audio_success)
+        return ((len(caption_list) != 0), audio_success)
 
 
 class MultiVideoScraper:
@@ -587,7 +587,8 @@ class MultiVideoScraper:
         # Other params
         self.channel_dict  = {}
         self.video_count   = 0
-        self.success_count = 0
+        self.caption_success_count = 0
+        self.audio_success_count = 0
 
 
     def process_videos(self):
@@ -597,7 +598,7 @@ class MultiVideoScraper:
         out_audio_path = path.join("corpus", "raw_audio")
         if self.screen:
             out_path = path.join("corpus", "unscreened_urls", self.group, "subtitles")
-            out_audio_path = path.join(out_audio_path, self.group)
+            out_audio_path = path.join("corpus", "unscreened_videos", self.group, "audio")
         else:
             out_path = path.join("corpus", "raw_subtitles", self.group)
             out_audio_path = path.join(out_audio_path, self.group)
@@ -654,7 +655,6 @@ class MultiVideoScraper:
                 punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
                 yt_id = sub(punc_and_whitespace, '', findall(r".+watch\?v=(.+)\b", url)[0])
 
-
                 # Check if yt_id already exists in some file; skip download if so
                 if not self.overwrite:
                     files = glob(path.join(out_path, "**", "*{0}*".format(yt_id)), recursive=True)
@@ -665,15 +665,16 @@ class MultiVideoScraper:
                         continue
 
                 video = VideoScraper(url, yt_id, self.log_fp, channel_name, channel_id, self.language, self.include_audio, self.include_auto, self.group, self.screen, self.convert_srt, self.include_title)
-                status = video.process_video()
+                caption_status, audio_status = video.process_video()
 
                 self.video_count += 1
-                self.success_count += status
+                self.caption_success_count += caption_status
+                self.audio_success_count += audio_status
 
-                if self.limit != -1 and self.success_count == self.limit:
+                if self.limit != -1 and (self.caption_success_count == self.limit or self.audio_success_count == self.limit):
                     break
 
-            print("Checked {0} videos; located captions and/or audio for {1} videos.".format(self.video_count, self.success_count))
+            print("Checked {0} videos; located captions for {1} videos and audio for {2} videos.".format(self.video_count, self.caption_success_count, self.audio_success_count))
 
 
 class BatchVideoScraper:

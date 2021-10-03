@@ -295,7 +295,6 @@ class VideoScraper:
 
         except exceptions.VideoUnavailable as e:
             logging.warning("ERROR: Video unavailable ({0}). Are you using the latest version of PyTube?".format(video_count, url))
-            exit(1)
 
         self.url           = url
         self.yt_id         = yt_id
@@ -557,12 +556,15 @@ class VideoScraper:
         caption_list = self.get_captions_by_language()
 
         audio_success = 0
-        if self.include_audio:
-            audio = self.video.streams.filter(mime_type="audio/mp4").first()
-            audio_success = self.write_audio(audio)
+        try:
+            if self.include_audio:
+                audio = self.video.streams.filter(mime_type="audio/mp4").first()
+                audio_success = self.write_audio(audio)
 
-        if len(caption_list) or self.include_audio:
-            self.write_metadata(caption_list)
+                if len(caption_list) or self.include_audio:
+                    self.write_metadata(caption_list)
+        except exceptions.VideoUnavailable as e:
+            logging.warning("ERROR: Video unavailable ({0}). Are you using the latest version of PyTube?".format(video_count, url))
 
         return ((len(caption_list) != 0), audio_success)
 

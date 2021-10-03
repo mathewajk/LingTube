@@ -219,13 +219,12 @@ This call:
 2. Scrapes caption files for up to 10 videos that have either auto captions or manual captions (saved under `raw_subtitles\groupA\auto` and `raw_subtitles\groupA\manual`), along with the corresponding audio tracks for those 10 videos (saved under `raw_audio\groupA`)
 3. Additionally converts caption files from XML to SRT format
 
-`python3 base/2-scrape-videos.py -aud groupB
+`python3 base/2-scrape-videos.py -aud -l Korean -o groupB
 `
 This call:
 1. Takes a group name as its input (`groupB`)
-<!-- 2. Checks for and deletes the subfolders called `groupB` if it exists in the output folders (`raw_subtitles` and `raw_audio`) -->
-2. For each file in `screened_urls/groupB/channel_urls`, downloads all existing manual caption files in XML format (saved under `raw_subtitles\groupB\manual`), along with the corresponding audio tracks (saved under `raw_audio\groupB`)
-
+2. Checks for and deletes the subfolders called `groupB` if it exists in the output folders (`raw_subtitles` and `raw_audio`)
+3. For each file in `screened_urls\groupB\channel_urls`, downloads all existing manual Korean caption files in XML format (saved under `raw_subtitles\groupB\manual`), along with the corresponding audio tracks (saved under `raw_audio\groupB`)
 
 ---
 

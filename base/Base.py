@@ -401,10 +401,11 @@ class VideoScraper:
             if child.tag == 'p':
                 caption = ''
                 if len(list(child))==0:
-                    continue
-                for s in list(child):
-                    if s.tag == 's':
-                        caption += ' ' + s.text
+                    caption = child.text
+                else:
+                    for s in list(child):
+                        if s.tag == 's':
+                            caption += ' ' + s.text
                 caption = unescape(caption.replace("\n", " ").replace("  ", " "),)
                 try:
                     duration = float(child.attrib["d"])/1000.0

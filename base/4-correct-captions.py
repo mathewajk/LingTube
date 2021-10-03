@@ -73,7 +73,10 @@ def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
         elif path.isdir(path.join(cleaned_subtitles_base, "auto")):
             lang_code_list = listdir(path.join(cleaned_subtitles_base, "auto"))
             lang_code = lang_code_list[0]
-
+        else:
+            print("ERROR: Please run clean-captions before running this script.")
+            exit(1)
+            
         manual_dir = path.join(cleaned_subtitles_base, "manual", lang_code, "cleans", channel_id)
         auto_dir = path.join(cleaned_subtitles_base, "auto", lang_code, "cleans", channel_id)
         corrected_dir = path.join(cleaned_subtitles_base, "corrected", lang_code, "cleans", channel_id)

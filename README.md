@@ -176,6 +176,8 @@ optional arguments:
                         langcode
 ```
 
+---
+
 #### 3-clean-captions.py
 
 This script allows the user to convert scraped YouTube SRT captions to a cleaned transcript text format that has three columns for: (i) start time, (ii) end time, (iii) caption text. (Note that to use this script, you must have downloaded captions as SRT and not XML files.)
@@ -223,39 +225,58 @@ This call:
 3. Additionally outputs a transcript text-only file (in a folder called `texts`)
 
 
+---
 
 #### 4-correct-captions.py
 
-This script helps to streamline the correction of YouTube captions prior to chunking. It opens each video in a list of videos one-at-a-time in the browser alongside the caption file, which opens in a text editor of the user's choice. Correction progress can be saved such that next time the program is run, the video will open where the user left off last time.
+This optional script helps to streamline the correction of YouTube captions, if necessary. It opens each video in a list of videos one-at-a-time in the browser alongside the caption file, which opens in a text editor of the user's choice. Correction progress can be saved such that next time the program is run, the video will open where the user left off last time.
 
 ##### Usage
 
-```
-python3 yt-tools/correct-captions.py -h
-usage: correct-captions.py [-h] [--group GROUP] [--lang_code LANG_CODE]
-                           [--channel CHANNEL] [--editor EDITOR]
+To start the program to correct captions in a corpus without group structure (i.e., where channels are listed under an `ungrouped` folder):
 
-Open captions text file and YouTube video in browser to aid in correcting captions,
-based on a log file in corpus/logs. If group is specified, uses
-corpus/logs/$group_log.csv. If no group is specified, ask user to navigate to and
-select a log file.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --group GROUP, -g GROUP
-                        name to group files under (create and /or assume files are
-                        located in a subfolder: raw_subtitles/$group)
-  --lang_code LANG_CODE, -l LANG_CODE
-                        open captions with a specific a language code (e.g., "en");
-                        if unspecified, uses first available language code in
-                        subtitle directory
-  --channel CHANNEL, -ch CHANNEL
-                        run on files for a specific channel name; if unspecified,
-                        goes through all channels in order
-  --editor EDITOR, -e EDITOR
-                        opens text file in a specified text editor: TextEdit, Atom,
-                        Notepad++ (default=TextEdit)
 ```
+python3 base/4-correct-captions.py
+```
+
+To start the program to correct captions from a particular group, specify a group name with `-g` or `--group`:
+
+```
+python3 base/4-correct-captions.py -g $group_name
+```
+
+To start the program to correct captions from a particular channel, specify a channel name with `-g` or `--group`:
+
+```
+python3 base/4-correct-captions.py -ch $channel_name
+```
+
+To start the program to correct captions for a particular language, specify a language code (e.g., 'en' for English) with `-l` or `--lang_code`:
+
+```
+python3 base/4-correct-captions.py -l $lang_code
+```
+
+To start the program to correct captions using a particular text editor, specify an editor ("TextEdit", "Atom", "Notepad") with `-e` or `--editor`:
+
+```
+python3 base/4-correct-captions.py -e $editor_name
+```
+
+##### Examples
+
+`python3 base/4-correct-captions.py -g kor -ch JennIm -l en
+`
+
+This call:
+1. Takes a group name and locates the log file under `logs` called `kor_log.csv`.
+2. In the log file, identifies only the rows (i.e., videos) corresponding to the channel `JennIm` that have not yet been corrected (`corrected` column is 0).
+3. Opens a GUI window that allows the user to open a text file and YouTube video for each uncorrected video (starting from the first).
+4. When the user clicks "Open", locates the cleaned caption file under the `kor` group and `en` language sub-folders of the `cleaned_subtitles` folder.
+5. Makes a copy of the caption file if it doesn't exist and opens the copy in the default text editor (e.g., TextEdit on MacOS).
+6. Additionally, opens the video URL (listed in the log file) in the default browser.
+7. When the user is finished editing the text file, they either input a stop time or check off whether they have completed correcting the video, then choose to save & quit or move on to the next video. This updates the `corrected` column of the log file `kor_log.csv`.
+
 
 ---
 

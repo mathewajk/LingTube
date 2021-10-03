@@ -759,12 +759,15 @@ class CaptionCleaner:
         self.text      = text
         self.overwrite = overwrite
 
-        self.raw_sub_base = path.join('corpus','raw_subtitles')
-        self.clean_sub_base = path.join('corpus','cleaned_subtitles')
+        self.raw_sub_base = path.join('corpus','raw_subtitles',  self.group)
+        self.clean_sub_base = path.join('corpus','cleaned_subtitles', self.group)
 
-        if self.group:
-            self.raw_sub_base = path.join(self.raw_sub_base, self.group)
-            self.clean_sub_base = path.join(self.clean_sub_base, self.group)
+        if self.overwrite:
+            try:
+                shutil.rmtree(self.clean_sub_base)
+            except FileNotFoundError as e:
+                pass
+
 
     def process_captions(self):
 
@@ -946,7 +949,7 @@ class CaptionCleaner:
     def clean_captions(self, i, fn, langcode, in_dir, cleans_dir, text_dir, text=False, overwrite=False):
         name, ext = path.splitext(fn)
 
-        if path.isdir(cleans_dir) and not overwrite:
+        if path.isdir(cleans_dir):
             existing_files = glob(path.join(cleans_dir, "**", "*{0}*".format(name)), recursive=True)
             if existing_files:
                 return 1

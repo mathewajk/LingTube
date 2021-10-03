@@ -46,7 +46,7 @@ def main(args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Download available subtitles and audio from a list of YouTube video urls.')
+    parser = argparse.ArgumentParser(description='Download available subtitles and audio from a list or lists of YouTube video urls.')
 
     parser.add_argument('urls_in', type=str, help='a group name, file, or directory containing the URLs to scrape')
 
@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     # LingTube options
     parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite logs and files rather than appending')
-    parser.add_argument('-s',  '--screen',   action='store_true', default=False, help='download files into a folder for further screening ("unscreened_videos"); else, downloads into "raw_subtitles"')
+    parser.add_argument('-s',  '--screen',   action='store_true', default=False, help='download files into a folder for further screening (e.g., unscreened_videos/subtitles); else, downloads into "raw_subtitles"')
 
     args = parser.parse_args()
 

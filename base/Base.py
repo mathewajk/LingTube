@@ -323,7 +323,7 @@ class VideoScraper:
         out_path = ""
 
         if self.screen:
-            out_path = path.join("corpus", "unscreened_urls", self.group, "subtitles")
+            out_path = path.join("corpus", "unscreened_videos", self.group, "subtitles")
         else:
             out_path = path.join("corpus", "raw_subtitles", self.group)
 
@@ -415,7 +415,7 @@ class VideoScraper:
                     end=self.float_to_srt_time_format(end),
                     text=caption,
                 )
-            segments.append(line)
+                segments.append(line)
             i += 1
         return "\n".join(segments).strip()
 
@@ -653,7 +653,10 @@ class MultiVideoScraper:
                     exit(2)
 
                 punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-                yt_id = sub(punc_and_whitespace, '', findall(r".+watch\?v=(.+)\b", url)[0])
+                try:
+                    yt_id = sub(punc_and_whitespace, '', findall(r".+watch\?v=(.+)\b", url)[0])
+                except IndexError as e:
+                    pass
 
                 # Check if yt_id already exists in some file; skip download if so
                 if not self.overwrite:
@@ -701,7 +704,7 @@ class BatchVideoScraper:
 
         out_audio_path = path.join("corpus", "raw_audio")
         if self.screen:
-            out_path = path.join("corpus", "unscreened_urls", self.group, "subtitles")
+            out_path = path.join("corpus", "unscreened_videos", self.group, "subtitles")
             out_audio_path = path.join(out_audio_path, self.group)
         else:
             out_path = path.join("corpus", "raw_subtitles", self.group)
@@ -725,7 +728,7 @@ class BatchVideoScraper:
         log_fn = "{0}_log.csv".format(self.group)
         log_path = path.join("corpus", "logs")
         if self.screen:
-            log_fp = path.join("corpus", "unscreened_urls", "logs")
+            log_fp = path.join("corpus", "unscreened_videos", "logs")
         log_fp = path.join(log_path, log_fn)
 
         if path.isfile(log_fp) and self.overwrite:
@@ -741,11 +744,10 @@ class BatchVideoScraper:
 
 class CaptionCleaner:
 
-    def __init__(self, group=None, lang_code=None, fave=False, text=False, overwrite=False):
+    def __init__(self, group="_ungrouped", lang_code=None, text=False, overwrite=False):
 
         self.group     = group
         self.lang_code = lang_code
-        self.fave      = fave
         self.text      = text
         self.overwrite = overwrite
 
@@ -774,7 +776,6 @@ class CaptionCleaner:
 
                 in_dir = path.join(raw_sub_dir, langcode)
                 cleans_dir = path.join(clean_sub_dir, langcode, "cleans")
-                fave_dir = path.join(clean_sub_dir, langcode, "faves")
                 text_dir = path.join(clean_sub_dir, langcode, "texts")
 
                 if path.isdir(in_dir):
@@ -786,16 +787,15 @@ class CaptionCleaner:
 
                             channel_in_dir = path.join(in_dir, dir_element)
                             channel_cleans_dir = path.join(cleans_dir, dir_element)
-                            channel_fave_dir = path.join(fave_dir, dir_element)
                             channel_text_dir = path.join(text_dir, dir_element)
 
                             channel_dir_list = [dir_element for dir_element in listdir(channel_in_dir)]
                             if '.DS_Store' in channel_dir_list:
                                 channel_dir_list.remove('.DS_Store')
                             for j, fn in enumerate(channel_dir_list):
-                                self.clean_captions(j, fn, langcode, channel_in_dir, channel_cleans_dir,channel_fave_dir, channel_text_dir, self.fave, self.text, self.overwrite)
+                                self.clean_captions(j, fn, langcode, channel_in_dir, channel_cleans_dir, channel_text_dir, self.text, self.overwrite)
                         else:
-                            self.clean_captions(i, dir_element, langcode, in_dir, cleans_dir, fave_dir, text_dir, self.fave, self.text, self.overwrite)
+                            self.clean_captions(i, dir_element, langcode, in_dir, cleans_dir, text_dir, self.text, self.overwrite)
 
     def convert_to_seconds(self, timestamp):
         """ Translate timestamps to time in seconds (used in get_lines )
@@ -892,9 +892,9 @@ class CaptionCleaner:
 
         timed_lines = []
         for line in subs:
-            time_start_s = convert_to_seconds(line[0])
-            time_end_s = convert_to_seconds(line[1])
-            sub_text = clean_text(line[2], langcode)
+            time_start_s = self.convert_to_seconds(line[0])
+            time_end_s = self.convert_to_seconds(line[1])
+            sub_text = self.clean_text(line[2], langcode)
             timed_lines.append((time_start_s, time_end_s, sub_text))
 
         lasti = len(timed_lines)
@@ -927,23 +927,15 @@ class CaptionCleaner:
                 out_df = out_df.append(subtitle_row, ignore_index=True)
             out_df.to_csv(out_file_path, sep='\t', index=False, header=False)
 
-        elif file_type == 'fave':
-            out_df = pd.DataFrame(columns=['speaker_code', 'speaker_name',
-                                     'start_time', 'end_time', 'subtitle_text'])
-            for line in timed_lines:
-                subtitle_row = {"speaker_code": channel_name[:2], "speaker_name": channel_name, "start_time": line[0], "end_time": line[1], "subtitle_text": line[2]}
-                out_df = out_df.append(subtitle_row, ignore_index=True)
-            out_df.to_csv(out_file_path, sep='\t', index=False, header=False)
-
         elif file_type == 'text':
             all_lines = [line[2] for line in timed_lines]
             all_text = " ".join(all_lines)
             with open(out_file_path, "w") as file:
                 file.write(all_text)
         else:
-            print('File type is not valid (cleans, fave, text).')
+            print('File type is not valid (cleans, text).')
 
-    def clean_captions(self, i, fn, langcode, in_dir, cleans_dir, fave_dir, text_dir, fave=False, text=False, overwrite=False):
+    def clean_captions(self, i, fn, langcode, in_dir, cleans_dir, text_dir, text=False, overwrite=False):
         name, ext = path.splitext(fn)
 
         if path.isdir(cleans_dir) and not overwrite:
@@ -955,7 +947,5 @@ class CaptionCleaner:
 
         timed_lines = self.get_timestamped_lines(in_dir, fn, langcode)
         self.write_to_output('cleans', cleans_dir, name, timed_lines)
-        if fave:
-            self.write_to_output('fave', fave_dir, name, timed_lines)
         if text:
             self.write_to_output('text', text_dir, name, timed_lines)

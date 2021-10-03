@@ -169,33 +169,62 @@ python3 base/2-scrape-videos.py $group_name
 
 
 ###### Options
-To scrape all manual video captions from a list of URLs where channel files are grouped under a named group sub-folder, specify a group name with `-g` or `--group`:
+To scrape all manual video captions where channel files are grouped under a named group sub-folder, specify a group name with `-g` or `--group`:
 ```
-python3 base/2-scrape-videos.py --group $group_name $video_url_list.txt
+python3 base/2-scrape-videos.py -g $group_name $video_url_list.txt
 ```
 
+To scrape all manual video captions only for a particular language, specify a language name (e.g. "English", "Korean") with `-l` or `--language`:
+```
+python3 base/2-scrape-videos.py -l $language_name $video_url_list.txt
+```
+
+To scrape all manual video captions and/or automated captions from a list of URLs, use `-a` or `--auto`:
+```
+python3 base/2-scrape-videos.py -a $video_url_list.txt
+```
+
+To scrape all manual video captions along with corresponding audio tracks from a list of URLs, use `-aud` or `--audio`:
+```
+python3 base/2-scrape-videos.py -aud $video_url_list.txt
+```
+
+To scrape all manual video captions and convert default XML files to SRT files, use `--srt`:
+```
+python3 base/2-scrape-videos.py --srt $video_url_list.txt
+```
+
+To scrape only a maximum number of manual video captions, specify a number (*N*) with the `-lim` or `--limit` flag. This can be repeated to add a specified number of captions in addition to what has already been scraped:
+```
+python3 base/2-scrape-videos.py -lim N $video_url_list.txt
+```
+
+To completely overwrite the grouping folder containing previously scraped video caption and/or audio files (if group is unspecified, this will be the "ungrouped" folder) with newly scraped data, use the `-o` or `--overwrite` flag:
+```
+python3 base/2-scrape-videos.py -o $video_url_list.txt
+```
+
+To scrape video captions and/or audio for screening purposes, you can use the `-s` or `--screen` flag to download data into a separate temporary folder named "unscreened_videos":
+```
+python3 base/2-scrape-videos.py -s $video_url_list.txt
+```
 
 ##### Examples
 
-<!-- `python3 base/2-scrape-videos.py -lim 10 -g groupA -s channel_urls.txt
+`python3 base/2-scrape-videos.py -g groupA -a -aud --srt -lim 10 video_urls_list.txt
 `
 
 This call:
-1. Takes a file with a list of channel URLs as its input (`channel_urls.txt`)
-2. Using the default Firefox browser, scrapes each channel collecting 10 (additional) video URLs and the About page info
-3. Groups the resulting video URLs under a subfolder called `groupA`
-4. Additionally places the group subfolder under a folder called `unscreened_videos` indicating that the videos need to be checked for usability
+1. Takes a file with a list of video URLs as its input (`video_urls_list.txt`)
+2. Scrapes caption files for up to 10 videos that have either auto captions or manual captions (saved under `raw_subtitles\groupA\auto` and `raw_subtitles\groupA\manual`), along with the corresponding audio tracks for those 10 videos (saved under `raw_audio\groupA`)
+3. Additionally converts caption files from XML to SRT format
 
-`python3 base/2-scrape-videos.py -o -b Chrome video_urls.txt
+`python3 base/2-scrape-videos.py -aud groupB
 `
-
 This call:
-1. Takes a file with a list of video URLs as its input (`video_urls.txt`)
-2. Checks for and deletes the subfolder called `ungrouped` if it exists
-3. Using the Chrome browser, scrapes each channel collecting all available video URLs and the About page info
-3. Saves the resulting video URLs under a subfolder called `ungrouped`
-4. In addition, outputs the list of video URLs with columns for the scraped channel name and ID -->
-
+1. Takes a group name as its input (`groupB`)
+<!-- 2. Checks for and deletes the subfolders called `groupB` if it exists in the output folders (`raw_subtitles` and `raw_audio`) -->
+2. For each file in `screened_urls/groupB/channel_urls`, downloads all existing manual caption files in XML format (saved under `raw_subtitles\groupB\manual`), along with the corresponding audio tracks (saved under `raw_audio\groupB`)
 
 
 ---

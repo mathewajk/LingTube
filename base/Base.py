@@ -460,16 +460,18 @@ class VideoScraper:
         if not path.exists(out_path):
             makedirs(out_path)
 
+        success = 0
         try:
             if self.include_title:
                 audio.download(filename=safe_title + '.mp4', output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, self.yt_id), skip_existing=True)
+                success = 1
             else:
                 audio.download(filename=str(self.yt_id) + '.mp4', output_path=out_path, filename_prefix="{0}_".format(safe_author), skip_existing=True)
-
+                success = 1
         except:
             logging.critical("Video {0}: Could not save audio stream for video {0} from channel {1} ({2})".format(self.yt_id, self.video.author, self.video.title))
-            return 0
-        return 1
+
+        return success
 
         # Be polite
         time.sleep(1)

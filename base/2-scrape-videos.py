@@ -34,7 +34,7 @@ def main(args):
         if screen:
             group_path = path.join(group_path, 'unscreened_videos')
         else:
-            group_path = path.join(group_path, 'screened_videos')
+            group_path = path.join(group_path, 'screened_urls')
         group_path = path.join(group_path, group, 'channel_urls')
 
         if path.isdir(group_path):

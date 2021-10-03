@@ -600,7 +600,6 @@ class MultiVideoScraper:
             out_path = path.join("corpus", "raw_subtitles", self.group)
             out_audio_path = path.join(out_audio_path, self.group)
 
-        print(self.log_fp)
         if not self.log_fp: # No file passed, i.e. not a grouped batch
 
             log_fn = "{0}_log.csv".format(self.group)
@@ -664,13 +663,11 @@ class MultiVideoScraper:
                         continue
 
                 video = VideoScraper(url, yt_id, self.log_fp, channel_name, channel_id, self.language, self.include_audio, self.include_auto, self.group, self.screen, self.convert_srt, self.include_title)
-                print(yt_id)
                 status = video.process_video()
 
                 self.video_count += 1
                 self.success_count += status
 
-                print(self.limit)
                 if self.limit != -1 and self.success_count == self.limit:
                     break
 

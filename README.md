@@ -36,10 +36,10 @@ to install the version of Python that is bundled with TK. By default, `brew inst
 
 The LingTube base scripts are used first to access YouTube data and pre-process captions prior to more specific processing (via YouDep or YouSpeak pipeline components). Before using the base scripts, you should have identified YouTube channel(s) or video(s) that you intend to scrape. Base is intended to be run in this order:
 
-1. [`1-scrape-channels.py`](#1-scrape-channels.py)
-2. [`2-scrape-videos.py`](#2-scrape-videos.py)
-4. [`3-clean-captions.py`](#3-clean-captions.py)
-5. [`4-correct-captions.py`](#4-correct-captions.py)
+1. [`1-scrape-channels.py`](#1-scrape-channelspy)
+2. [`2-scrape-videos.py`](#2-scrape-videospy)
+4. [`3-clean-captions.py`](#3-clean-captionspy)
+5. [`4-correct-captions.py`](#4-correct-captionspy)
 
 
 <!-- Add information about install drivers for Firefox or Chrome -->
@@ -339,10 +339,10 @@ This call:
 
 The YouSpeak scripts are used to process scraped audio for forced alignment; specifically, these scripts (help to) identify usable speech utterances and match them to transcript text. Before using scripts under YouSpeak, you should have already run the relevant scripts in `base`. That is, you should have (1) downloaded audio and caption files, and optionally (2) corrected the original captions (though corrections can also be done after `2-chunk-audio.py` but before `3-validate-chunks.py`). YouSpeak is intended to be run in this order:
 
-1. [`1-convert-audio.py`](#1-convert-audio.py)
-2. [`2-chunk-audio.py`](#2-chunk-audio.py)
-4. [`3-validate-chunks.py`](#3-validate-chunks.py)
-5. [`4-create-textgrids.py`](#4-create-textgrids.py)
+1. [`1-convert-audio.py`](#1-convert-audiopy)
+2. [`2-chunk-audio.py`](#2-chunk-audiopy)
+4. [`3-validate-chunks.py`](#3-validate-chunkspy)
+5. [`4-create-textgrids.py`](#4-create-textgridspy)
 
 After this stage, you can run forced alignment (using the Montreal Forced Aligner or other compatible aligner).
 

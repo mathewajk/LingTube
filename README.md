@@ -245,7 +245,7 @@ To start the program to correct captions from a particular group, specify a grou
 python3 base/4-correct-captions.py -g $group_name
 ```
 
-To start the program to correct captions from a particular channel, specify a channel name with `-g` or `--group`:
+To start the program to correct captions from a particular channel, specify a channel name with `-ch` or `--channel`:
 
 ```
 python3 base/4-correct-captions.py -ch $channel_name
@@ -272,10 +272,10 @@ This call:
 1. Takes a group name and locates the log file under `logs` called `kor_log.csv`.
 2. In the log file, identifies only the rows (i.e., videos) corresponding to the channel `JennIm` that have not yet been corrected (`corrected` column is 0).
 3. Opens a GUI window that allows the user to open a text file and YouTube video for each uncorrected video (starting from the first).
-4. When the user clicks "Open", locates the cleaned caption file under the `kor` group and `en` language sub-folders of the `cleaned_subtitles` folder.
+4. When the user clicks "Open", locates the cleaned caption file under the `kor` (group) and `en` (language code) sub-folders of the `cleaned_subtitles` folder.
 5. Makes a copy of the caption file if it doesn't exist and opens the copy in the default text editor (e.g., TextEdit on MacOS).
 6. Additionally, opens the video URL (listed in the log file) in the default browser.
-7. When the user is finished editing the text file, they either input a stop time or check off whether they have completed correcting the video, then choose to save & quit or move on to the next video. This updates the `corrected` column of the log file `kor_log.csv`.
+7. When the user is finished editing the text file, they either input a stop time or check off a box indicating completion, then choose to save & quit or move on to the next video. This updates the `corrected` column of the log file `kor_log.csv`.
 
 
 ---

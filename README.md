@@ -287,7 +287,7 @@ This call:
 
 ### YouSpeak
 
-The YouSpeak scripts are used to process scraped audio for use in forced alignment programs; specifically, these scripts identify usable speech utterances and match them to transcript text. Before using scripts under YouSpeak, you should have already run the relevant scripts in `base`. That is, you should have (1) downloaded audio and caption files, and optionally (2) corrected the original captions (though corrections can also be done after `2-chunk-audio.py` but before `3-validate-chunks.py`). YouSpeak is intended to be run in this order:
+The YouSpeak scripts are used to process scraped audio for forced alignment; specifically, these scripts (help to) identify usable speech utterances and match them to transcript text. Before using scripts under YouSpeak, you should have already run the relevant scripts in `base`. That is, you should have (1) downloaded audio and caption files, and optionally (2) corrected the original captions (though corrections can also be done after `2-chunk-audio.py` but before `3-validate-chunks.py`). YouSpeak is intended to be run in this order:
 
 1. [`1-convert-audio.py`](#1-convert-audio.py)
 2. [`2-chunk-audio.py`](#2-chunk-audio.py)

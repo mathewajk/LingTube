@@ -671,7 +671,7 @@ class MultiVideoScraper:
                 self.success_count += status
 
                 print(self.limit)
-                if self.limit != -1 and self.video_count == self.limit:
+                if self.limit != -1 and self.success_count == self.limit:
                     break
 
             print("Checked {0} videos; located captions and/or audio for {1} videos.".format(self.video_count, self.success_count))

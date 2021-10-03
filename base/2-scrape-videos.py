@@ -23,19 +23,35 @@ def main(args):
         scraper = Base.MultiVideoScraper(urls_in, log_fp, language, group, screen, include_audio, include_auto, convert_srt, limit, overwrite)
         scraper.process_videos()
 
-    if path.isdir(args.urls_in):
+    elif path.isdir(urls_in):
         scraper = Base.BatchVideoScraper(urls_in, language, group, screen, include_audio, include_auto, convert_srt, limit, overwrite)
         scraper.process_files()
 
+    else:
+        group = urls_in
+
+        group_path = path.join('corpus')
+        if screen:
+            group_path = path.join(group_path, 'unscreened_videos')
+        else:
+            group_path = path.join(group_path, 'screened_videos')
+        group_path = path.join(group_path, group, 'channel_urls')
+
+        if path.isdir(group_path):
+             scraper = Base.BatchVideoScraper(group_path, language, group, screen, include_audio, include_auto, convert_srt, limit, overwrite)
+             scraper.process_files()
+
+        else:
+            print("Please input a valid group name, file path, or directory path")
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Download available subtitles and audio from a list of YouTube video urls.')
 
-    parser.add_argument('urls_in', type=str, help='path to a file or directory containing the URLs to scrape')
+    parser.add_argument('urls_in', type=str, help='a group name, file, or directory containing the URLs to scrape')
 
     # LingTube organization
-    parser.add_argument('-g', '--group',     default="ungrouped", metavar='NAME', type=str, help='a name for grouping the output files (will create a log file and subfolder under this name, e.g., raw_subtitles/$group); if unspecified, channel names will be used')
+    parser.add_argument('-g', '--group',     default="ungrouped", metavar='NAME', type=str, help='group to use if file or directory is input')
     parser.add_argument('-l', '--language', default=None, type=str, help='filter captions by language name (e.g. "Korean"); if unspecified, all captions will be downloaded')
 
     # Download parameters

@@ -42,6 +42,7 @@ def main(args):
              scraper = Base.BatchVideoScraper(group_path, language, group, screen, include_audio, include_auto, convert_srt, limit, overwrite)
              scraper.process_files()
 
+        # TODO: Error will be weird if the user inputs a missing directory or file since it will be treated like a group
         else:
             print("Directory not found: {0}\nPlease input a valid group name, file path, or directory path and double-check your command-line flags (e.g. -s)".format(group_path))
 
@@ -62,7 +63,7 @@ if __name__ == '__main__':
     parser.add_argument('-lim', '--limit', type=int, metavar='N', default=-1, help='limit processing to N videos or files; if unspecfied, all available videos or files will be processed')
 
     # LingTube options
-    parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite logs and files rather than appending')
+    parser.add_argument('-o', '--overwrite', choices = ["all", "channel"], help='all: overwrite all audio and caption files; channel: overwrite only if channel already exists')
     parser.add_argument('-s',  '--screen',   action='store_true', default=False, help='download files into a folder for further screening (e.g., unscreened_videos/subtitles); else, downloads into "raw_subtitles"')
 
     args = parser.parse_args()

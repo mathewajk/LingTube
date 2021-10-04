@@ -450,7 +450,6 @@ class VideoScraper:
         else:
             self.safe_author = sub(punc_and_whitespace, "", video.author)
 
-
         # Sort audio and captions by screening status
         if self.screen:
             captions_out_dir = path.join("corpus", "unscreened_videos", self.group, "subtitles")
@@ -742,7 +741,9 @@ class VideoScraper:
 
 class MultiVideoScraper:
 
-    def __init__(self, f, log_fp=None, language=None, group="ungrouped", screen=None, include_audio=False, include_auto=False, convert_srt=False, limit=-1, overwrite=False):
+    # TODO: Only delete channel folders if overwrite is true!
+
+    def __init__(self, f, log_fp=None, language=None, group="ungrouped", screen=False, include_audio=False, include_auto=False, convert_srt=False, limit=-1, overwrite=None):
 
         # Input params
         self.f             = f
@@ -766,6 +767,32 @@ class MultiVideoScraper:
         self.init_files()
 
 
+    def overwrite_channel_data(self):
+
+        # Get channel name and ID from file path
+        channel_full = path.split(self.f)[-1].split('_')[:2]
+        channel_id = channel_full[1]
+
+        # Generate possible existing audio and caption directories
+        chan_audio_out_dir = path.join(self.audio_out_dir, '_'.join(channel_full))
+        chan_captions_dirs = glob(path.join(self.captions_out_dir, "*", "*", "*{0}*".format(channel_id)), recursive=True)
+        all_chan_dirs = [chan_audio_out_dir] + chan_captions_dirs
+
+        # Delete existing directories
+        for dir in all_chan_dirs:
+             try:
+                 shutil.rmtree(dir)
+             except FileNotFoundError as e:
+                 pass
+
+        # Filter log file
+        with open(self.log_out_path, 'r') as log_in:
+            videos_to_keep = [line for line in log_in if channel_id not in line]
+        with open(self.log_out_path, 'w') as log_out:
+            for video in videos_to_keep:
+                log_out.write(video)
+
+
     def init_files(self):
 
         # Sort audio and captions by screening status
@@ -778,26 +805,23 @@ class MultiVideoScraper:
             self.audio_out_dir    = path.join("corpus", "raw_audio", self.group)
             self.log_out_dir      = path.join("corpus", "logs")
 
+        # Organize output locations
         out_dirs = {"captions": self.captions_out_dir,
-                       "audio": self.audio_out_dir}
+                    "audio": self.audio_out_dir,
+                    "log": self.log_out_dir}
 
-        if self.overwrite:
-            for key in out_dirs:
-                try:
-                    shutil.rmtree(out_dirs[key])
-                except FileNotFoundError as e:
-                    pass
-
-        out_dirs.update({"log": self.log_out_dir})
-        for key in out_dirs:
-            if not path.exists(out_dirs[key]):
-                makedirs(out_dirs[key])
-
+        # Prepare logfile path
         log_fn = "{0}_log.csv".format(self.group)
         self.log_out_path = path.join(self.log_out_dir, log_fn)
 
-        if path.isfile(self.log_out_path) and self.overwrite:
-            remove(self.log_out_path)
+        # If overwriting individual channels, do so at this stage
+        if self.overwrite == "channel":
+            self.overwrite_channel_data()
+
+        # Make any directories that don't exist
+        for key in out_dirs:
+            if not path.exists(out_dirs[key]):
+                makedirs(out_dirs[key])
 
 
     def parse_url(self, url_data):
@@ -859,7 +883,7 @@ class MultiVideoScraper:
 
 class BatchVideoScraper:
 
-    def __init__(self, base_fn, language=None, group="ungrouped", screen=None,  include_audio=False, include_auto=False, convert_srt=False, limit=-1, overwrite=False):
+    def __init__(self, base_fn, language=None, group="ungrouped", screen=None,  include_audio=False, include_auto=False, convert_srt=False, limit=-1, overwrite=None):
 
         self.base_fn       = base_fn
         self.language      = language
@@ -889,7 +913,7 @@ class BatchVideoScraper:
         out_dirs = {"captions": self.captions_out_dir,
                        "audio": self.audio_out_dir}
 
-        if self.overwrite:
+        if self.overwrite == "all":
             for key in out_dirs:
                 try:
                     shutil.rmtree(out_dirs[key])
@@ -904,7 +928,7 @@ class BatchVideoScraper:
         log_fn = "{0}_log.csv".format(self.group)
         self.log_out_path = path.join(self.log_out_dir, log_fn)
 
-        if path.isfile(self.log_out_path) and self.overwrite:
+        if path.isfile(self.log_out_path) and self.overwrite == "all":
             remove(self.log_out_path)
 
 
@@ -918,7 +942,7 @@ class BatchVideoScraper:
 
         # Need to make video objs
         for fn in all_fns:
-            scraper = MultiVideoScraper(fn, self.log_out_path, self.language, self.group, self.screen, self.include_audio, self.include_auto, self.convert_srt, self.limit, False)
+            scraper = MultiVideoScraper(fn, self.log_out_path, self.language, self.group, self.screen, self.include_audio, self.include_auto, self.convert_srt, self.limit, self.overwrite)
             scraper.process_videos()
 
 

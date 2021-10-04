@@ -23,17 +23,20 @@ from selenium.webdriver.chrome.options import Options
 
 class ChannelScraper:
 
-    def __init__(self, url, browser="Firefox", limit=-1, group='_ungrouped', about=False, overwrite=False, screen=False):
+    def __init__(self, url, browser="Firefox", limit=-1, group='ungrouped', about=False, overwrite=False, screen=False):
 
+        # Clean URL
+        # TODO: URL validation
         self.url = url
         if self.url[-1] == '/':
             self.url = self.url[:-1]
-        self.from_video = False
 
-        if "watch?" in self.url:
-            self.from_video = True
+        # Determine if URL is a video or channel link
+        self.from_video = True if "watch?" in self.url else False
 
-        # Default variables
+        # Set other variables
+        self.urls          = None
+        self.info          = None
         self.browser       = browser
         self.group         = group
         self.about         = about
@@ -43,6 +46,8 @@ class ChannelScraper:
 
 
     def init_files(self):
+        """ Generate directory and file paths and create directores if needed
+        """
 
         # If videos need to be screened, save to separate folder
         if self.screen:
@@ -72,70 +77,175 @@ class ChannelScraper:
 
 
     def process(self):
-        """Scrape the channel and save
+        """Scrape the channel and save URLs to a file
         """
 
-        self.scrape()
-        self.init_files() # TODO: Better name?
+        # Scrape the channel for URLs and about page info
+        (name_success, description_success, urls_success) = self.scrape()
 
-        # If we are working from a video, log the video URL
+        # Create directory structure
+        self.init_files()
+
+        # If we are working from a video, log the input URL
         if self.from_video:
             self.log_video()
-        self.save()
+
+        # Save scraped URLs and info
+        count = self.save(name_success, description_success, urls_success)
+        print("Colellected {0} URLs".format(count))
 
 
-    def save(self):
-        """Save info and (if applicable) list of video URLs as text files
+    def save_info(self):
+        """Save about page info to info file
         """
 
-        # Save channel info if it was scraped and file doesn't exist already
-        if self.info and not path.isfile(self.info_out_path):
-            with open(self.info_out_path, 'w') as info_out:
-                for key in self.info.keys():
-                    info_out.write("# {0}\n\n".format(key))
-                    info_out.write("{0}\n\n".format(self.info[key]))
+        with open(self.info_out_path, 'w') as info_out:
+            for key in self.info.keys():
+                info_out.write("# {0}\n\n".format(key))
+                info_out.write("{0}\n\n".format(self.info[key]))
 
-        # Don't save the links if we didn't scrape anything
-        if self.about:
-            return
 
-        # TODO: This is a mess.
-        previous_urls = []
-        if path.isfile(self.urls_out_path):
-            with open(self.urls_out_path, 'r') as urls_in:
-                previous_urls = [line.split('\t')[0] for line in urls_in]
-        previous_urls.append(self.url)
+    def save_new_urls(self, previous_urls):
+        """ Save any urls up to LIMIT that don't overlap with previously-saved ones
+
+        :return url_count: The number of URLs saved
+        """
 
         # Scrape up to LIMIT new video URLs; if no limit, scrape all video URLs
         new_urls = set(self.urls).symmetric_difference(set(previous_urls))
 
+        # Quit if there's nothing to save
+        if not new_urls:
+            logging.warning('No new URLs found')
+            return
+
         # Save new video URLs
         url_count = 0
-        if new_urls:
-            with open(self.urls_out_path, 'a') as urls_out:
-                for url in new_urls:
+        with open(self.urls_out_path, 'a') as urls_out:
 
-                    formatted_url = "{0}\t{1}\t{2}\n".format(url, self.info["ChannelName"], self.info["SafeChannelID"])
-                    urls_out.write(formatted_url)
+            for url in new_urls:
 
-                    url_count += 1
-                    if url_count == self.limit:
-                        break
+                formatted_url = "{0}\t{1}\t{2}\n".format(url, self.info["ChannelName"], self.info["SafeChannelID"])
+                urls_out.write(formatted_url)
+
+                url_count += 1
+                if url_count == self.limit:
+                    break
+
+        return url_count
 
 
-    def scrape_urls(self, channel):
-        """Scrape the URLs from a YouTube channel.
+    def get_previous_urls(self):
+        """Read in previously-saved URLs if they exist
 
-        :return : List of videos URLs
+        : return previous_urls: List of URLs in the existing output file
         """
 
-        return channel.video_urls
+        previous_urls = []
+        if path.isfile(self.urls_out_path):
+            with open(self.urls_out_path, 'r') as urls_in:
+                previous_urls = [line.split('\t')[0] for line in urls_in]
+
+        previous_urls.append(self.url)
+
+        return previous_urls
 
 
-    def scrape_info(self, driver, channel_id, channel_url):
-        """Scrape the channel's description.
+    def save(self, name_success, description_success, urls_success):
+        """Save info and (if applicable) list of video URLs as text files
 
-        :return: A dictionary containing the channel's description, bio, and metadata.
+        :return count: Number of URLs saved
+        """
+
+        # Save channel info if it was scraped and file doesn't exist already
+        if name_success and description_success and not path.isfile(self.info_out_path):
+            self.save_info()
+
+        # Don't save the links if we didn't scrape anything
+        if urls_success < 1:
+            return
+
+        # Get URLs that have already been saved
+        previous_urls = self.get_previous_urls()
+
+        # Save only new URLs
+        count = self.save_new_urls(previous_urls)
+
+        return count
+
+
+    def scrape_urls(self, channel_url):
+        """Scrape the URLs from a YouTube channel.
+
+        :return channel_urls: List of videos URLs
+        :return success: URLs scraped sccessfully
+        """
+
+        success = 1
+
+        try:
+            channel = Channel(channel_url) # Load channel in PyTube
+            return (channel.video_urls, success)
+        except:
+            success = 0
+
+        return (None, success)
+
+
+    def set_channel_name(self, driver, info):
+        """Scrape the channel's 'human readable' name.
+
+        :return info: A dictionary containing the channel's name.
+        :return success: Channel name was scraped successfully
+        """
+
+        # Status for scraping channel name
+        success = 1
+
+        try:
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'ytd-channel-name')))
+
+            channel_name = driver.find_element(By.CLASS_NAME, "ytd-channel-name").text
+
+            punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
+            info["ChannelName"] = channel_name
+            info["SafeChannelName"] = sub(punc_and_whitespace, "", channel_name)
+
+        except:
+            logging.warning("Could not scrape channel name")
+            success = 0
+
+        return (info, success)
+
+
+    def set_description(self, driver, info):
+        """Scrape the channel's description, bio, and metadata.
+
+        :return info: A dictionary containing the channel's description, bio, etc.
+        :return success: About page was scraped successfully
+        """
+
+        # Status for scraping data
+        success = 1
+
+        try:
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, 'description')))
+            info["Description"] = driver.find_element(By.ID, "description-container").text
+            info["Bio"]         = driver.find_element(By.ID, "bio").text
+            info["Metadata"]    = driver.find_element(By.ID, "details-container").find_element(By.TAG_NAME, "table").text
+
+        except:
+            logging.warning("Could not scrape about page")
+            success = 0
+
+        return (info, success)
+
+
+    def set_info(self, driver, channel_id, channel_url):
+        """Scrape the channel's about page for the channel's name, description, bio, and metadata.
+
+        :return name_success: Channel name was scraped successfully
+        :return description_success: About page was scraped successfully
         """
 
         punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
@@ -145,69 +255,84 @@ class ChannelScraper:
         # Load the about page
         driver.get(channel_url + "/about")
 
-        try:
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'ytd-channel-name')))
+        # Scrape relevant info
+        info_name, name_success              = self.set_channel_name(driver, info)
+        info_name_about, description_success = self.set_description(driver, info_name)
 
-            channel_name = driver.find_element(By.CLASS_NAME, "ytd-channel-name").text
+        self.info = info_name_about
 
-            info["ChannelName"] = channel_name
-            info["SafeChannelName"] = sub(punc_and_whitespace, "", channel_name)
-
-        except:
-            logging.warning("Could not scrape channel name")
-
-        try:
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, 'description')))
-            info["Description"] = driver.find_element(By.ID, "description-container").text
-            info["Bio"]         = driver.find_element(By.ID, "bio").text
-            info["Metadata"]    = driver.find_element(By.ID, "details-container").find_element(By.TAG_NAME, "table").text
-        except:
-            logging.warning("Could not scrape about page")
-
-        return info
+        return (name_success, description_success)
 
 
-    def scrape(self):
-        """Collect video URLs (if scraping URLs) and about page info from the channel
+    def scrape_info(self, channel_id, channel_url):
+        """Open a web browser and scrape the channel's about page.
+
+        :return info_name_about: A dictionary containing the channel's name, description, bio, and metadata.
+        :return name_success: Channel name was scraped successfully
+        :return description_success: About page was scraped successfully
         """
 
-        # Get the channel's ID and URL from video (if input is a video)
-        # Get from input channel URL otherwise
-        if self.from_video:
-            video = YouTube(self.url)
-            channel_id = video.channel_id
-            channel_url = 'https://www.youtube.com/channel/' + video.channel_id
-        else:
-            channel_id = self.url.split('/')[-1]
-            channel_url = self.url
-
-        # Gather URLs, unless we only want About page info
-        self.urls = None
-        if not self.about:
-            channel = Channel(channel_url) # Load channel in PyTube
-            print('Collecting video URLs from channel {0}'.format(channel.channel_id))
-            self.urls = self.scrape_urls(channel)
-
-        # Open a web browser in headless mode and scrape the About page
         if self.browser.lower() == "firefox":
+
             try:
                 options = webdriver.FirefoxOptions()
                 options.set_headless()
                 with webdriver.Firefox(firefox_options=options) as driver:
-                    self.info = self.scrape_info(driver, channel_id, channel_url)
+                    (name_success, description_success) = self.set_info(driver, channel_id, channel_url)
+
             except FileNotFoundError as e:
-                logging.critical("Could not locate geckodriver (Firefox browser)")
+                logging.critical('Could not locate geckodriver')
+
         elif self.browser.lower() == "chrome":
+
             try:
                 options = Options()
                 options.add_argument("--headless")
                 options.add_argument("--window-size=1920x1080")
                 with webdriver.Chrome(chrome_options=options) as driver:
-                    self.info = self.scrape_info(driver, channel_id, channel_url)
+                    (name_success, description_success) = self.set_info(driver, channel_id, channel_url)
+
             except FileNotFoundError as e:
-                logging.critical("Could not open chromedriver (Chrome browser)")
+                logging.critical('Could not locate chromedriver')
+
         else:
             print('ERROR: Invalid browser. Please enter "chrome" or "firefox"')
+
+        return (name_success, description_success)
+
+
+    def scrape(self):
+        """Collect video URLs (if scraping URLs) and about page info from the channel
+
+        :return name_success: Name successfully scraped
+        :return description_success: Description, bio, and metadata successfully scraped"
+        :return urls_success: URLs successfully scraped"
+        """
+
+        # Get the channel's ID and URL from video (if input is a video); from input channel URL otherwise
+        if self.from_video:
+            video = YouTube(self.url)
+            channel_id = video.channel_id
+            channel_url = 'https://www.youtube.com/channel/{0}'.format(video.channel_id)
+        else:
+            channel_id  = self.url.split('/')[-1]
+            channel_url = self.url
+
+        # Scrape about page
+        print('Collecting about page from channel {0}'.format(channel_id))
+
+        (name_success, description_success) = self.scrape_info(channel_id, channel_url)
+
+        # If about flag is set, stop here
+        if self.about:
+            return (name_success, description_success, -1)
+
+        # Scrape URLs
+        print('Collecting video URLs from channel {0}'.format(channel_id))
+
+        (self.urls, urls_success) = self.scrape_urls(channel_url)
+
+        return (name_success, description_success, urls_success)
 
 
     def log_video(self):

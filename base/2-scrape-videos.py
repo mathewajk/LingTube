@@ -29,12 +29,13 @@ def main(args):
 
     else:
         group = urls_in
+        group_path = ''
 
-        group_path = path.join('corpus')
         if screen:
-            group_path = path.join(group_path, 'unscreened_videos')
+            group_path = path.join('corpus', 'unscreened_videos')
         else:
-            group_path = path.join(group_path, 'screened_urls')
+            group_path = path.join('corpus', 'screened_urls')
+
         group_path = path.join(group_path, group, 'channel_urls')
 
         if path.isdir(group_path):
@@ -42,7 +43,7 @@ def main(args):
              scraper.process_files()
 
         else:
-            print("Please input a valid group name, file path, or directory path")
+            print("Directory not found: {0}\nPlease input a valid group name, file path, or directory path and double-check your command-line flags (e.g. -s)".format(group_path))
 
 if __name__ == '__main__':
 

@@ -20,7 +20,7 @@ def main(args):
     overwrite = args.overwrite
 
     if path.isfile(urls_in):
-        scraper = Base.MultiVideoScraper(urls_in, log_fp, language, group, screen, include_audio, include_auto, convert_srt, limit, overwrite)
+        scraper = Base.MultiVideoScraper(urls_in, language, group, screen, include_audio, include_auto, convert_srt, limit, overwrite)
         scraper.process_videos()
 
     elif path.isdir(urls_in):
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     parser.add_argument('-lim', '--limit', type=int, metavar='N', default=-1, help='limit processing to N videos or files; if unspecfied, all available videos or files will be processed')
 
     # LingTube options
-    parser.add_argument('-o', '--overwrite', choices = ["all", "channel"], help='all: overwrite all audio and caption files; channel: overwrite only if channel already exists')
+    parser.add_argument('-o', '--overwrite', choices = ["video", "channel", "all"], help='overwrite at the VIDEO level or CHANNEL level, or overwrite ALL subtitles and audio')
     parser.add_argument('-s',  '--screen',   action='store_true', default=False, help='download files into a folder for further screening (e.g., unscreened_videos/subtitles); else, downloads into "raw_subtitles"')
 
     args = parser.parse_args()

@@ -45,7 +45,6 @@ class ChannelScraper:
         self.screen        = screen
         self.limit         = limit
 
-
     def init_files(self):
         """ Generate directory and file paths and create directores if needed
         """
@@ -414,7 +413,7 @@ class MultiChannelScraper:
 
 class VideoScraper:
 
-    def __init__(self, url, yt_id, log_fp=None, channel_name="", channel_id="", language=None, include_audio=False, include_auto=False, group='ungrouped', screen=False, convert_srt=False, include_title=False):
+    def __init__(self, url, yt_id, channel_name="", channel_id="", language=None, include_audio=False, include_auto=False, group='ungrouped', screen=False, convert_srt=False, include_title=False, overwrite=None):
 
         try:
             self.video = YouTube(url)
@@ -424,7 +423,6 @@ class VideoScraper:
 
         self.url           = url
         self.yt_id         = yt_id
-        self.log_fp        = log_fp
         self.channel_name  = channel_name
         self.channel_id    = channel_id
         self.language      = language
@@ -434,9 +432,9 @@ class VideoScraper:
         self.include_audio = include_audio
         self.include_auto  = include_auto
         self.include_title = include_title
+        self.overwrite     = overwrite
 
 
-    # TODO: I think "safe_author" is used in two different ways in this class
     def init_files(self):
         """ Generate necessary file paths and create new directories when needed.
         """
@@ -548,7 +546,7 @@ class VideoScraper:
             base   = str(self.yt_id)
 
         # Build filename for later renaming
-        caption_fn = "".join([prefix, base, " ({0})".format(captions.code), '.xml'])
+        caption_fn = "".join([prefix, base, " ({0})".format(captions.code)])
 
         # Further subdivide captions by auto and manual
         if "a." in captions.code:
@@ -558,7 +556,7 @@ class VideoScraper:
 
         captions_out_dir = path.join(captions_out_dir, self.safe_author)
 
-        # Download captions in original format
+        # Download captions in original format if they don't exist or if overwriting
         try:
             captions.download(base, srt=False, output_path=captions_out_dir, filename_prefix=prefix)
         except:
@@ -566,7 +564,7 @@ class VideoScraper:
             return 0
 
         # Rename and convert captions
-        return self.convert_and_rename_captions(caption_fn, captions_out_dir)
+        return self.convert_and_rename_captions(caption_fn+'.xml', captions_out_dir)
 
 
     # TOOD: Code adapted from PyTube issue (number?). Check for update to code base
@@ -647,7 +645,9 @@ class VideoScraper:
             prefix = "{0}_".format(safe_author)
 
         try:
-            audio.download(filename=base, output_path=self.audio_out_dir, filename_prefix=prefix, skip_existing=True)
+            print(self.overwrite)
+            skip = False if self.overwrite != "video" else True
+            audio.download(filename=base, output_path=self.audio_out_dir, filename_prefix=prefix, skip_existing=skip)
         except:
             logging.critical("Video {0}: Could not save audio stream for video {0} from channel {1} ({2})".format(self.yt_id, self.video.author, self.video.title))
 
@@ -705,6 +705,15 @@ class VideoScraper:
             "corrected": 0,
         }
 
+        # Data is ONLY deleted if we SUCCESSFULLY overwrote the video's audio/captions
+        if self.overwrite == 'video':
+            # Filter log file
+            with open(self.log_out_path, 'r') as log_in:
+                videos_to_keep = [line for line in log_in if self.yt_id not in line]
+            with open(self.log_out_path, 'w') as log_out:
+                for video in videos_to_keep:
+                    log_out.write(video)
+
         with open(self.log_out_path, 'a') as log_out:
 
             log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "code", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "scrape_time", "corrected"])
@@ -743,11 +752,10 @@ class MultiVideoScraper:
 
     # TODO: Only delete channel folders if overwrite is true!
 
-    def __init__(self, f, log_fp=None, language=None, group="ungrouped", screen=False, include_audio=False, include_auto=False, convert_srt=False, limit=-1, overwrite=None):
+    def __init__(self, f, language=None, group="ungrouped", screen=False, include_audio=False, include_auto=False, convert_srt=False, limit=-1, overwrite=None):
 
         # Input params
         self.f             = f
-        self.log_fp        = log_fp
         self.language      = language
         self.group         = group
         self.screen        = screen
@@ -805,11 +813,6 @@ class MultiVideoScraper:
             self.audio_out_dir    = path.join("corpus", "raw_audio", self.group)
             self.log_out_dir      = path.join("corpus", "logs")
 
-        # Organize output locations
-        out_dirs = {"captions": self.captions_out_dir,
-                    "audio": self.audio_out_dir,
-                    "log": self.log_out_dir}
-
         # Prepare logfile path
         log_fn = "{0}_log.csv".format(self.group)
         self.log_out_path = path.join(self.log_out_dir, log_fn)
@@ -817,11 +820,6 @@ class MultiVideoScraper:
         # If overwriting individual channels, do so at this stage
         if self.overwrite == "channel":
             self.overwrite_channel_data()
-
-        # Make any directories that don't exist
-        for key in out_dirs:
-            if not path.exists(out_dirs[key]):
-                makedirs(out_dirs[key])
 
 
     def parse_url(self, url_data):
@@ -835,6 +833,38 @@ class MultiVideoScraper:
         else:
             logging.critical("Invalid URL format")
             return (None, None, None)
+
+
+    def process_url(self, url, yt_id, channel_name, channel_id):
+
+        # Check if yt_id already exists in some file; skip download unless overwriting
+        if(self.overwrite != "video"):
+
+            # UNIX paths for captions and audio
+            captions_path = path.join(self.captions_out_dir, "**", "*{0}*".format(yt_id))
+            audio_path    = path.join(self.audio_out_dir, "**", "*{0}*".format(yt_id))
+
+            # Find all files that match the video ID
+            caption_files = glob(captions_path, recursive=True)
+            audio_files = glob(audio_path, recursive=True)
+
+            if caption_files + audio_files:
+                return 1
+
+        # Scrape audio and captions from video at URL
+        video = VideoScraper(url, yt_id, channel_name, channel_id, self.language, self.include_audio, self.include_auto, self.group, self.screen, self.convert_srt, self.include_title, overwrite=self.overwrite)
+        caption_status, audio_status = video.process_video()
+
+        # Track completed videos
+        self.video_count += 1
+        self.caption_success_count += caption_status
+        self.audio_success_count += audio_status
+
+        # Stop once #of audio and captins reaches LIMIT, if specified
+        if self.limit != -1 and self.caption_success_count >= self.limit and self.audio_success_count >= self.limit:
+            return 2
+
+        return 0
 
 
     def process_videos(self):
@@ -862,20 +892,10 @@ class MultiVideoScraper:
             except IndexError as e:
                 continue
 
-            # Check if yt_id already exists in some file; skip download if so
-            caption_files = glob(path.join(self.captions_out_dir, "**", "*{0}*".format(yt_id)), recursive=True)
-            audio_files = glob(path.join(self.audio_out_dir, "**", "*{0}*".format(yt_id)), recursive=True)
-            if caption_files + audio_files:
+            status = self.process_url(url, yt_id, channel_name, channel_id)
+            if status == 1:
                 continue
-
-            video = VideoScraper(url, yt_id, self.log_fp, channel_name, channel_id, self.language, self.include_audio, self.include_auto, self.group, self.screen, self.convert_srt, self.include_title)
-            caption_status, audio_status = video.process_video()
-
-            self.video_count += 1
-            self.caption_success_count += caption_status
-            self.audio_success_count += audio_status
-
-            if self.limit != -1 and self.caption_success_count >= self.limit and self.audio_success_count >= self.limit:
+            if status == 2:
                 break
 
         print("Checked {0} videos; located captions for {1} videos and audio for {2} videos.".format(self.video_count, self.caption_success_count, self.audio_success_count))
@@ -920,16 +940,11 @@ class BatchVideoScraper:
                 except FileNotFoundError as e:
                     pass
 
-        out_dirs.update({"log": self.log_out_dir})
-        for key in out_dirs:
-            if not path.exists(out_dirs[key]):
-                makedirs(out_dirs[key])
+            log_fn = "{0}_log.csv".format(self.group)
+            self.log_out_path = path.join(self.log_out_dir, log_fn)
 
-        log_fn = "{0}_log.csv".format(self.group)
-        self.log_out_path = path.join(self.log_out_dir, log_fn)
-
-        if path.isfile(self.log_out_path) and self.overwrite == "all":
-            remove(self.log_out_path)
+            if path.isfile(self.log_out_path):
+                remove(self.log_out_path)
 
 
     def process_files(self):
@@ -942,7 +957,7 @@ class BatchVideoScraper:
 
         # Need to make video objs
         for fn in all_fns:
-            scraper = MultiVideoScraper(fn, self.log_out_path, self.language, self.group, self.screen, self.include_audio, self.include_auto, self.convert_srt, self.limit, self.overwrite)
+            scraper = MultiVideoScraper(fn, self.language, self.group, self.screen, self.include_audio, self.include_auto, self.convert_srt, self.limit, self.overwrite)
             scraper.process_videos()
 
 

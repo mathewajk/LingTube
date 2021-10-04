@@ -694,7 +694,7 @@ class VideoScraper:
             "ID": self.channel_id,
             "url": self.url,
             "title": self.video.title,
-            "description": self.video.description.replace('\n', ' '),
+            "description": '"{0}"'.format(self.video.description.replace('\n', ' ')),
             "keywords": self.video.keywords,
             "length": self.video.length,
             "publish_date": self.video.publish_date,

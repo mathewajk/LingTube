@@ -19,6 +19,7 @@ from selenium.webdriver.chrome.options import Options
 
 
 # TODO: Need to implement robust error handling
+# TODO: Pytube channel object includes about page ^^;
 
 
 class ChannelScraper:
@@ -435,6 +436,99 @@ class VideoScraper:
         self.include_title = include_title
 
 
+    # TODO: I think "safe_author" is used in two different ways in this class
+    def init_files(self):
+        """ Generate necessary file paths and create new directories when needed.
+        """
+
+        punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
+
+        # Generate safe channel name and video author
+        if self.channel_name and self.channel_id:
+            self.safe_channel_name = sub(punc_and_whitespace, "", self.channel_name)
+            self.safe_author = "{0}_{1}".format(self.safe_channel_name, self.channel_id)
+        else:
+            self.safe_author = sub(punc_and_whitespace, "", video.author)
+
+
+        # Sort audio and captions by screening status
+        if self.screen:
+            captions_out_dir = path.join("corpus", "unscreened_videos", self.group, "subtitles")
+            audio_out_dir    = path.join("corpus", "unscreened_videos", self.group, "audio")
+            log_out_dir      = path.join("corpus", "unscreened_videos", "logs")
+        else:
+            captions_out_dir = path.join("corpus", "raw_subtitles", self.group)
+            audio_out_dir    = path.join("corpus", "raw_audio", self.group)
+            log_out_dir      = path.join("corpus", "logs")
+
+        self.audio_out_dir    = path.join(audio_out_dir, self.safe_author)
+        self.captions_out_dir = captions_out_dir
+
+        out_dirs = {"captions": self.captions_out_dir,
+                    "audio": self.audio_out_dir,
+                    "log": log_out_dir}
+
+        for key in out_dirs:
+            if not path.exists(out_dirs[key]):
+                makedirs(out_dirs[key])
+
+        log_fn = "{0}_log.csv".format(self.group)
+        self.log_out_path = path.join(log_out_dir, log_fn)
+
+
+    # TODO: Unclear function names
+    def convert_and_save_captions(self, old_caption_path, new_caption_path, caption_fn_clean):
+        """Convert XML subtitles to SRT format and save the new file. Deletes XML captions.
+
+        :return success: Captions converted successfully
+        """
+
+        xml_string = ""
+        srt_string = ""
+
+        # Load XML captions
+        with open(old_caption_path, 'r') as xml_in:
+            xml_string = xml_in.read()
+
+        # Convert XML to SRT
+        try:
+            srt_string = self.xml_caption_to_srt(xml_string)
+        except IndexError as e:
+            logging.critical("Could not convert {0} to SRT format".format(caption_fn_clean))
+            return 0
+
+        # Save SRT captions
+        with open(new_caption_path, 'w') as srt_out:
+            srt_out.write(srt_string)
+            remove(old_caption_path)
+
+        return 1
+
+
+    def convert_and_rename_captions(self, caption_fn, captions_out_dir):
+        """ Rename caption file to remove language code. Convert to SRT if requested.
+
+        :return success: File renamed and converted successully.
+        """
+
+        ext = ".srt" if self.convert_srt else ".xml"
+
+        # Remove language code from filename
+        caption_fn_clean = caption_fn.rsplit(' ',1)[0]+ext
+
+        # Generate old and new file path
+        old_caption_path = path.join(captions_out_dir, caption_fn)
+        new_caption_path = path.join(captions_out_dir, caption_fn_clean)
+
+        if(self.convert_srt):
+            return self.convert_and_save_captions(old_caption_path, new_caption_path, caption_fn_clean)
+
+        else:
+            rename(old_caption_path, new_caption_path)
+
+        return 1
+
+
     def write_captions(self, captions):
         """Write Caption object to a file. If an output folder is not specified, captions will be placed in a folder corresponding to the name of the video's author (i.e. channel).
 
@@ -444,75 +538,44 @@ class VideoScraper:
         """
 
         safe_title = helpers.safe_filename(self.video.title)
-        out_path = ""
+        safe_author = self.safe_author
 
-        if self.screen:
-            out_path = path.join("corpus", "unscreened_videos", self.group, "subtitles")
+        # Set up file name components
+        if self.include_title:
+            prefix = "{0}_{1}_".format(safe_author, self.yt_id)
+            base   = safe_title
         else:
-            out_path = path.join("corpus", "raw_subtitles", self.group)
+            prefix = "{0}_".format(safe_author)
+            base   = str(self.yt_id)
 
+        # Build filename for later renaming
+        caption_fn = "".join([prefix, base, " ({0})".format(captions.code), '.xml'])
+
+        # Further subdivide captions by auto and manual
         if "a." in captions.code:
-            out_path = path.join(out_path, "auto", captions.code.split(".")[1])
+            captions_out_dir = path.join(self.captions_out_dir, "auto", captions.code.split(".")[1])
         else:
-            out_path = path.join(out_path, "manual", captions.code.split(".")[0])
+            captions_out_dir = path.join(self.captions_out_dir, "manual", captions.code.split(".")[0])
 
-        punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-        if self.channel_name and self.channel_id:
-            safe_channel_name = sub(punc_and_whitespace, "", self.channel_name)
-            safe_author = "{0}_{1}".format(safe_channel_name, self.channel_id)
-        else:
-            safe_author = sub(punc_and_whitespace, "", video.author)
+        captions_out_dir = path.join(captions_out_dir, self.safe_author)
 
-        out_path = path.join(out_path, safe_author)
-
-        if not path.exists(out_path):
-            makedirs(out_path)
-
-        if(self.convert_srt):
-            ext = ".srt"
-        else:
-            ext = ".xml"
-
+        # Download captions in original format
         try:
-            if self.include_title:
-                captions.download(helpers.safe_filename(safe_title), srt=False, output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, self.yt_id))
-            else:
-                captions.download(str(self.yt_id), srt=False, output_path=out_path, filename_prefix="{0}_".format(safe_author))
-                caption_fn = "".join(["{0}_".format(safe_author), self.yt_id, " ({0})".format(captions.code), '.xml'])
-
-
-            caption_fn_clean = caption_fn.rsplit(' ',1)[0]+ext
-
-            old_caption_path = path.join(out_path, caption_fn)
-            new_caption_path = path.join(out_path, caption_fn_clean)
-
-            if(self.convert_srt):
-                xml_string = ""
-                with open(old_caption_path, 'r') as xml_in:
-                    xml_string = xml_in.read()
-                #try:
-                srt_string = self.xml_caption_to_srt(xml_string)
-                with open(new_caption_path, 'w') as srt_out:
-                    srt_out.write(srt_string)
-                remove(old_caption_path)
-                #except IndexError as e:
-                #    logging.critical("Could not convert {0} to SRT format".format(caption_fn_clean))
-
-            else:
-                rename(old_caption_path, new_caption_path)
-
-            return 1
-
-        except KeyError:
-            logging.critical("Video {0}: Could not convert caption track for video {0} from channel {1} ({2}) to SRT.".format(self.yt_id, self.video.author, self.video.title))
+            captions.download(base, srt=False, output_path=captions_out_dir, filename_prefix=prefix)
+        except:
+            logging.critical("Video {0}: Could not download captions".format(caption_fn))
             return 0
 
+        # Rename and convert captions
+        return self.convert_and_rename_captions(caption_fn, captions_out_dir)
 
+
+    # TOOD: Code adapted from PyTube issue (number?). Check for update to code base
     def xml_caption_to_srt(self, xml_captions: str) -> str:
         """Convert xml caption tracks to "SubRip Subtitle (srt)".
 
-        :param str xml_captions:
-        XML formatted caption tracks.
+        :param str xml_captions: XML formatted caption track.
+        :return str srt_captions: SRT formatted caption track.
         """
 
         segments = []
@@ -550,6 +613,7 @@ class VideoScraper:
         return "\n".join(segments).strip()
 
 
+    # TODO: Copied from PyTube for Reasons
     def float_to_srt_time_format(self, d: float) -> str:
         """Convert decimal durations into proper srt format.
 
@@ -567,48 +631,36 @@ class VideoScraper:
 
     def write_audio(self, audio):
         """Write audio Stream object to a file. If an output folder is not specified, audio will be placed in a folder corresponding to the name of the video's author (i.e. channel).
+        :return success: Audio downloaded successfully
         """
 
         safe_title = helpers.safe_filename(self.video.title)
-        safe_author = helpers.safe_filename(self.video.author)
+        safe_author = self.safe_author
 
-        if self.screen:
-            out_path = path.join("corpus", "unscreened_videos", self.group, "audio")
+        success = 1
+
+        # Set up filename components
+        if self.include_title:
+            base = "{0}.mp4".format(safe_title)
+            prefix = "{0}_{1}_".format(safe_author, self.yt_id)
         else:
-            out_path = path.join("corpus", "raw_audio", self.group)
+            base = "{0}.mp4".format(self.yt_id)
+            prefix = "{0}_".format(safe_author)
 
-        punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-
-        if self.channel_name and self.channel_id:
-            safe_channel_name = sub(punc_and_whitespace, "", self.channel_name)
-            safe_author = "{0}_{1}".format(safe_channel_name, self.channel_id)
-        else:
-            safe_author = sub(punc_and_whitespace, "", self.video.author)
-
-        out_path = path.join(out_path, safe_author)
-
-        if not path.exists(out_path):
-            makedirs(out_path)
-
-        success = 0
         try:
-            if self.include_title:
-                audio.download(filename=safe_title + '.mp4', output_path=out_path, filename_prefix="{0}_{1}_".format(safe_author, self.yt_id), skip_existing=True)
-                success = 1
-            else:
-                audio.download(filename=str(self.yt_id) + '.mp4', output_path=out_path, filename_prefix="{0}_".format(safe_author), skip_existing=True)
-                success = 1
+            audio.download(filename=base, output_path=self.audio_out_dir, filename_prefix=prefix, skip_existing=True)
         except:
             logging.critical("Video {0}: Could not save audio stream for video {0} from channel {1} ({2})".format(self.yt_id, self.video.author, self.video.title))
-
-        return success
 
         # Be polite
         time.sleep(1)
 
+        return success
+
 
     def get_captions_by_language(self):
-        """Filter captions by language and write each caption track to a file. If no language is specified, all caption tracks will be downloaded.
+        """Filter captions by language and write each caption track to a file.
+        If no language is specified, all caption tracks will be downloaded.
 
         :return caption_list: list of metadata for all successfully-downloaded caption tracks
         """
@@ -635,14 +687,11 @@ class VideoScraper:
 
         channel_initials = "".join( [name[0].upper() for name in self.video.author.split()] )
 
-        punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-        safe_author = sub(punc_and_whitespace, "", self.video.author)
-
         metadata = {
             "yt_id": self.yt_id,
             "author": self.video.author,
             "code": channel_initials,
-            "name": safe_author,
+            "name": self.safe_author,
             "ID": self.channel_id,
             "url": self.url,
             "title": self.video.title,
@@ -657,18 +706,7 @@ class VideoScraper:
             "corrected": 0,
         }
 
-        log_fn = "{0}_log.csv".format(self.group)
-        if not self.log_fp:
-            self.log_fp = path.join("corpus", "logs")
-            if self.screen:
-                self.log_fp = path.join("corpus", "unscreened_videos", "logs")
-
-        if not path.exists(self.log_fp):
-            makedirs(self.log_fp)
-
-        self.log_fp = path.join(self.log_fp, log_fn)
-
-        with open(self.log_fp, 'a') as log_out:
+        with open(self.log_out_path, 'a') as log_out:
 
             log_writer = DictWriter(log_out, fieldnames=["yt_id", "author", "code", "name", "ID", "url", "title", "description", "keywords", "length", "publish_date", "views", "rating", "captions", "scrape_time", "corrected"])
 
@@ -684,15 +722,17 @@ class VideoScraper:
         :return caption_dict: list of metadata for all successfully-downloaded caption tracks
         """
 
-        caption_list = self.get_captions_by_language()
+        self.init_files()
 
         audio_success = 0
-        try:
-            if len(caption_list) and self.include_audio:
+        caption_list = self.get_captions_by_language()
+
+        if len(caption_list) and self.include_audio:
+            try:
                 audio = self.video.streams.filter(mime_type="audio/mp4").first()
-                audio_success = self.write_audio(audio)
-        except exceptions.VideoUnavailable as e:
-            logging.critical("Video unavailable {0}: Are you using the latest version of PyTube?".format(self.url))
+            except exceptions.VideoUnavailable as e:
+                logging.critical("Video unavailable {0}: Are you using the latest version of PyTube?".format(self.url))
+            audio_success = self.write_audio(audio)
 
         if len(caption_list):
             self.write_metadata(caption_list)
@@ -723,94 +763,98 @@ class MultiVideoScraper:
         self.caption_success_count = 0
         self.audio_success_count = 0
 
+        self.init_files()
+
+
+    def init_files(self):
+
+        # Sort audio and captions by screening status
+        if self.screen:
+            self.captions_out_dir = path.join("corpus", "unscreened_videos", self.group, "subtitles")
+            self.audio_out_dir    = path.join("corpus", "unscreened_videos", self.group, "audio")
+            self.log_out_dir      = path.join("corpus", "unscreened_videos", "logs")
+        else:
+            self.captions_out_dir = path.join("corpus", "raw_subtitles", self.group)
+            self.audio_out_dir    = path.join("corpus", "raw_audio", self.group)
+            self.log_out_dir      = path.join("corpus", "logs")
+
+        out_dirs = {"captions": self.captions_out_dir,
+                       "audio": self.audio_out_dir}
+
+        if self.overwrite:
+            for key in out_dirs:
+                try:
+                    shutil.rmtree(out_dirs[key])
+                except FileNotFoundError as e:
+                    pass
+
+        out_dirs.update({"log": self.log_out_dir})
+        for key in out_dirs:
+            if not path.exists(out_dirs[key]):
+                makedirs(out_dirs[key])
+
+        log_fn = "{0}_log.csv".format(self.group)
+        self.log_out_path = path.join(self.log_out_dir, log_fn)
+
+        if path.isfile(self.log_out_path) and self.overwrite:
+            remove(self.log_out_path)
+
+
+    def parse_url(self, url_data):
+
+        if len(url_data) == 3:
+            return url_data
+        elif len(url_data) == 2:
+            return (url_data[0], url_data[1], None)
+        elif len(url_data) == 1:
+            return (url_data[0], None, None)
+        else:
+            logging.critical("Invalid URL format")
+            return (None, None, None)
+
 
     def process_videos(self):
         """Download captions, audio (optional), and metadata for a list of videos.
         """
 
-        out_audio_path = path.join("corpus", "raw_audio")
-        if self.screen:
-            out_path = path.join("corpus", "unscreened_videos", self.group, "subtitles")
-            out_audio_path = path.join("corpus", "unscreened_videos", self.group, "audio")
-        else:
-            out_path = path.join("corpus", "raw_subtitles", self.group)
-            out_audio_path = path.join(out_audio_path, self.group)
-
-        if not self.log_fp: # No file passed, i.e. not a grouped batch
-
-            log_fn = "{0}_log.csv".format(self.group)
-            log_fp = path.join("corpus", "logs", log_fn)
-            if self.screen:
-                log_fp = path.join("corpus", "unscreened_videos", "logs", log_fn)
-
-            # Delete previous if overwriting, but only if NOT a batch
-            if path.isfile(log_fp) and self.overwrite:
-                remove(log_fp)
-
-            # Remove old directories if we are overwriting but ONLY if not a batch!!
-            if self.overwrite:
-                try:
-                    shutil.rmtree(out_path)
-                except FileNotFoundError as e:
-                    pass
-                try:
-                    shutil.rmtree(out_audio_path)
-                except FileNotFoundError as e:
-                    pass
-
-        if not path.exists(out_path):
-           makedirs(out_path)
-        if not path.exists(out_audio_path):
-           makedirs(out_audio_path)
-
         self.video_count = 0
         with open(self.f, "r") as urls_in:
 
-            for line in urls_in:
+            urls = [line.strip('\n').split('\t') for line in urls_in]
 
-                url_data = line.strip('\n').split('\t')
+        for url in urls:
 
-                # Get URL and title
-                if len(url_data) == 3:
-                    (url, channel_name, channel_id) = url_data
-                elif len(url_data) == 2:
-                    url = url_data[0]
-                    channel_name=url_data[1]
-                    channel_id=None
-                elif len(url_data) == 1:
-                    url = url_data[0]
-                    channel_name=None
-                    channel_id=None
-                else:
-                    logging.critical("Invalid file format")
-                    exit(2)
+            # Parse URL, channel name, and channel ID
+            (url, channel_name, channel_id) = self.parse_url(url)
 
+            # Skip bad url data
+            if url is None:
+                continue
+
+            # Check that URL is a valid video link
+            try:
                 punc_and_whitespace = "[\s\_\-\.\?\!,;:'\"\\\/]+"
-                try:
-                    yt_id = sub(punc_and_whitespace, '', findall(r".+watch\?v=(.+)\b", url)[0])
-                except IndexError as e:
-                    pass
+                yt_id = sub(punc_and_whitespace, '', findall(r".+watch\?v=(.+)\b", url)[0])
+            except IndexError as e:
+                continue
 
-                # Check if yt_id already exists in some file; skip download if so
-                if not self.overwrite:
-                    files = glob(path.join(out_path, "**", "*{0}*".format(yt_id)), recursive=True)
-                    if out_audio_path:
-                        audio_files = glob(path.join(out_audio_path, "**", "*{0}*".format(yt_id)), recursive=True)
-                        files = files + audio_files
-                    if files:
-                        continue
+            # Check if yt_id already exists in some file; skip download if so
+            caption_files = glob(path.join(self.captions_out_dir, "**", "*{0}*".format(yt_id)), recursive=True)
+            audio_files = glob(path.join(self.audio_out_dir, "**", "*{0}*".format(yt_id)), recursive=True)
+            if caption_files + audio_files:
+                continue
 
-                video = VideoScraper(url, yt_id, self.log_fp, channel_name, channel_id, self.language, self.include_audio, self.include_auto, self.group, self.screen, self.convert_srt, self.include_title)
-                caption_status, audio_status = video.process_video()
+            video = VideoScraper(url, yt_id, self.log_fp, channel_name, channel_id, self.language, self.include_audio, self.include_auto, self.group, self.screen, self.convert_srt, self.include_title)
+            caption_status, audio_status = video.process_video()
 
-                self.video_count += 1
-                self.caption_success_count += caption_status
-                self.audio_success_count += audio_status
+            self.video_count += 1
+            self.caption_success_count += caption_status
+            self.audio_success_count += audio_status
 
-                if self.limit != -1 and self.caption_success_count >= self.limit and self.audio_success_count >= self.limit:
-                    break
+            if self.limit != -1 and self.caption_success_count >= self.limit and self.audio_success_count >= self.limit:
+                break
 
-            print("Checked {0} videos; located captions for {1} videos and audio for {2} videos.".format(self.video_count, self.caption_success_count, self.audio_success_count))
+        print("Checked {0} videos; located captions for {1} videos and audio for {2} videos.".format(self.video_count, self.caption_success_count, self.audio_success_count))
 
 
 class BatchVideoScraper:
@@ -827,6 +871,42 @@ class BatchVideoScraper:
         self.limit         = limit
         self.overwrite     = overwrite
 
+        self.init_files()
+
+
+    def init_files(self):
+
+        # Sort audio and captions by screening status
+        if self.screen:
+            self.captions_out_dir = path.join("corpus", "unscreened_videos", self.group, "subtitles")
+            self.audio_out_dir    = path.join("corpus", "unscreened_videos", self.group, "audio")
+            self.log_out_dir      = path.join("corpus", "unscreened_videos", "logs")
+        else:
+            self.captions_out_dir = path.join("corpus", "raw_subtitles", self.group)
+            self.audio_out_dir    = path.join("corpus", "raw_audio", self.group)
+            self.log_out_dir      = path.join("corpus", "logs")
+
+        out_dirs = {"captions": self.captions_out_dir,
+                       "audio": self.audio_out_dir}
+
+        if self.overwrite:
+            for key in out_dirs:
+                try:
+                    shutil.rmtree(out_dirs[key])
+                except FileNotFoundError as e:
+                    pass
+
+        out_dirs.update({"log": self.log_out_dir})
+        for key in out_dirs:
+            if not path.exists(out_dirs[key]):
+                makedirs(out_dirs[key])
+
+        log_fn = "{0}_log.csv".format(self.group)
+        self.log_out_path = path.join(self.log_out_dir, log_fn)
+
+        if path.isfile(self.log_out_path) and self.overwrite:
+            remove(self.log_out_path)
+
 
     def process_files(self):
         """Download captions, audio (optional), and metadata from a directory of video lists.
@@ -834,44 +914,11 @@ class BatchVideoScraper:
 
         URL_fns_txt = sorted(glob(path.join(self.base_fn, "*.txt")))
         URL_fns_csv = sorted(glob(path.join(self.base_fn, "*.csv")))
-
-        out_audio_path = path.join("corpus", "raw_audio")
-        if self.screen:
-            out_path = path.join("corpus", "unscreened_videos", self.group, "subtitles")
-            out_audio_path = path.join(out_audio_path, self.group)
-        else:
-            out_path = path.join("corpus", "raw_subtitles", self.group)
-            out_audio_path = path.join(out_audio_path, self.group)
-
-        if self.overwrite:
-            try:
-                shutil.rmtree(out_path)
-            except FileNotFoundError as e:
-                pass
-            try:
-                shutil.rmtree(out_audio_path)
-            except FileNotFoundError as e:
-                pass
-
-        if not path.exists(out_path):
-           makedirs(out_path)
-        if not path.exists(out_audio_path):
-           makedirs(out_audio_path)
-
-        log_fn = "{0}_log.csv".format(self.group)
-        log_path = path.join("corpus", "logs")
-        if self.screen:
-            log_fp = path.join("corpus", "unscreened_videos", "logs")
-        log_fp = path.join(log_path, log_fn)
-
-        if path.isfile(log_fp) and self.overwrite:
-            remove(log_fp)
-
         all_fns = URL_fns_txt + URL_fns_csv
 
         # Need to make video objs
         for fn in all_fns:
-            scraper = MultiVideoScraper(fn, log_path, self.language, self.group, self.screen, self.include_audio, self.include_auto, self.convert_srt, self.limit, self.overwrite)
+            scraper = MultiVideoScraper(fn, self.log_out_path, self.language, self.group, self.screen, self.include_audio, self.include_auto, self.convert_srt, self.limit, False)
             scraper.process_videos()
 
 

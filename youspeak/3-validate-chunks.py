@@ -119,50 +119,32 @@ def get_subtitles(args):
 
     global subtitles
 
-    subtitle_dir = path.join("corpus", "cleaned_subtitles", group)
-    correct_dir  = path.join(subtitle_dir, "corrected")
-    manual_dir   = path.join(subtitle_dir, "manual")
-    auto_dir     = path.join(subtitle_dir, "auto")
+    subtitle_dir = path.join("corpus", "cleaned_subtitles")
+    if group:
+        subtitle_dir = path.join(subtitle_dir, group)
+    correct_dir = path.join(subtitle_dir, "corrected")
+    manual_dir = path.join(subtitle_dir, "manual")
+    auto_dir = path.join(subtitle_dir, "auto")
 
-
-    # TODO:
-    # 1 Glob path expansion
-    # 2 check for cleaned converts
-    # 3 check for non cleaned ones
-    # 4 throw error if more than one lang code
-
-    files = glob(path.join(subtitle_dir, "*", "*", "*{0}*".format(channel_id)), recursive=True)
-    print(files)
-    exit(0)
-    
     if args.lang_code:
         lang_code = args.lang_code
     else:
-        dirs = {"corrected": {}, "manual": {}, "auto": {}}
+        dirs = [correct_dir, manual_dir, auto_dir]
 
-        if path.isdir(correct_dir):
-            lang_code_list = listdir(correct_dir)
-            for code in lang_code_list:
-                dirs["corrected"].update{code: glob(path.join(correct_dir, "*{0}*".format(channel_id)), recursive=True)}
+        for dir in dirs:
+            captions_path = path.join(dir, "*", "*", "*{0}*".format(channel_id))
+            files = glob(captions_path, recursive=True)
+            if files:
+                if len(files) > 1:
+                    print("ERROR: More than one language detected. Please specify a language code.")
+                    exit(1)
+                else:
+                    lang_code = splitall(files[0])[-3]
+                    print(lang_code)
 
-        if not dirs["corrected"]:
-
-            elif path.isdir(manual_dir):
-                lang_code_list = listdir(manual_dir)
-                for code in lang_code_list:
-                    files += glob(path.join(correct_dir, "*{0}*".format(channel_id)), recursive=True)
-
-            if not files["manual"]  path.isdir(auto_dir):
-                lang_code_list = listdir(auto_dir)
-                for code in lang_code_list:
-                    files += glob(path.join(correct_dir, "*{0}*".format(channel_id)), recursive=True)
-
-        else:
-            if len(files["corrected"]) > 1:
-                print("ERROR: Multiple languages detected. Please specify a language code.")
-            else:
-                language_code = lang_code_list
-    print("Getting captions files for language code: {0}".format(lang_code))
+    if not lang_code:
+        print("ERROR: Please run 3-clean-captions before running this script.")
+        exit(1)
 
     try:
         subtitle_fp = path.join(correct_dir, lang_code, "cleans", channel_id, video_id+".txt")
@@ -194,7 +176,7 @@ def combine_funcs(*funcs):
 
 # clear _category and media selection
 def clear():
-    usable.set(1)
+    usable.set(0)
     bg_music.set(0)
     bg_noise.set(0)
     other_voice.set(0)
@@ -203,7 +185,21 @@ def clear():
     other_sounds.set(0)
     transcript.delete("1.0", "end-1c")
 
-
+def splitall(fp):
+    allparts = []
+    while 1:
+        parts = path.split(fp)
+        if parts[0] == fp:  # sentinel for absolute paths
+            allparts.insert(0, parts[0])
+            break
+        elif parts[1] == fp: # sentinel for relative paths
+            allparts.insert(0, parts[1])
+            break
+        else:
+            fp = parts[0]
+            allparts.insert(0, parts[1])
+    return allparts
+    
 def get_transcription (subtitles, row):
     row_timerange = range(row['start_time']-1000, row['end_time']+1000)
     subtitle_match = subtitles[(subtitles["start_time"].isin(row_timerange)) |
@@ -441,8 +437,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Open a GUI for categorizing and transcribing audio chunks.')
 
     parser.set_defaults(func=None)
-    parser.add_argument('-g', '--group', default="ungrouped", type=str, help='name to group files under (create and /or assume files are located in a subfolder: chunked_audio/$group)')
-    parser.add_argument('-l', '--lang_code', default=None, type=str, help='open captions with a specific a language code (e.g., "en"); if unspecified, uses first available language code in subtitle directory')
+    parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: chunked_audio/$group)')
+    parser.add_argument('--lang_code', '-l', default=None, type=str, help='open captions with a specific a language code (e.g., "en"); if unspecified, uses first available language code in subtitle directory')
 
     args = parser.parse_args()
 

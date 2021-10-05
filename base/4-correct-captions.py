@@ -9,6 +9,8 @@ import sys
 import webbrowser
 import subprocess
 
+from glob import glob
+
 try:
     import Tkinter as tk  # Python2
 except ImportError:
@@ -62,21 +64,35 @@ def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
             end_time.insert(0, timestamp)
 
         cleaned_subtitles_base = path.join('corpus','cleaned_subtitles')
+
         if args.group:
             cleaned_subtitles_base = path.join(cleaned_subtitles_base, args.group)
 
+        lang_code = None
+
         if args.lang_code:
             lang_code = args.lang_code
-        elif path.isdir(path.join(cleaned_subtitles_base, "manual")):
-            lang_code_list = listdir(path.join(cleaned_subtitles_base, "manual"))
-            lang_code = lang_code_list[0]
-        elif path.isdir(path.join(cleaned_subtitles_base, "auto")):
-            lang_code_list = listdir(path.join(cleaned_subtitles_base, "auto"))
-            lang_code = lang_code_list[0]
+
         else:
-            print("ERROR: Please run clean-captions before running this script.")
+            dirs = ["manual", "auto"]
+
+            for dir in dirs:
+                captions_path = path.join(cleaned_subtitles_base, dir, "*", "*", "*{0}*".format(channel_id))
+                files = glob(captions_path, recursive=True)
+                if files:
+                    if len(files) > 1:
+                        print("ERROR: More than one language detected. Please specify a language code.")
+                        exit(1)
+                    else:
+                        lang_code = splitall(files[0])[-3]
+                        print(lang_code)
+
+        if not lang_code:
+            print("ERROR: Please run 3-clean-captions before running this script.")
             exit(1)
-            
+
+        print("Getting captions files for language code: {0}".format(lang_code))
+
         manual_dir = path.join(cleaned_subtitles_base, "manual", lang_code, "cleans", channel_id)
         auto_dir = path.join(cleaned_subtitles_base, "auto", lang_code, "cleans", channel_id)
         corrected_dir = path.join(cleaned_subtitles_base, "corrected", lang_code, "cleans", channel_id)
@@ -118,6 +134,21 @@ def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
             webbrowser.open_new(url)
         except:
             print('Could not open URL in browser.')
+
+def splitall(fp):
+    allparts = []
+    while 1:
+        parts = path.split(fp)
+        if parts[0] == fp:  # sentinel for absolute paths
+            allparts.insert(0, parts[0])
+            break
+        elif parts[1] == fp: # sentinel for relative paths
+            allparts.insert(0, parts[1])
+            break
+        else:
+            fp = parts[0]
+            allparts.insert(0, parts[1])
+    return allparts
 
 def save_progress (log_fp, log, end_time, complete):
     global i

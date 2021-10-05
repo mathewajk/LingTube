@@ -41,7 +41,6 @@ Additionally, for the YouSpeak scripts requiring `parselmouth-praat`, the Praat 
 
 
 ## Components
-*Details coming soon!*
 
 * [`base`](#base)
 * [`youdep`](#youdep)
@@ -49,7 +48,7 @@ Additionally, for the YouSpeak scripts requiring `parselmouth-praat`, the Praat 
 
 ---
 
-### Base
+## Base
 
 The LingTube base scripts are used first to access YouTube data and pre-process captions prior to more specific processing (via YouDep or YouSpeak pipeline components). Before using the base scripts, you should have identified YouTube channel(s) or video(s) that you intend to scrape. Base is intended to be run in this order:
 
@@ -60,7 +59,7 @@ The LingTube base scripts are used first to access YouTube data and pre-process 
 
 ---
 
-#### 1-scrape-channels.py
+### 1-scrape-channels.py
 
 This script allows the user to scrape video URLs from a specified channel or list of channels, along with the channel info (e.g., channel name, channel ID, *About* page). The user can also input a video URL or list of video URLs in order to scrape the uploading channel's info and/or scrape additional videos from their channel. This second option also outputs a formatted version of the input video URLs for use in `2-scrape-videos.py` (see below for more info).
 
@@ -68,14 +67,14 @@ This script allows the user to scrape video URLs from a specified channel or lis
 
 **Note 2: Sometimes the channel name is missing from the file(names) for the first downloaded file. If this happens, it should work perfectly if you run it a second time (exact same command). If this happens, run the script again after deleting the bad file.**
 
-###### Usage
+##### Usage
 
 ```
 usage: 1-scrape-channels.py [-h] [-g GROUP] [-a] [-lim N] [-b BROWSER] [-o]
                             [-s] source
 ```
 
-###### Source
+##### Source
 To scrape all video URLs from a single channel into an "ungrouped" sub-folder, include a YouTube channel URL as the source:
 
 ```
@@ -100,7 +99,7 @@ python3 base/1-scrape-channels.py $video_url_list.txt
 
 These latter two commands will also output a separate file containing the same video URLs you input formatted with additional columns for the channel name and channel ID.
 
-###### Options
+##### Options
 
 To scrape all video URLs from multiple channels where channel files are grouped under a named group sub-folder, specify a group name with `-g` or `--group`:
 ```
@@ -132,7 +131,7 @@ To scrape video URLs and channel info for (manual) screening purposes, you can u
 python3 base/1-scrape-channels.py -s $channel_url_list.txt
 ```
 
-##### Examples
+#### Examples
 
 <!-- https://www.youtube.com/channel/UCgWfS_47YPVbKx5EK4FLm4A = Jenn Im -->
 
@@ -159,15 +158,15 @@ This call:
 
 ---
 
-#### 2-scrape-videos.py
+### 2-scrape-videos.py
 
 This script allows the user to scrape manual and/or automated captions and audio from a specified file containing list of video URLs. Alternatively the user can specify a directory containing multiple lists of URLs, or the user can specify a group name (i.e., the name of a group sub-folder under `screened_urls`) which will access the `channel_urls` directory, assumed to contain lists of URLs.
 
 **Note: If getting error that you cannot download audio, try upgrading pytube (pip3 install --upgrade pytube).**
 
-##### Usage
+#### Usage
 
-###### Source
+##### Source
 To scrape all manual video captions from a list of URLs into an "ungrouped" sub-folder, include a text file containing a list of YouTube video URLs:
 
 ```
@@ -187,7 +186,7 @@ python3 base/2-scrape-videos.py $group_name
 ```
 
 
-###### Options
+##### Options
 To scrape all manual video captions where channel files are grouped under a named group sub-folder, specify a group name with `-g` or `--group`:
 ```
 python3 base/2-scrape-videos.py -g $group_name $video_url_list.txt
@@ -239,7 +238,7 @@ To scrape video captions and/or audio for screening purposes, you can use the `-
 python3 base/2-scrape-videos.py -s $video_url_list.txt
 ```
 
-##### Examples
+#### Examples
 
 `python3 base/2-scrape-videos.py -g groupA -a -aud --srt -lim 10 video_urls_list.txt
 `
@@ -258,11 +257,11 @@ This call:
 
 ---
 
-#### 3-clean-captions.py
+### 3-clean-captions.py
 
 This script allows the user to convert scraped YouTube SRT captions to a cleaned transcript text format that has three columns for: (i) start time, (ii) end time, (iii) caption text. (Note that to use this script, you must have downloaded captions as SRT and not XML files.)
 
-##### Usage
+#### Usage
 To clean all scraped SRT files from an "ungrouped" sub-folder:
 
 ```
@@ -294,7 +293,7 @@ python3 base/3-clean-captions.py -o
 ```
 
 
-##### Examples
+#### Examples
 
 `python3 base/3-clean-captions.py -g kor -l ko -t
 `
@@ -307,11 +306,11 @@ This call:
 
 ---
 
-#### 4-correct-captions.py
+### 4-correct-captions.py
 
 This optional script helps to streamline the correction of YouTube captions, if necessary. It opens each video in a list of videos one-at-a-time in the browser alongside the caption file, which opens in a text editor of the user's choice. Correction progress can be saved such that next time the program is run, the video will open where the user left off last time.
 
-##### Usage
+#### Usage
 
 To start the program to correct captions in a corpus without group structure (i.e., where channels are listed under an `ungrouped` folder):
 
@@ -343,7 +342,7 @@ To start the program to correct captions using a particular text editor, specify
 python3 base/4-correct-captions.py -e $editor_name
 ```
 
-##### Examples
+#### Examples
 
 `python3 base/4-correct-captions.py -g kor -ch JennIm -l en
 `
@@ -360,12 +359,12 @@ This call:
 
 ---
 
-### YouDep
+## YouDep
 *Details coming soon!*
 
 ---
 
-### YouSpeak
+## YouSpeak
 
 The YouSpeak scripts are used to process scraped audio for forced alignment; specifically, these scripts (help to) identify usable speech utterances and match them to transcript text. Before using scripts under YouSpeak, you should have already run the relevant scripts in `base`. That is, you should have (1) downloaded audio and caption files, and optionally (2) corrected the original captions (though corrections can also be done after `2-chunk-audio.py` but before `3-validate-chunks.py`). YouSpeak is intended to be run in this order:
 
@@ -378,13 +377,13 @@ After this stage, you can run forced alignment (using the Montreal Forced Aligne
 
 ---
 
-#### 1-convert-audio.py
+### 1-convert-audio.py
 
 This script allows the user to convert scraped YouTube audio from MP4 to WAV format, as well as converting from stereo to mono. The default includes mono conversion but the user can specify if they prefer to keep audio as stereo. The script then moves the raw MP4 and converted WAV files to separate folders.
 
 **Note: We are in the process of overhauling this script to include neural-net based sound event detection for better identification of useable audio.**
 
-##### Usage
+#### Usage
 
 To convert all scraped audio files to mono WAV (in a corpus without group structure):
 
@@ -404,7 +403,7 @@ To convert all scraped audio files in a group to stereo WAV (in a corpus with gr
 python3 youspeak/1-convert-audio.py --group $group_name --stereo
 ```
 
-##### Examples
+#### Examples
 
 `python3 youspeak/1-convert-audio.py -g kor`
 
@@ -414,14 +413,14 @@ This call:
 3. Moves MP4 files to a folder called `mp4` and the WAV files to a folder called `wav`
 
 ---
-#### 2-chunk-audio.py
+### 2-chunk-audio.py
 
 This script identifies short utterances of speech based on breath breaks in the audio and outputs corresponding Praat TextGrid files. The user can specify whether to process all the audio files in a group, channel, or particular video. Users can also optionally save chunked audio files, either specified during the initial chunking (will be saved while processing the output TextGrid) or when running the script a second time (sound files will be saved based on an input TextGrid).
 
 NOTE: The user can specify whether first-pass chunking is based on voice activity detection (identifying long pauses) or music detection (identifying music vs. speech). Music detection is undergoing updates and not currently recommended for use.
 
 
-##### Usage
+#### Usage
 
 To chunk all audio files and output an annotated TextGrid for each (in a corpus without group structure):
 
@@ -456,7 +455,7 @@ python3 youspeak/2-chunk-audio.py voice --group $group_name --save_sounds
 
 Alternatively, this same command can be used to save separate WAV sound files based on already existing TextGrids from running `python3 youspeak/2-chunk-audio.py voice --group $group_name` previously. This may be beneficial if the user prefers to check and/or modify the TextGrids prior to extracting utterance-level sound files.
 
-##### Examples
+#### Examples
 
 `python3 youspeak/2-chunk-audio.py voice -g kor`
 
@@ -513,11 +512,11 @@ positional arguments:
 ``` -->
 
 ---
-#### 3-validate-chunks.py
+### 3-validate-chunks.py
 
 This script opens a GUI for categorizing and transcribing audio chunks, allowing the user to (1) mark audio chunks as usable or not, and (2) check that transcript lines are time-aligned accurately to speech per audio chunk.
 
-##### Usage
+#### Usage
 
 To run the GUI when only one transcript (language) is available:
 ```
@@ -529,7 +528,7 @@ To run the GUI when needing to specify transcript (language):
 python3 youspeak/3-validate-chunks.py voice -g $group_name --lang_code $language_code
 ```
 
-##### Examples
+#### Examples
 
 `python3 youspeak/3-validate-chunks.py voice -g kor (-l en)`
 
@@ -578,11 +577,11 @@ optional arguments:
 ``` -->
 
 ---
-#### 4-create-textgrids.py
+### 4-create-textgrids.py
 
 This script combines the chunked interval TextGrids from `2-chunk-audio.py` and the usable transcript sections from `3-validate-chunks.py` to create a TextGrid for the full video-length audio file ready for forced alignment. The user can optionally save chunked audio and TextGrids (i.e., per utterance). Additionally, users can optionally copy all relevant audio and textgrid files into a new folder optimized for running forced alignment with the Montreal Forced Aligner.
 
-##### Usage
+#### Usage
 
 To create full video-length TextGrids for all files (in a corpus without group structure):
 
@@ -613,7 +612,7 @@ To create video-length TextGrids for all files in a group and copy files to a di
 python3 youspeak/4-create-textgrids.py --group $group_name --mfa
 ```
 
-##### Examples
+#### Examples
 
 `python3 youspeak/2-create-textgrids.py -g kor --mfa`
 

@@ -126,6 +126,13 @@ def get_subtitles(args):
     manual_dir = path.join(subtitle_dir, "manual")
     auto_dir = path.join(subtitle_dir, "auto")
 
+
+    # TODO:
+    # 1 Glob path expansion
+    # 2 check for cleaned converts
+    # 3 check for non cleaned ones
+    # 4 throw error if more than one lang code
+    
     if args.lang_code:
         lang_code = args.lang_code
     elif path.isdir(correct_dir):
@@ -137,6 +144,7 @@ def get_subtitles(args):
     elif path.isdir(auto_dir):
         lang_code_list = listdir(auto_dir)
         lang_code = lang_code_list[0]
+    print("Getting captions files for language code: {0}".format(lang_code))
 
     try:
         subtitle_fp = path.join(correct_dir, lang_code, "cleans", channel_id, video_id+".txt")

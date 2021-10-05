@@ -535,14 +535,13 @@ class VideoScraper:
         """
 
         safe_title = helpers.safe_filename(self.video.title)
-        safe_author = self.safe_author
 
         # Set up file name components
         if self.include_title:
-            prefix = "{0}_{1}_".format(safe_author, self.yt_id)
+            prefix = "{0}_{1}_".format(self.safe_author, self.yt_id)
             base   = safe_title
         else:
-            prefix = "{0}_".format(safe_author)
+            prefix = "{0}_".format(self.safe_author)
             base   = str(self.yt_id)
 
         # Build filename for later renaming
@@ -632,17 +631,16 @@ class VideoScraper:
         """
 
         safe_title = helpers.safe_filename(self.video.title)
-        safe_author = self.safe_author
 
         success = 1
 
         # Set up filename components
         if self.include_title:
             base = "{0}.mp4".format(safe_title)
-            prefix = "{0}_{1}_".format(safe_author, self.yt_id)
+            prefix = "{0}_{1}_".format(self.safe_author, self.yt_id)
         else:
             base = "{0}.mp4".format(self.yt_id)
-            prefix = "{0}_".format(safe_author)
+            prefix = "{0}_".format(self.safe_author)
 
         try:
             print(self.overwrite)
@@ -690,7 +688,7 @@ class VideoScraper:
             "yt_id": self.yt_id,
             "author": self.video.author,
             "code": channel_initials,
-            "name": self.safe_author,
+            "name": self.safe_author.split('_')[0],
             "ID": self.channel_id,
             "url": self.url,
             "title": self.video.title,

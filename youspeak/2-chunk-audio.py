@@ -7,11 +7,11 @@ import pandas as pd
 from shutil import rmtree
 import parselmouth
 from parselmouth.praat import call, run_file
-import tempfile
-import ffmpeg
-import librosa
-import torch
-from samplecnn import SampleCNN
+# import tempfile
+# import ffmpeg
+# import librosa
+# import torch
+# from samplecnn import SampleCNN
 
 def get_silence_threshold(sound, lower_quantile):
     """ Calculates silence threshold per sound interval for chunking.
@@ -106,75 +106,75 @@ def save_chunks(chunk_sound, out_path, video_id):
 
     return {'filename': chunk_fn, 'video_id': video_id, 'start_time': chunk_start_ms, 'end_time': chunk_end_ms, 'duration': chunk_duration}
 
-# Music discriminator based on samplecnn-speech-detection
-# Copyright (c) 2019 F. Moukayed (Κοτσάμπ)
-# https://github.com/fmqa/samplecnn-speech-detection
-def detect_music(audiofile, sound, alpha):
-    youspeak_path = path.dirname(path.realpath(__file__))
-    model_path = path.join(youspeak_path, "models", "model-gztan-speech-music-20000.pth")
-
-    with tempfile.TemporaryDirectory(suffix="-discriminator") as tmpdir:
-        textgrid = call(sound, 'To TextGrid', 'music music-by-sec', '')
-
-        # Convert input to proper format (16 kHz, mono)
-        output = path.join(tmpdir, "16khz.wav")
-        (
-            ffmpeg.input(audiofile)
-                  .output(output, format="wav", acodec="pcm_s16le", ac=1, ar="16k")
-                  .overwrite_output()
-                  .run()
-        )
-        # Instantiate CNN
-        net = SampleCNN()
-        net.load_state_dict(torch.load(model_path))
-        net.eval()
-        count_list = []
-        with torch.no_grad():
-            # Iterate through frames
-            for sec, frame in enumerate(map(torch.Tensor, librosa.core.stream(output, 1, 59049, 16000, fill_value=0))):
-                y = net(frame.reshape(1, -1))
-                y = y.item()
-
-                if sec == 0:
-                    if y > args.alpha:
-                        y_status = current_status = 'speech'
-                    else:
-                        y_status = current_status = 'music'
-                    call(textgrid, 'Set interval text', 1, 1, current_status)
-                elif current_status == 'speech':
-                    if y < args.alpha:
-                        y_status = 'music'
-                    else:
-                        y_status = current_status
-                elif current_status == 'music':
-                    if y > (1 - args.alpha):
-                        y_status = 'speech'
-                    else:
-                        y_status = current_status
-
-                try:
-                    call(textgrid, 'Insert boundary', 2, sec)
-                except:
-                    pass
-                interval_num = call(textgrid, 'Get interval at time', 2, sec)
-                call(textgrid, 'Set interval text', 2, interval_num, '{0} ({1})'.format('speech' if y > alpha else 'music', round(y,3)))
-
-                if not y_status == current_status:
-                    count_list.append((sec, y))
-                else:
-                    count_list = []
-
-                if len(count_list) == 4:
-                    current_status = y_status
-                    # print('Insert boundary at time: {0}'.format(count_list[0][0]))
-                    try:
-                        call(textgrid, 'Insert boundary', 1, count_list[0][0])
-                    except:
-                        pass
-                    interval_num = call(textgrid, 'Get interval at time', 1, count_list[0][0])
-                    call(textgrid, 'Set interval text', 1, interval_num, current_status)
-
-        return textgrid
+# # Music discriminator based on samplecnn-speech-detection
+# # Copyright (c) 2019 F. Moukayed (Κοτσάμπ)
+# # https://github.com/fmqa/samplecnn-speech-detection
+# def detect_music(audiofile, sound, alpha):
+#     youspeak_path = path.dirname(path.realpath(__file__))
+#     model_path = path.join(youspeak_path, "models", "model-gztan-speech-music-20000.pth")
+#
+#     with tempfile.TemporaryDirectory(suffix="-discriminator") as tmpdir:
+#         textgrid = call(sound, 'To TextGrid', 'music music-by-sec', '')
+#
+#         # Convert input to proper format (16 kHz, mono)
+#         output = path.join(tmpdir, "16khz.wav")
+#         (
+#             ffmpeg.input(audiofile)
+#                   .output(output, format="wav", acodec="pcm_s16le", ac=1, ar="16k")
+#                   .overwrite_output()
+#                   .run()
+#         )
+#         # Instantiate CNN
+#         net = SampleCNN()
+#         net.load_state_dict(torch.load(model_path))
+#         net.eval()
+#         count_list = []
+#         with torch.no_grad():
+#             # Iterate through frames
+#             for sec, frame in enumerate(map(torch.Tensor, librosa.core.stream(output, 1, 59049, 16000, fill_value=0))):
+#                 y = net(frame.reshape(1, -1))
+#                 y = y.item()
+#
+#                 if sec == 0:
+#                     if y > args.alpha:
+#                         y_status = current_status = 'speech'
+#                     else:
+#                         y_status = current_status = 'music'
+#                     call(textgrid, 'Set interval text', 1, 1, current_status)
+#                 elif current_status == 'speech':
+#                     if y < args.alpha:
+#                         y_status = 'music'
+#                     else:
+#                         y_status = current_status
+#                 elif current_status == 'music':
+#                     if y > (1 - args.alpha):
+#                         y_status = 'speech'
+#                     else:
+#                         y_status = current_status
+#
+#                 try:
+#                     call(textgrid, 'Insert boundary', 2, sec)
+#                 except:
+#                     pass
+#                 interval_num = call(textgrid, 'Get interval at time', 2, sec)
+#                 call(textgrid, 'Set interval text', 2, interval_num, '{0} ({1})'.format('speech' if y > alpha else 'music', round(y,3)))
+#
+#                 if not y_status == current_status:
+#                     count_list.append((sec, y))
+#                 else:
+#                     count_list = []
+#
+#                 if len(count_list) == 4:
+#                     current_status = y_status
+#                     # print('Insert boundary at time: {0}'.format(count_list[0][0]))
+#                     try:
+#                         call(textgrid, 'Insert boundary', 1, count_list[0][0])
+#                     except:
+#                         pass
+#                     interval_num = call(textgrid, 'Get interval at time', 1, count_list[0][0])
+#                     call(textgrid, 'Set interval text', 1, interval_num, current_status)
+#
+#         return textgrid
 
 
 def process_soundfile(fn, audio_path, chunk_path, alpha=0.1, overwrite=False, save_sounds=False, music_detection=False):
@@ -240,40 +240,40 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.1, overwrite=False, sa
             output_df.to_csv(log_file, mode='a', index=False, header=False)
             return 3
 
-        if music_detection:
-            print('Music detection in progress...')
-            base_textgrid = detect_music(wav_fn, sound, alpha)
-            #base_textgrid.save(path.join(tg_path, video_id+'_music.TextGrid'))
+        # if music_detection:
+        #     print('Music detection in progress...')
+        #     base_textgrid = detect_music(wav_fn, sound, alpha)
+        #     #base_textgrid.save(path.join(tg_path, video_id+'_music.TextGrid'))
+        #
+        #     n_ints = call(base_textgrid, 'Count intervals where',
+        #                         1, 'is equal to', 'speech')
+        #
+        #     extracted_speech = call([sound, base_textgrid],
+        #                             'Extract intervals where',
+        #                             1, True, 'is equal to', 'speech')
+        #
+        #     call(base_textgrid, 'Duplicate tier', 1, 1, 'speech')
+        #     call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'speech', '', 'literals')
+        #
+        #     if n_ints <=1:
+        #         extracted_sounds_1 = [extracted_speech]
+        #     else:
+        #         extracted_sounds_1 = extracted_speech
+        #
+        # else:
+        print('First pass chunking in progress...')
+        # Use a more conservative 0.5 sec silence to get larger chunks
 
-            n_ints = call(base_textgrid, 'Count intervals where',
-                                1, 'is equal to', 'speech')
+        sil_duration = 0.25
+        quantile = 0.05
+        (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile)
 
-            extracted_speech = call([sound, base_textgrid],
-                                    'Extract intervals where',
-                                    1, True, 'is equal to', 'speech')
-
-            call(base_textgrid, 'Duplicate tier', 1, 1, 'speech')
-            call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'speech', '', 'literals')
-
-            if n_ints <=1:
-                extracted_sounds_1 = [extracted_speech]
-            else:
-                extracted_sounds_1 = extracted_speech
-
-        else:
-            print('First pass chunking in progress...')
-            # Use a more conservative 0.5 sec silence to get larger chunks
-
-            sil_duration = 0.25
-            quantile = 0.05
+        while n_ints <= 1:
+            quantile += 0.025
             (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile)
 
-            while n_ints <= 1:
-                quantile += 0.025
-                (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile)
-
-            call(base_textgrid, 'Duplicate tier', 1, 1, 'speech')
-            call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'silence', '', 'Regular Expressions')
+        call(base_textgrid, 'Duplicate tier', 1, 1, 'speech')
+        call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'silence', '', 'Regular Expressions')
 
         print('Iterative chunking in progress...')
         counter = -1
@@ -392,35 +392,41 @@ def chunk_voice(args):
     alpha = None
     process_videos(args.group, args.channel, args.video, args.save_sounds, args.overwrite, music_detection, alpha)
 
-def chunk_music(args):
-    """Wrapper for chunking with music detection"""
-    music_detection = True
-    alpha = args.alpha
-    process_videos(args.group, args.channel, args.video, args.save_sounds, args.overwrite, music_detection, alpha)
+# def chunk_music(args):
+#     """Wrapper for chunking with music detection"""
+#     music_detection = True
+#     alpha = args.alpha
+#     process_videos(args.group, args.channel, args.video, args.save_sounds, args.overwrite, music_detection, alpha)
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Chunk WAV audio files into short segments of sound.')
     parser.set_defaults(func=None)
+    parser.set_defaults(func=chunk_voice)
+    parser.add_argument('-g', '--group', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
+    parser.add_argument('-ch', '--channel', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
+    parser.add_argument('-v', '--video', default=None, type=str, help='run on files for a video id; if unspecified, goes through all videos in order')
+    parser.add_argument('-s', '--save_sounds', action='store_true', default=False, help='save chunked sound files (necessary for using 3-validate-chunks.py); else, only saves full textgrid')
+    parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite files rather than appending')
 
-    subparsers = parser.add_subparsers(help='use voice activity detection or music detection (beta ver.) for first-pass audio chunking')
+    # subparsers = parser.add_subparsers(help='use voice activity detection or music detection (beta ver.) for first-pass audio chunking')
+    #
+    # voice_parser = subparsers.add_parser('voice', help='use voice activity detection for first-pass audio chunking (see 2-chunk-audio.py voice -h for more help)')
+    # voice_parser.set_defaults(func=chunk_voice)
+    # voice_parser.add_argument('-g', '--group', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
+    # voice_parser.add_argument('-ch', '--channel', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
+    # voice_parser.add_argument('-v', '--video', default=None, type=str, help='run on files for a video id; if unspecified, goes through all videos in order')
+    # voice_parser.add_argument('-s', '--save_sounds', action='store_true', default=False, help='save chunked sound files (necessary for using 3-validate-chunks.py); default only saves full textgrid')
+    # voice_parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite files rather than appending')
 
-    voice_parser = subparsers.add_parser('voice', help='use voice activity detection for first-pass audio chunking (see 2-chunk-audio.py voice -h for more help)')
-    voice_parser.set_defaults(func=chunk_voice)
-    voice_parser.add_argument('-g', '--group', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
-    voice_parser.add_argument('-ch', '--channel', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
-    voice_parser.add_argument('-v', '--video', default=None, type=str, help='run on files for a video id; if unspecified, goes through all videos in order')
-    voice_parser.add_argument('-s', '--save_sounds', action='store_true', default=False, help='save chunked sound files (necessary for using 3-validate-chunks.py); default only saves full textgrid')
-    voice_parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite files rather than appending')
-
-    music_parser = subparsers.add_parser('music', help='(BETA) use music detection for first-pass audio chunking (see 2-chunk-audio.py music -h for more help)')
-    music_parser.set_defaults(func=chunk_music)
-    music_parser.add_argument('-g', '--group', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
-    music_parser.add_argument('-ch', '--channel', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
-    music_parser.add_argument('-v', '--video', default=None, type=str, help='run on files for a video id; if unspecified, goes through all videos in order')
-    music_parser.add_argument('-s', '--save_sounds', action='store_true', default=False, help='save chunked sound files (necessary for using 3-validate-chunks.py); default only saves textgrid')
-    music_parser.add_argument('-a', '--alpha', default=0.1, type=float, help='Cutoff point to detect as music  (0-1), where 0=music and 1=speech')
-    music_parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite files rather than appending')
+    # music_parser = subparsers.add_parser('music', help='(BETA) use music detection for first-pass audio chunking (see 2-chunk-audio.py music -h for more help)')
+    # music_parser.set_defaults(func=chunk_music)
+    # music_parser.add_argument('-g', '--group', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
+    # music_parser.add_argument('-ch', '--channel', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
+    # music_parser.add_argument('-v', '--video', default=None, type=str, help='run on files for a video id; if unspecified, goes through all videos in order')
+    # music_parser.add_argument('-s', '--save_sounds', action='store_true', default=False, help='save chunked sound files (necessary for using 3-validate-chunks.py); default only saves textgrid')
+    # music_parser.add_argument('-a', '--alpha', default=0.1, type=float, help='Cutoff point to detect as music  (0-1), where 0=music and 1=speech')
+    # music_parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite files rather than appending')
 
     args = parser.parse_args()
 

@@ -776,6 +776,8 @@ class MultiVideoScraper:
 
 
     def overwrite_channel_data(self):
+        """Delete any matching channel-level folders, and remove all instances of channel from the log.
+        """
 
         # Get channel name and ID from file path
         channel_full = path.split(self.f)[-1].split('_')[:2]
@@ -802,6 +804,8 @@ class MultiVideoScraper:
 
 
     def init_files(self):
+        """Generate file paths for saving.
+        """
 
         # Sort audio and captions by screening status
         if self.screen:
@@ -823,6 +827,11 @@ class MultiVideoScraper:
 
 
     def parse_url(self, url_data):
+        """Parse a line from the URL file for the URL, channel name, and channel ID.
+        :return URL: The video's URL
+        :return name: The channel's name
+        :return ID: The channel's ID
+        """
 
         if len(url_data) == 3:
             return url_data
@@ -836,9 +845,12 @@ class MultiVideoScraper:
 
 
     def process_url(self, url, yt_id, channel_name, channel_id):
+        """Create a VideoScraper object to handle the URL and scrape its audio and caption data.
+        :return status: 0 if end of list is reached, 1 url is skipped when not overwriting, 2 if limit reached
+        """
 
         # Check if yt_id already exists in some file; skip download unless overwriting
-        if(self.overwrite != "video"):
+        if self.overwrite != "video":
 
             # UNIX paths for captions and audio
             captions_path = path.join(self.captions_out_dir, "**", "*{0}*".format(yt_id))
@@ -917,6 +929,8 @@ class BatchVideoScraper:
 
 
     def delete_all(self):
+        """ Delete all audio and caption directories.
+        """
 
         # Sort audio and captions by screening status
         if self.screen:

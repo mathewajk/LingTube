@@ -478,43 +478,6 @@ This call:
 4. Adds boundaries to a TextGrid per video to identify intervals of "speech" or "silence" and saves this TextGrid under the folder `chunked_audio/kor/textgrids/chunking`
 5. Extracts audio per identified speech chunk and saves as WAV files under the folder `chunked_audio/kor/audio/chunking`, with a log file in `chunked_audio/kor/logs/chunking`
 
-<!-- ```
-usage: 2-chunk-audio.py [-h] {voice,music} ...
-
-Chunk WAV audio files into short segments of sound.
-
-positional arguments:
-  {voice,music}  use voice activity detection or music detection (beta ver.)
-                 for first-pass audio chunking
-    voice        use voice activity detection for first-pass audio chunking
-                 (see 2-chunk-audio.py voice -h for more help)
-    music        (BETA) use music detection for first-pass audio chunking (see
-                 2-chunk-audio.py music -h for more help)
-
-
-                 usage: 2-chunk-audio.py voice [-h] [--group GROUP] [--channel CHANNEL]
-                                               [--video VIDEO] [--save_sounds] [--overwrite]
-
-                 optional arguments:
-                   -h, --help            show this help message and exit
-                   --group GROUP, -g GROUP
-                                         name to group files under (create and /or assume files
-                                         are located in a subfolder: raw_subtitles/$group)
-                   --channel CHANNEL, -ch CHANNEL
-                                         run on files for a specific channel name; if
-                                         unspecified, goes through all channels in order
-                   --video VIDEO, -v VIDEO
-                                         run on files for a video id; if unspecified, goes
-                                         through all videos in order
-                   --save_sounds, -s     save chunked sound files (necessary for using
-                                         3-validate-chunks.py); default only saves full
-                                         textgrid
-                   --overwrite, -o       overwrite files rather than appending
-
-
-
-``` -->
-
 ---
 ### 3-validate-chunks.py
 
@@ -563,23 +526,6 @@ This can include deleting extra text, adding missing words (including filler wor
 When finished a session, press ‘Save & Quit’ to save progress and leave the program. -->
 
 
-
-<!-- ```
-usage: 3-validate-chunks.py [-h] [--group GROUP] [--lang_code LANG_CODE]
-
-Open a GUI for categorizing and transcribing audio chunks.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --group GROUP, -g GROUP
-                        name to group files under (create and /or assume files
-                        are located in a subfolder: chunked_audio/$group)
-  --lang_code LANG_CODE, -l LANG_CODE
-                        open captions with a specific a language code (e.g.,
-                        "en"); if unspecified, uses first available language
-                        code in subtitle directory
-``` -->
-
 ---
 ### 4-create-textgrids.py
 
@@ -626,25 +572,3 @@ This call:
 3. Outputs transcribed video-length TextGrid to `chunked_audio/kor/textgrids/coding`
 4. Creates folder structure under `aligned_audio/kor` for running MFA, including an input folder (`original_corpus`), processing folder (`mfa_aligner`), output folder (`aligned_corpus`), and folder for corpus-specific materials like generated pronunciation dictionaries (`trained_models`)
 5. Copies TextGrid from `chunked_audio/kor/textgrids/coding` and audio from `raw_audio/kor/.../wav` to  `aligned_audio/kor/original_corpus`
-
-<!-- ```
-usage: 4-create-textgrids.py [-h] [--group GROUP] [--channel CHANNEL]
-                             [--save_chunks] [--mfa] [--overwrite]
-
-Create MFA-compatible textgrids and move to MFA alignment folder.
-
-optional arguments:
-  -h, --help            show this help message and exit
-  --group GROUP, -g GROUP
-                        name to group files under (create and /or assume files
-                        are located in a subfolder: chunked_audio/$group)
-  --channel CHANNEL, -ch CHANNEL
-                        run on files for a specific channel name; if
-                        unspecified, goes through all channels in order
-  --save_chunks, -s     save chunked textgrids and sound files; default only
-                        saves full textgrid
-  --mfa                 copy textgrids and audio into MFA compatible directory
-                        structure under aligned_audio/$group; default does not
-                        create directory
-  --overwrite, -o       overwrite files rather than appending
-``` -->

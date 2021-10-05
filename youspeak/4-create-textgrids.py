@@ -171,7 +171,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create MFA-compatible textgrids and move to MFA alignment folder.')
 
     parser.set_defaults(func=None)
-    parser.add_argument('-g', '--group', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: chunked_audio/$group)')
+    parser.add_argument('-g', '--group', default="ungrouped", type=str, help='name to group files under (create and /or assume files are located in a subfolder: chunked_audio/$group)')
     parser.add_argument('-ch', '--channel', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
     parser.add_argument('-s', '--save_chunks', action='store_true', default=False, help='save chunked textgrids and sound files; default only saves full textgrid')
     parser.add_argument('--mfa', action='store_true', default=False, help='copy textgrids and audio into MFA compatible directory structure under aligned_audio/$group; default does not create directory')

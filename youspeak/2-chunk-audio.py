@@ -403,7 +403,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Chunk WAV audio files into short segments of sound.')
     parser.set_defaults(func=None)
     parser.set_defaults(func=chunk_voice)
-    parser.add_argument('-g', '--group', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
+    parser.add_argument('-g', '--group', default="ungrouped", type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
     parser.add_argument('-ch', '--channel', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
     parser.add_argument('-v', '--video', default=None, type=str, help='run on files for a video id; if unspecified, goes through all videos in order')
     parser.add_argument('-s', '--save_sounds', action='store_true', default=False, help='save chunked sound files (necessary for using 3-validate-chunks.py); else, only saves full textgrid')
@@ -413,7 +413,7 @@ if __name__ == '__main__':
     #
     # voice_parser = subparsers.add_parser('voice', help='use voice activity detection for first-pass audio chunking (see 2-chunk-audio.py voice -h for more help)')
     # voice_parser.set_defaults(func=chunk_voice)
-    # voice_parser.add_argument('-g', '--group', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
+    # voice_parser.add_argument('-g', '--group', default="ungrouped", type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
     # voice_parser.add_argument('-ch', '--channel', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
     # voice_parser.add_argument('-v', '--video', default=None, type=str, help='run on files for a video id; if unspecified, goes through all videos in order')
     # voice_parser.add_argument('-s', '--save_sounds', action='store_true', default=False, help='save chunked sound files (necessary for using 3-validate-chunks.py); default only saves full textgrid')
@@ -421,7 +421,7 @@ if __name__ == '__main__':
 
     # music_parser = subparsers.add_parser('music', help='(BETA) use music detection for first-pass audio chunking (see 2-chunk-audio.py music -h for more help)')
     # music_parser.set_defaults(func=chunk_music)
-    # music_parser.add_argument('-g', '--group', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
+    # music_parser.add_argument('-g', '--group', default="ungrouped", type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
     # music_parser.add_argument('-ch', '--channel', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
     # music_parser.add_argument('-v', '--video', default=None, type=str, help='run on files for a video id; if unspecified, goes through all videos in order')
     # music_parser.add_argument('-s', '--save_sounds', action='store_true', default=False, help='save chunked sound files (necessary for using 3-validate-chunks.py); default only saves textgrid')

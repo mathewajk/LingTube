@@ -14,12 +14,14 @@ Dependencies are provided in the `requirements.txt` file. To install all depende
 
 `pip install -r requirements.txt`
 
+### Python & TK
 In addition, this software requires the latest version of Python and TK. If you are on MacOS and using Homebrew, simply run
 
 `brew install python-tk`
 
 to install the version of Python that is bundled with TK. By default, `brew install python` no longer installs TK.
 
+### Selenium
 At the moment, LingTube still depends on [Selenium](https://www.selenium.dev/). In order to work with Selenium, you will need to download the appropriate WebDriver, which should be placed in `usr/bin/`:
 
 * For Firefox: [GeckoDriver](https://github.com/mozilla/geckodriver/releases)\n",
@@ -27,6 +29,7 @@ At the moment, LingTube still depends on [Selenium](https://www.selenium.dev/). 
 
 For further information, the Selenium documentation can be found [here](https://www.selenium.dev/documentation/en/webdriver/).
 
+### Pydub & Praat
 For the YouSpeak scripts that rely on [pydub](https://github.com/jiaaro/pydub), you will also need to download `ffmpeg` separately, following the instructions [here](https://github.com/jiaaro/pydub#getting-ffmpeg-set-up).  If you are on MacOS and using Homebrew, you can run
 
 `brew install ffmpeg`

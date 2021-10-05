@@ -586,13 +586,15 @@ class VideoScraper:
                 caption = ''
                 if len(list(child))==0:
                     caption = child.text
-                    if caption:
-                        print(caption)
+                    if not caption.strip():
+                        continue
                 else:
                     for s in list(child):
                         if s.tag == 's':
                             caption += ' ' + s.text
                 caption = unescape(caption.replace("\n", " ").replace("  ", " "),)
+                if not caption.strip():
+                    continue
                 try:
                     duration = float(child.attrib["d"])/1000.0
                 except KeyError:

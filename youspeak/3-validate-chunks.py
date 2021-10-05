@@ -119,12 +119,10 @@ def get_subtitles(args):
 
     global subtitles
 
-    subtitle_dir = path.join("corpus", "cleaned_subtitles")
-    if group:
-        subtitle_dir = path.join(subtitle_dir, group)
-    correct_dir = path.join(subtitle_dir, "corrected")
-    manual_dir = path.join(subtitle_dir, "manual")
-    auto_dir = path.join(subtitle_dir, "auto")
+    subtitle_dir = path.join("corpus", "cleaned_subtitles", group)
+    correct_dir  = path.join(subtitle_dir, "corrected")
+    manual_dir   = path.join(subtitle_dir, "manual")
+    auto_dir     = path.join(subtitle_dir, "auto")
 
 
     # TODO:
@@ -132,18 +130,38 @@ def get_subtitles(args):
     # 2 check for cleaned converts
     # 3 check for non cleaned ones
     # 4 throw error if more than one lang code
+
+    files = glob(path.join(subtitle_dir, "*", "*", "*{0}*".format(channel_id)), recursive=True)
+    print(files)
+    exit(0)
     
     if args.lang_code:
         lang_code = args.lang_code
-    elif path.isdir(correct_dir):
-        lang_code_list = listdir(correct_dir)
-        lang_code = lang_code_list[0]
-    elif path.isdir(manual_dir):
-        lang_code_list = listdir(manual_dir)
-        lang_code = lang_code_list[0]
-    elif path.isdir(auto_dir):
-        lang_code_list = listdir(auto_dir)
-        lang_code = lang_code_list[0]
+    else:
+        dirs = {"corrected": {}, "manual": {}, "auto": {}}
+
+        if path.isdir(correct_dir):
+            lang_code_list = listdir(correct_dir)
+            for code in lang_code_list:
+                dirs["corrected"].update{code: glob(path.join(correct_dir, "*{0}*".format(channel_id)), recursive=True)}
+
+        if not dirs["corrected"]:
+
+            elif path.isdir(manual_dir):
+                lang_code_list = listdir(manual_dir)
+                for code in lang_code_list:
+                    files += glob(path.join(correct_dir, "*{0}*".format(channel_id)), recursive=True)
+
+            if not files["manual"]  path.isdir(auto_dir):
+                lang_code_list = listdir(auto_dir)
+                for code in lang_code_list:
+                    files += glob(path.join(correct_dir, "*{0}*".format(channel_id)), recursive=True)
+
+        else:
+            if len(files["corrected"]) > 1:
+                print("ERROR: Multiple languages detected. Please specify a language code.")
+            else:
+                language_code = lang_code_list
     print("Getting captions files for language code: {0}".format(lang_code))
 
     try:

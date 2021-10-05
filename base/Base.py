@@ -92,7 +92,7 @@ class ChannelScraper:
 
         # Save scraped URLs and info
         count = self.save(name_success, description_success, urls_success)
-        print("Colellected {0} URLs".format(count))
+        print("Collected {0} URLs".format(count))
 
 
     def save_info(self):
@@ -645,7 +645,6 @@ class VideoScraper:
             prefix = "{0}_".format(safe_author)
 
         try:
-            print(self.overwrite)
             skip = False if self.overwrite != "video" else True
             audio.download(filename=base, output_path=self.audio_out_dir, filename_prefix=prefix, skip_existing=skip)
         except:

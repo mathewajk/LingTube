@@ -446,7 +446,7 @@ class VideoScraper:
             self.safe_channel_name = sub(punc_and_whitespace, "", self.channel_name)
             self.safe_author = "{0}_{1}".format(self.safe_channel_name, self.channel_id)
         else:
-            self.safe_author = sub(punc_and_whitespace, "", video.author)
+            self.safe_author = sub(punc_and_whitespace, "", self.video.author)
 
         # Sort audio and captions by screening status
         if self.screen:
@@ -586,6 +586,8 @@ class VideoScraper:
                 caption = ''
                 if len(list(child))==0:
                     caption = child.text
+                    if caption:
+                        print(caption)
                 else:
                     for s in list(child):
                         if s.tag == 's':

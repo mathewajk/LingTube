@@ -210,9 +210,20 @@ To scrape only a maximum number of manual video captions, specify a number (*N*)
 python3 base/2-scrape-videos.py -lim N $video_url_list.txt
 ```
 
-To completely overwrite the grouping folder containing previously scraped video caption and/or audio files (if group is unspecified, this will be the "ungrouped" folder) with newly scraped data, use the `-o` or `--overwrite` flag:
+To completely overwrite the grouping folder containing previously scraped video caption and/or audio files (if group is unspecified, this will be the "ungrouped" folder) with newly scraped data, use the `-o` or `--overwrite` flag with the `all` argument:
 ```
-python3 base/2-scrape-videos.py -o $video_url_list.txt
+python3 base/2-scrape-videos.py -o all $video_url_list.txt
+```
+
+To overwrite only existing channels (for example, when you want to replace the data for some channels, but not overwrite all previously-downloaded channel data), you can use the `channel` argument:
+
+```
+python3 base/2-scrape-videos.py -o channel $video_url_list.txt
+```
+
+Finally, to overwrite only the specific video data you've already collected (i.e. not *all of* of a group or channel's data), you can use the `video` argument:
+```
+python3 base/2-scrape-videos.py -o video $video_url_list.txt
 ```
 
 To scrape video captions and/or audio for screening purposes, you can use the `-s` or `--screen` flag to download data into a separate temporary folder named "unscreened_videos":

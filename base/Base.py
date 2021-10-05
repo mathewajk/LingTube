@@ -915,41 +915,41 @@ class BatchVideoScraper:
         self.limit         = limit
         self.overwrite     = overwrite
 
-        self.init_files()
 
-
-    def init_files(self):
+    def delete_all(self):
 
         # Sort audio and captions by screening status
         if self.screen:
-            self.captions_out_dir = path.join("corpus", "unscreened_videos", self.group, "subtitles")
-            self.audio_out_dir    = path.join("corpus", "unscreened_videos", self.group, "audio")
-            self.log_out_dir      = path.join("corpus", "unscreened_videos", "logs")
+            captions_out_dir = path.join("corpus", "unscreened_videos", self.group, "subtitles")
+            audio_out_dir    = path.join("corpus", "unscreened_videos", self.group, "audio")
+            log_out_dir      = path.join("corpus", "unscreened_videos", "logs")
         else:
-            self.captions_out_dir = path.join("corpus", "raw_subtitles", self.group)
-            self.audio_out_dir    = path.join("corpus", "raw_audio", self.group)
-            self.log_out_dir      = path.join("corpus", "logs")
+            captions_out_dir = path.join("corpus", "raw_subtitles", self.group)
+            audio_out_dir    = path.join("corpus", "raw_audio", self.group)
+            log_out_dir      = path.join("corpus", "logs")
 
-        out_dirs = {"captions": self.captions_out_dir,
-                       "audio": self.audio_out_dir}
+        out_dirs = {"captions": captions_out_dir,
+                       "audio": audio_out_dir}
 
-        if self.overwrite == "all":
-            for key in out_dirs:
-                try:
-                    shutil.rmtree(out_dirs[key])
-                except FileNotFoundError as e:
-                    pass
 
-            log_fn = "{0}_log.csv".format(self.group)
-            self.log_out_path = path.join(self.log_out_dir, log_fn)
+        for key in out_dirs:
+            try:
+                shutil.rmtree(out_dirs[key])
+            except FileNotFoundError as e:
+                pass
 
-            if path.isfile(self.log_out_path):
-                remove(self.log_out_path)
+        log_fn = "{0}_log.csv".format(self.group)
+        log_out_path = path.join(log_out_dir, log_fn)
+
+        if path.isfile(log_out_path):
+            remove(log_out_path)
 
 
     def process_files(self):
         """Download captions, audio (optional), and metadata from a directory of video lists.
         """
+        if self.overwrite == "all":
+            self.delete_all()
 
         URL_fns_txt = sorted(glob(path.join(self.base_fn, "*.txt")))
         URL_fns_csv = sorted(glob(path.join(self.base_fn, "*.csv")))

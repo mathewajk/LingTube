@@ -1,7 +1,7 @@
 # LingTube
-LingTube is a suite of tools for scraping and doing linguistic analysis with YouTube data. This pipeline is intended as a resource for language researchers who want to download YouTube video captions and audio for textual or phonetic analysis.
+LingTube is a suite of tools for scraping and processing YouTube videos for linguistic analysis. This pipeline is intended as a resource for language researchers who want to download YouTube video captions and audio for textual or phonetic analysis.
 
-**Disclaimer/Important Note: Scripts have been developed and thoroughly tested only on MacOS. In addition, while scraping will work for captions in any language, processing of captions and audio have only been developed for and tested on English speech at the moment. English captions are currently processed to be compatible with the Montreal Force-Aligner.**
+**Disclaimer / Important Note: Scripts have been developed and thoroughly tested only on MacOS. In addition, while scraping will work for captions in any language, processing of captions and audio have only been developed for and tested on English speech at the moment. English captions are currently processed to be compatible with the Montreal Forced Aligner.**
 
 ## Changelog
 * 10/05/21: All "base" functions moved to Base module
@@ -42,9 +42,13 @@ Additionally, for the YouSpeak scripts requiring `parselmouth-praat`, the Praat 
 
 ## Components
 
+The three branches of LingTube are:
+
 * [`base`](#base)
 * [`youdep`](#youdep)
 * [`youspeak`](#youspeak)
+
+Base scripts are run first, allowing users to download data from YouTube and perform initial processing. After this, users can run YouDep for dependency parsing, or YouSpeak for audio speech processing.
 
 ---
 

@@ -10,13 +10,9 @@ LingTube is a suite of tools for scraping and doing linguistic analysis with You
 
 ## Dependencies
 
-*Out of date: To be updated by Oct 20*
+Dependencies are provided in the `requirements.txt` file. To install all dependencies, run
 
-Dependencies are provided in the `requirements/` folder. To install all dependencies, run
-
-`pip install -r $FileName`
-
-where $FileName is one of `correct.txt` (if you need only the dependencies for making corrections), `youspeak.txt` (if you need only the YouSpeak pipeline dependencies), `yt-tools.txt` (if you need only the dependencies for scraping YouTube),`text-tools.txt` (if you need only the dependencies for working with caption text), or `full.txt` if you want to install all dependencies. Note, depending on your system, you may need to run `pip3 install` instead of `pip install`.
+`pip install -r requirements.txt`
 
 In addition, this software requires the latest version of Python and TK. If you are on MacOS and using Homebrew, simply run
 
@@ -30,7 +26,16 @@ At the moment, LingTube still depends on [Selenium](https://www.selenium.dev/). 
 * For Chrome: [ChromeDriver](https://github.com/SeleniumHQ/selenium/wiki/ChromeDriver)
 
 For further information, the Selenium documentation can be found [here](https://www.selenium.dev/documentation/en/webdriver/).
-    
+
+For the YouSpeak scripts that rely on [pydub](https://github.com/jiaaro/pydub), you will also need to download `ffmpeg` separately, following the instructions [here](https://github.com/jiaaro/pydub#getting-ffmpeg-set-up).  If you are on MacOS and using Homebrew, you can run
+
+`brew install ffmpeg`
+
+Additionally, for the YouSpeak scripts requiring `parselmouth-praat`, the Praat application is required. It can be downloaded from the [Praat website](https://www.fon.hum.uva.nl/praat/).  If you are on MacOS and using Homebrew, you can run
+
+`brew install --cask praat`
+
+
 
 ## Components
 *Details coming soon!*
@@ -367,20 +372,6 @@ The YouSpeak scripts are used to process scraped audio for forced alignment; spe
 5. [`4-create-textgrids.py`](#4-create-textgridspy)
 
 After this stage, you can run forced alignment (using the Montreal Forced Aligner or other compatible aligner).
-
-#### Dependencies
-
-Most dependencies are provided in the `requirements/` folder. To install, from the LingTube main directory, run
-
-`pip install -r requirements/youspeak.txt`
-
-For the scripts that rely on [pydub](https://github.com/jiaaro/pydub), you will also need to download `ffmpeg` separately, following the instructions [here](https://github.com/jiaaro/pydub#getting-ffmpeg-set-up).  If you are on MacOS and using Homebrew, you can run
-
-`brew install ffmpeg`
-
-For the scripts requiring `parselmouth-praat`, the Praat application is required. It can be downloaded from the [Praat website](https://www.fon.hum.uva.nl/praat/).  If you are on MacOS and using Homebrew, simply run
-
-`brew install --cask praat`
 
 ---
 

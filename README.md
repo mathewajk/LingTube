@@ -1,7 +1,7 @@
 # LingTube
 LingTube is a suite of tools for scraping and doing linguistic analysis with YouTube data. This pipeline is intended as a resource for language researchers who want to download YouTube video captions and audio for textual or phonetic analysis.
 
-**Disclaimer/Important Note: Scripts have been developed and thoroughly tested only on MacOS. In addition, while scraping will work for captions in any language, processing of captions and audio have only been developed for and tested on English speech at the moment.**
+**Disclaimer/Important Note: Scripts have been developed and thoroughly tested only on MacOS. In addition, while scraping will work for captions in any language, processing of captions and audio have only been developed for and tested on English speech at the moment. English captions are currently processed to be compatible with the Montreal Force-Aligner.**
 
 ## Changelog
 * 10/05/21: All "base" functions moved to Base module
@@ -55,6 +55,10 @@ The LingTube base scripts are used first to access YouTube data and pre-process 
 #### 1-scrape-channels.py
 
 This script allows the user to scrape video URLs from a specified channel or list of channels, along with the channel info (e.g., channel name, channel ID, *About* page). The user can also input a video URL or list of video URLs in order to scrape the uploading channel's info and/or scrape additional videos from their channel. This second option also outputs a formatted version of the input video URLs for use in `2-scrape-videos.py` (see below for more info).
+
+**Note: Running the script for the first time sometimes results in a Selenium error. If this happens, run the script again and it should work.**
+
+**Note 2: Sometimes the channel name is missing from the file(names) for the first downloaded file. If this happens, it should work perfectly if you run it a second time (exact same command). If this happens, run the script again after deleting the bad file.**
 
 ###### Usage
 
@@ -151,6 +155,7 @@ This call:
 
 This script allows the user to scrape manual and/or automated captions and audio from a specified file containing list of video URLs. Alternatively the user can specify a directory containing multiple lists of URLs, or the user can specify a group name (i.e., the name of a group sub-folder under `screened_urls`) which will access the `channel_urls` directory, assumed to contain lists of URLs.
 
+**Note: If getting error that you cannot download audio, try upgrading pytube (pip3 install --upgrade pytube).**
 
 ##### Usage
 
@@ -371,6 +376,8 @@ For the scripts requiring `parselmouth-praat`, the Praat application is required
 #### 1-convert-audio.py
 
 This script allows the user to convert scraped YouTube audio from MP4 to WAV format, as well as converting from stereo to mono. The default includes mono conversion but the user can specify if they prefer to keep audio as stereo. The script then moves the raw MP4 and converted WAV files to separate folders.
+
+**Note: We are in the process of overhauling this script to include neural-net based sound event detection for better identification of useable audio.**
 
 ##### Usage
 

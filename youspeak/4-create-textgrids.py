@@ -39,7 +39,7 @@ def main(args):
 
         for video_id in video_list:
             mfa_only = 0
-            
+
             # output dirs
             out_audio_path = path.join(chunked_audio_base, "audio", "coding", channel_id, video_id)
             out_tg_path = path.join(chunked_audio_base, "textgrids", "coding", channel_id, video_id)
@@ -171,11 +171,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create MFA-compatible textgrids and move to MFA alignment folder.')
 
     parser.set_defaults(func=None)
-    parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: chunked_audio/$group)')
-    parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
-    parser.add_argument('--save_chunks', '-s', action='store_true', default=False, help='save chunked textgrids and sound files; default only saves full textgrid')
+    parser.add_argument('-g', '--group', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: chunked_audio/$group)')
+    parser.add_argument('-ch', '--channel', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
+    parser.add_argument('-s', '--save_chunks', action='store_true', default=False, help='save chunked textgrids and sound files; default only saves full textgrid')
     parser.add_argument('--mfa', action='store_true', default=False, help='copy textgrids and audio into MFA compatible directory structure under aligned_audio/$group; default does not create directory')
-    parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
+    parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite files rather than appending')
 
     args = parser.parse_args()
 

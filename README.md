@@ -1,9 +1,10 @@
 # LingTube
-Tools for scraping and doing linguistic analysis with YouTube data. This pipeline is intended as a resource for language researchers to download YouTube video captions and audio for textual or phonetic analysis.
+LingTube is a suite of tools for scraping and doing linguistic analysis with YouTube data. This pipeline is intended as a resource for language researchers who want to download YouTube video captions and audio for textual or phonetic analysis.
 
-**Disclaimer/Important Note: Scripts have been developed and thoroughly tested only on MacOS. In addition, while the scraping scripts can be used for any language, processing of captions and audio have only been developed for and tested on English speech at the moment.**
+**Disclaimer/Important Note: Scripts have been developed and thoroughly tested only on MacOS. In addition, while scraping will work for captions in any language, processing of captions and audio have only been developed for and tested on English speech at the moment.**
 
-## Updates
+## Changelog
+* 10/05/21: All "base" functions moved to Base module
 * 08/12/21: Scripts reorganized and renamed (with order); structure and documentation update underway
 * 04/06/21: Currently under active development
 
@@ -23,6 +24,14 @@ In addition, this software requires the latest version of Python and TK. If you 
 
 to install the version of Python that is bundled with TK. By default, `brew install python` no longer installs TK.
 
+At the moment, LingTube still depends on [Selenium](https://www.selenium.dev/). In order to work with Selenium, you will need to download the appropriate WebDriver, which should be placed in `usr/bin/`:
+
+* For Firefox: [GeckoDriver](https://github.com/mozilla/geckodriver/releases)\n",
+* For Chrome: [ChromeDriver](https://github.com/SeleniumHQ/selenium/wiki/ChromeDriver)
+
+For further information, the Selenium documentation can be found [here](https://www.selenium.dev/documentation/en/webdriver/).
+    
+
 ## Components
 *Details coming soon!*
 
@@ -40,9 +49,6 @@ The LingTube base scripts are used first to access YouTube data and pre-process 
 2. [`2-scrape-videos.py`](#2-scrape-videospy)
 4. [`3-clean-captions.py`](#3-clean-captionspy)
 5. [`4-correct-captions.py`](#4-correct-captionspy)
-
-
-<!-- Add information about install drivers for Firefox or Chrome -->
 
 ---
 

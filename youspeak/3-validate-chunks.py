@@ -168,7 +168,7 @@ def combine_funcs(*funcs):
 
 # clear _category and media selection
 def clear():
-    usable.set(0)
+    usable.set(1)
     bg_music.set(0)
     bg_noise.set(0)
     other_voice.set(0)

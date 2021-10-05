@@ -177,7 +177,7 @@ def detect_music(audiofile, sound, alpha):
         return textgrid
 
 
-def process_soundfile(fn, audio_path, chunk_path, alpha, overwrite=False, textgrid_only=False, music_detection=False):
+def process_soundfile(fn, audio_path, chunk_path, alpha=0.1, overwrite=False, save_sounds=False, music_detection=False):
 
     video_id, ext = path.splitext(fn)
 
@@ -197,7 +197,7 @@ def process_soundfile(fn, audio_path, chunk_path, alpha, overwrite=False, textgr
             shutil.rmtree(sound_path)
 
         tg_fn = path.join(tg_path, video_id+'.TextGrid')
-        if textgrid_only:
+        if not save_sounds:
             if path.exists(tg_fn) and not overwrite:
                 return 2
             elif path.exists(tg_fn) and overwrite:
@@ -207,7 +207,7 @@ def process_soundfile(fn, audio_path, chunk_path, alpha, overwrite=False, textgr
         if not path.exists(tg_path):
             makedirs(tg_path)
 
-        if not textgrid_only:
+        if save_sounds:
             # Create log file
             log_file = path.join(log_path, video_id+'_chunking_log.csv')
             if not path.exists(log_path):
@@ -308,7 +308,7 @@ def process_soundfile(fn, audio_path, chunk_path, alpha, overwrite=False, textgr
                 duration = subsound.get_total_duration()
 
                 if duration <= current_cutoff or stage == 6:
-                    if not textgrid_only:
+                    if save_sounds:
                         log_entry = save_chunks(subsound, sound_path, video_id)
                         output_df = output_df.append(log_entry, ignore_index=True)
 
@@ -349,57 +349,83 @@ def process_soundfile(fn, audio_path, chunk_path, alpha, overwrite=False, textgr
                         extracted_sounds_1.remove(subsound)
                         extracted_sounds_1.append(extracted_subsounds)
 
-        if not textgrid_only:
+        if save_sounds:
             output_df = output_df.sort_values(by=["start_time"])
             output_df.to_csv(log_file, mode='a', index=False, header=False)
 
         # Save second-pass TextGrid
         base_textgrid.save(tg_fn)
 
-def main(args):
+def process_videos(group, channel, video, save_sounds, overwrite, music_detection, alpha):
 
     chunk_path = path.join('corpus','chunked_audio')
     audio_path = path.join('corpus','raw_audio', "wav")
-    if args.group:
-        chunk_path = path.join('corpus','chunked_audio', args.group)
-        audio_path = path.join('corpus','raw_audio', args.group, "wav")
+    if group:
+        chunk_path = path.join('corpus','chunked_audio', group)
+        audio_path = path.join('corpus','raw_audio', group, "wav")
 
-    if args.video:
-        fn = args.video+'.wav'
-        channel_id = args.video.rsplit('_',1)[0]
+    if video:
+        fn = video+'.wav'
+        channel_id = video.rsplit('_',1)[0]
         channel_audio_path = path.join(audio_path, channel_id)
-        process_soundfile(fn, channel_audio_path, chunk_path, args.alpha, args.overwrite, args.textgrid_only, args.music_detection)
+        process_soundfile(fn, channel_audio_path, chunk_path, alpha, overwrite, save_sounds, music_detection)
 
-    elif args.channel and not args.video:
-        channel_list = [args.channel]
-    elif not args.channel and not args.video:
+    elif channel and not video:
+        channel_list = [channel]
+    elif not channel and not video:
         channel_list = [dir_element for dir_element in listdir(audio_path) if path.isdir(path.join(audio_path, dir_element))]
 
-    if not args.video:
+    if not video:
         for channel_id in channel_list:
             channel_audio_path = path.join(audio_path, channel_id)
             for fn in listdir(channel_audio_path):
-                process_soundfile(fn, channel_audio_path, chunk_path, args.alpha, args.overwrite, args.textgrid_only, args.music_detection)
-
+                process_soundfile(fn, channel_audio_path, chunk_path, alpha, overwrite, save_sounds, music_detection)
 
     out_message = path.join(chunk_path, "audio", "chunking", "README.md")
     if path.exists(path.join(chunk_path, "audio", "chunking")) and not path.exists(out_message):
         with open(out_message, 'w') as file:
             file.write('Channel folders for chunked audio files (with sub-folders for each original video source) go here.')
 
+def chunk_voice(args):
+    """Wrapper for chunking with voice activity detection"""
+    music_detection = False
+    alpha = None
+    process_videos(args.group, args.channel, args.video, args.save_sounds, args.overwrite, music_detection, alpha)
+
+def chunk_music(args):
+    """Wrapper for chunking with music detection"""
+    music_detection = True
+    alpha = args.alpha
+    process_videos(args.group, args.channel, args.video, args.save_sounds, args.overwrite, music_detection, alpha)
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Chunk WAV audio files into short segments of sound.')
-
     parser.set_defaults(func=None)
-    parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
-    parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
-    parser.add_argument('--video', '-v', default=None, type=str, help='run on files for a video id; if unspecified, goes through all videos in order')
-    parser.add_argument('--textgrid_only', '-tg', action='store_true', default=False, help='only output textgrid with detected speech; no chunked sound files will be saved')
-    parser.add_argument('--music_detection', '-md', action='store_true', default=False, help='run music detection as first pass chunking (beta version)')
-    parser.add_argument('--alpha', '-a', default=0.1, type=float, help='Cutoff point to detect as music  (0-1), where 0=music and 1=speech')
-    parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
+
+    subparsers = parser.add_subparsers(help='use voice activity detection or music detection (beta ver.) for first-pass audio chunking')
+
+    voice_parser = subparsers.add_parser('voice', help='use voice activity detection for first-pass audio chunking (see 2-chunk-audio.py voice -h for more help)')
+    voice_parser.set_defaults(func=chunk_voice)
+    voice_parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
+    voice_parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
+    voice_parser.add_argument('--video', '-v', default=None, type=str, help='run on files for a video id; if unspecified, goes through all videos in order')
+    voice_parser.add_argument('--save_sounds', '-s', action='store_true', default=False, help='save chunked sound files (necessary for using 3-validate-chunks.py); default only saves full textgrid')
+    voice_parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
+
+    music_parser = subparsers.add_parser('music', help='(BETA) use music detection for first-pass audio chunking (see 2-chunk-audio.py music -h for more help)')
+    music_parser.set_defaults(func=chunk_music)
+    music_parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
+    music_parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
+    music_parser.add_argument('--video', '-v', default=None, type=str, help='run on files for a video id; if unspecified, goes through all videos in order')
+    music_parser.add_argument('--save_sounds', '-s', action='store_true', default=False, help='save chunked sound files (necessary for using 3-validate-chunks.py); default only saves textgrid')
+    music_parser.add_argument('--alpha', '-a', default=0.1, type=float, help='Cutoff point to detect as music  (0-1), where 0=music and 1=speech')
+    music_parser.add_argument('--overwrite', '-o', action='store_true', default=False, help='overwrite files rather than appending')
 
     args = parser.parse_args()
 
-    main(args)
+    if(args.func == None):
+        parser.print_help()
+        exit(2)
+
+    args.func(args)

@@ -29,7 +29,7 @@ At the moment, LingTube still depends on [Selenium](https://www.selenium.dev/). 
 
 For further information, the Selenium documentation can be found [here](https://www.selenium.dev/documentation/en/webdriver/).
 
-### Pydub & Praat
+### FFmpeg & Praat
 For the YouSpeak scripts that rely on [pydub](https://github.com/jiaaro/pydub), you will also need to download `ffmpeg` separately, following the instructions [here](https://github.com/jiaaro/pydub#getting-ffmpeg-set-up).  If you are on MacOS and using Homebrew, you can run
 
 `brew install ffmpeg`
@@ -65,7 +65,7 @@ This script allows the user to scrape video URLs from a specified channel or lis
 
 **Note: Running the script for the first time sometimes results in a Selenium error. If this happens, run the script again and it should work.**
 
-**Note 2: Sometimes the channel name is missing from the file(names) for the first downloaded file. If this happens, it should work perfectly if you run it a second time (exact same command). If this happens, run the script again after deleting the bad file.**
+**Note 2: Sometimes, the channel name is missing from the file(names) for the first downloaded file. If this happens, run the script again after deleting the bad file and it should work.**
 
 ##### Usage
 

@@ -134,7 +134,7 @@ def get_subtitles(args):
         dirs = [correct_dir, manual_dir, auto_dir]
 
         for dir in dirs:
-            captions_path = path.join(dir, "*", "*", "*{0}*".format(channel_id))
+            captions_path = path.join(dir, "*", "*", "*{0}*".format(channel_id.split('_')[1]))
             files = glob(captions_path, recursive=True)
             if files:
                 if len(files) > 1:

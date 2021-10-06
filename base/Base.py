@@ -92,7 +92,7 @@ class ChannelScraper:
 
         # Save scraped URLs and info
         count = self.save(name_success, description_success, urls_success)
-        print("Colellected {0} URLs".format(count))
+        print("Collected {0} URLs".format(count))
 
 
     def save_info(self):
@@ -446,7 +446,7 @@ class VideoScraper:
             self.safe_channel_name = sub(punc_and_whitespace, "", self.channel_name)
             self.safe_author = "{0}_{1}".format(self.safe_channel_name, self.channel_id)
         else:
-            self.safe_author = sub(punc_and_whitespace, "", video.author)
+            self.safe_author = sub(punc_and_whitespace, "", self.video.author)
 
         # Sort audio and captions by screening status
         if self.screen:
@@ -586,11 +586,15 @@ class VideoScraper:
                 caption = ''
                 if len(list(child))==0:
                     caption = child.text
+                    if not caption.strip():
+                        continue
                 else:
                     for s in list(child):
                         if s.tag == 's':
                             caption += ' ' + s.text
                 caption = unescape(caption.replace("\n", " ").replace("  ", " "),)
+                if not caption.strip():
+                    continue
                 try:
                     duration = float(child.attrib["d"])/1000.0
                 except KeyError:
@@ -643,7 +647,6 @@ class VideoScraper:
             prefix = "{0}_".format(self.safe_author)
 
         try:
-            print(self.overwrite)
             skip = False if self.overwrite != "video" else True
             audio.download(filename=base, output_path=self.audio_out_dir, filename_prefix=prefix, skip_existing=skip)
         except:

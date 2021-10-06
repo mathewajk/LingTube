@@ -25,6 +25,7 @@ from pydub import AudioSegment
 from pydub.playback import play
 import datetime
 import argparse
+from glob import glob
 
 idx = 0
 df = None
@@ -126,17 +127,25 @@ def get_subtitles(args):
     manual_dir = path.join(subtitle_dir, "manual")
     auto_dir = path.join(subtitle_dir, "auto")
 
+    lang_code = None
     if args.lang_code:
         lang_code = args.lang_code
-    elif path.isdir(correct_dir):
-        lang_code_list = listdir(correct_dir)
-        lang_code = lang_code_list[0]
-    elif path.isdir(manual_dir):
-        lang_code_list = listdir(manual_dir)
-        lang_code = lang_code_list[0]
-    elif path.isdir(auto_dir):
-        lang_code_list = listdir(auto_dir)
-        lang_code = lang_code_list[0]
+    else:
+        dirs = [correct_dir, manual_dir, auto_dir]
+
+        for dir in dirs:
+            captions_path = path.join(dir, "*", "*", "*{0}*".format(channel_id.split('_')[1]))
+            files = glob(captions_path, recursive=True)
+            if files:
+                if len(files) > 1:
+                    print("ERROR: More than one language detected. Please specify a language code.")
+                    exit(1)
+                else:
+                    lang_code = splitall(files[0])[-3]
+
+    if not lang_code:
+        print("ERROR: No files found. Please double check your file structure.")
+        exit(1)
 
     try:
         subtitle_fp = path.join(correct_dir, lang_code, "cleans", channel_id, video_id+".txt")
@@ -168,7 +177,7 @@ def combine_funcs(*funcs):
 
 # clear _category and media selection
 def clear():
-    usable.set(0)
+    usable.set(1)
     bg_music.set(0)
     bg_noise.set(0)
     other_voice.set(0)
@@ -177,6 +186,20 @@ def clear():
     other_sounds.set(0)
     transcript.delete("1.0", "end-1c")
 
+def splitall(fp):
+    allparts = []
+    while 1:
+        parts = path.split(fp)
+        if parts[0] == fp:  # sentinel for absolute paths
+            allparts.insert(0, parts[0])
+            break
+        elif parts[1] == fp: # sentinel for relative paths
+            allparts.insert(0, parts[1])
+            break
+        else:
+            fp = parts[0]
+            allparts.insert(0, parts[1])
+    return allparts
 
 def get_transcription (subtitles, row):
     row_timerange = range(row['start_time']-1000, row['end_time']+1000)

@@ -142,7 +142,6 @@ def get_subtitles(args):
                     exit(1)
                 else:
                     lang_code = splitall(files[0])[-3]
-                    print(lang_code)
 
     if not lang_code:
         print("ERROR: No files found. Please double check your file structure.")

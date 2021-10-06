@@ -25,6 +25,7 @@ from pydub import AudioSegment
 from pydub.playback import play
 import datetime
 import argparse
+from glob import glob
 
 idx = 0
 df = None
@@ -126,6 +127,7 @@ def get_subtitles(args):
     manual_dir = path.join(subtitle_dir, "manual")
     auto_dir = path.join(subtitle_dir, "auto")
 
+    lang_code = None
     if args.lang_code:
         lang_code = args.lang_code
     else:
@@ -143,7 +145,7 @@ def get_subtitles(args):
                     print(lang_code)
 
     if not lang_code:
-        print("ERROR: Please run 3-clean-captions before running this script.")
+        print("ERROR: No files found. Please double check your file structure.")
         exit(1)
 
     try:

@@ -176,7 +176,7 @@ def combine_funcs(*funcs):
 
 # clear _category and media selection
 def clear():
-    usable.set(0)
+    usable.set(1)
     bg_music.set(0)
     bg_noise.set(0)
     other_voice.set(0)
@@ -199,7 +199,7 @@ def splitall(fp):
             fp = parts[0]
             allparts.insert(0, parts[1])
     return allparts
-    
+
 def get_transcription (subtitles, row):
     row_timerange = range(row['start_time']-1000, row['end_time']+1000)
     subtitle_match = subtitles[(subtitles["start_time"].isin(row_timerange)) |

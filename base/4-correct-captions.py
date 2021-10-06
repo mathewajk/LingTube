@@ -77,7 +77,7 @@ def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
             dirs = ["manual", "auto"]
 
             for dir in dirs:
-                captions_path = path.join(cleaned_subtitles_base, dir, "*", "*", "*{0}*".format(channel_id))
+                captions_path = path.join(cleaned_subtitles_base, dir, "*", "*", "*{0}*".format(channel_id.split('_')[1]))
                 files = glob(captions_path, recursive=True)
                 if files:
                     if len(files) > 1:

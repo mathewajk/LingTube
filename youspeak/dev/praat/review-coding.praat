@@ -22,6 +22,8 @@ form Modify textgrids
 	#sentence file_list review_list.txt
 	comment Review All or Flagged Only
 	boolean flagged_only 0
+	comment Start from file number...
+	positive start_number 1
 endform
 
 # Set names based on boolean
@@ -38,6 +40,9 @@ Read Table from comma-separated file... 'coding_log$'
 Rename: "all_rows"
 Append column: "row_index"
 number_of_rows = Get number of rows
+if start_number > number_of_rows
+	exitScript ("Value of start number is greater than the number of rows. Please re-enter a valid number.")
+endif
 for i_row to number_of_rows
 	Set numeric value: i_row, "row_index", i_row
 endfor
@@ -49,10 +54,16 @@ endif
 # If review_list file does not exist, create it
 if !(fileReadable (file_list$))
 	number_of_rows = Get number of rows
+	start_row# = List row numbers where... self[row,"order"]=start_number
+	while flagged_only = 1 and size(start_row#) = 0
+		start_number += 1
+		start_row# = List row numbers where... self[row,"order"]=start_number
+	endwhile
+	x_file = start_row#[1]
 
 	Create Strings from tokens: "review_list_in", "", ""
 
-	for i_file to number_of_rows
+	for i_file from x_file to number_of_rows
 		select Table 'table_name$'
 		soundname$ = Get value: i_file, "file"
 		select Strings review_list_in

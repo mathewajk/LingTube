@@ -126,8 +126,9 @@ def main(args):
             out_df = pd.DataFrame(columns=['filename', 'label', 'start_time', 'end_time', 'duration', 'pre_phone', 'post_phone', 'word', 'vowel', 'stress', 'diph'])
 
             # TODO: Read in the 'vowel_coding_log.csv'
-            log_path = path.join(adjusted_path, video_id, "vowel_coding_log.csv")
-            log_df = pd.read_csv(log_path)
+            if args.adjusted:
+                log_path = path.join(adjusted_path, video_id, "vowel_coding_log.csv")
+                log_df = pd.read_csv(log_path)
             # TODO: Read columns, split file column name to remove wav, add order, vowel label, boundaries, creak, and issues column
             # log_df['file']
             # log_df.iloc[idx]

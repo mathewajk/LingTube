@@ -36,6 +36,11 @@ endif
 # Read in relevant tables
 Read Table from comma-separated file... 'coding_log$'
 Rename: "all_rows"
+Append column: "row_index"
+number_of_rows = Get number of rows
+for i_row to number_of_rows
+	Set numeric value: i_row, "row_index", i_row
+endfor
 if flagged_only = 1
 	Extract rows where... self$["flag"]="1"
 	Rename: "flagged_rows"
@@ -92,12 +97,34 @@ for i_file to number_of_files
 	sound_flag$ = Get value: sound_row#[1], "flag"
 	appendInfoLine: "Flagged: " + sound_flag$
 
+	# Get row index info
+	sound_idx$ = Get value: sound_row#[1], "row_index"
+
 	# Edit sound and TextGrid
 	 select Sound 'name$'
 	 plus TextGrid 'name$'
      Edit
 		 beginPause: "Edit Text Grid"
 			 comment: "Click 'Done' to save and continue. Click 'Keep' if need to return to this file later."
+
+		 boundaries = choice ("Boundaries", number(sound_boundaries$))
+			 option ("good (e.g. fixed)")
+			 option ("bad (e.g. can't be fixed)")
+			 option ("unsure (e.g. can't identify vowel clearly)")
+			 option ("wrong (e.g. no vowel or syllabic C)")
+		 creak = choice ("Creak", number(sound_creak$))
+			 option ("none")
+			 option ("start")
+			 option ("end")
+			 option ("half/most/all")
+		 issues = choice ("Issues", number(sound_issues$))
+			 option ("none")
+			 option ("vowel quality")
+			 option ("breathy/whisper/voiceless")
+			 option ("noise/sfx/click/etc.")
+			 option ("other")
+		 flag = boolean ("Flag", number(sound_flag$))
+
 		 clicked = endPause: "Quit", "Skip", "Done", "Keep", 3, 1
 		 if clicked = 1
 					 endeditor
@@ -110,17 +137,40 @@ for i_file to number_of_files
 					 Remove
 					 list_index = list_index + 1
 		 elsif clicked = 3
+		 			 # First save the new coding if different
+					 select Table all_rows
+					 Set numeric value: number(sound_idx$), "boundaries", boundaries
+					 Set numeric value: number(sound_idx$), "creak", creak
+					 Set numeric value: number(sound_idx$), "issues", issues
+					 Set numeric value: number(sound_idx$), "flag", flag
+					 Copy... updated_rows
+					 Remove column... row_index
+					 Save as comma-separated file... 'coding_log$'
+					 Remove
+
 					 # Now save the result
 					 select TextGrid 'name$'
 					 Write to text file... 'tg_dir$''name$'.TextGrid
 					 Remove
 					 select Sound 'name$'
 					 Remove
+
 					 # Now remove filename from review file
 					 select Strings review_list_out
 					 Remove string... list_index
 					 Save as raw text file... 'file_list$'
 		 elsif clicked = 4
+					 # First save the new coding if different
+					 select Table all_rows
+					 Set numeric value: number(sound_idx$), "boundaries", boundaries
+					 Set numeric value: number(sound_idx$), "creak", creak
+					 Set numeric value: number(sound_idx$), "issues", issues
+					 Set numeric value: number(sound_idx$), "flag", flag
+					 Copy... updated_rows
+					 Remove column... row_index
+					 Save as comma-separated file... 'coding_log$'
+					 Remove
+
 					 # Now save the result
 					 select TextGrid 'name$'
 					 Write to text file... 'tg_dir$''name$'.TextGrid

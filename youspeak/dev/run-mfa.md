@@ -26,7 +26,7 @@ mfa validate -t corpus/aligned_audio/*GROUP*/mfa_aligner
 resources/aligner/english_guava.dict --ignore_acoustics -c -s 7
 
 **Example for copying**
-mfa validate -t corpus/aligned_audio/viet/mfa_aligner corpus/aligned_audio/viet/original_corpus resources/aligner/english_guava.dict --ignore_acoustics -c -s 7
+mfa validate -t corpus/aligned_audio/non/mfa_aligner corpus/aligned_audio/non/original_corpus resources/aligner/english_guava.dict --ignore_acoustics -c -s 7
 
 ---
 # Generate dictionary
@@ -48,7 +48,7 @@ mfa g2p ~/Documents/MFA/pretrained_models/g2p/english_g2p.zip
 -n 3
 
 **Example for copying**
-mfa g2p ~/Documents/MFA/pretrained_models/g2p/english_g2p.zip corpus/aligned_audio/viet/mfa_aligner/original_corpus/corpus_data/oovs_found.txt corpus/aligned_audio/viet/trained_models/dictionary/oovs_guava_v2.dict
+mfa g2p ~/Documents/MFA/pretrained_models/g2p/english_g2p.zip corpus/aligned_audio/non/mfa_aligner/original_corpus/corpus_data/oovs_found.txt corpus/aligned_audio/non/trained_models/dictionary/oovs_guava_v2.dict
 ___
 # Align
 
@@ -74,4 +74,4 @@ resources/aligner/english_guava.dict ~/Documents/MFA/pretrained_models/acoustic/
 -c -s 7
 
 **Example for copying**
-mfa align -t corpus/aligned_audio/viet/mfa_aligner corpus/aligned_audio/viet/original_corpus resources/aligner/english_guava.dict ~/Documents/MFA/pretrained_models/acoustic/english.zip corpus/aligned_audio/viet/aligned_corpus -c -s 7
+mfa align -t corpus/aligned_audio/non/mfa_aligner corpus/aligned_audio/non/original_corpus resources/aligner/english_guava.dict ~/Documents/MFA/pretrained_models/acoustic/english.zip corpus/aligned_audio/non/aligned_corpus -c -s 7

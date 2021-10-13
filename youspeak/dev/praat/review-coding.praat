@@ -24,6 +24,8 @@ form Modify textgrids
 	boolean flagged_only 0
 	comment Start from file number...
 	positive start_number 1
+	comment Delete Existing Review List
+	boolean delete_list 0
 endform
 
 # Set names based on boolean
@@ -50,6 +52,12 @@ endfor
 if flagged_only = 1
 	Extract rows where... self$["flag"]="1"
 	Rename: "flagged_rows"
+endif
+
+if delete_list = 1
+	if fileReadable (file_list$)
+		deleteFile: file_list$
+	endif
 endif
 
 # If review_list file does not exist, create it

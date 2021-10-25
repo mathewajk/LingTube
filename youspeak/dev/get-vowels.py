@@ -175,7 +175,7 @@ def main(args):
 
                     int_vowel = vowel_label[:2]
                     int_stress = vowel_label[-1]
-                    if vowel_label in diph:
+                    if int_vowel in diph:
                         int_diph = 1
                     else:
                         int_diph = 0

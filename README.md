@@ -50,6 +50,8 @@ The three branches of LingTube are:
 
 Base scripts are run first, allowing users to download data from YouTube and perform initial processing. After this, users can run YouDep for dependency parsing, or YouSpeak for audio speech processing. For more details, see sections below.
 
+All scripts should be run from the directory containing the `corpus` sub-directory (or where you intend to create it). As such, before running any scripts from the Terminal, you should change directories using the command `cd $directory_name`.
+
 ---
 
 ## Base

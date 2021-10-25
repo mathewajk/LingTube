@@ -23,7 +23,7 @@ def open_files_in_praat (fn, tg_path, audio_path):
 def get_formants (sound, int_start, int_dur, proportion_time, max_formant, formant_ceiling):
 
     # print("Making formant object")
-    sound_formant = sound.to_formant_burg(0.001, 5.0, formant_ceiling, 0.025, 50.0)
+    sound_formant = sound.to_formant_burg(0.001, 5.0, formant_ceiling, 0.005, 50.0)
     timepoint = int_start + (int_dur * proportion_time)
 
     # print("Getting formant values")

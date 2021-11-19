@@ -142,8 +142,11 @@ for i_file to number_of_files
 
 		# Insert target vowel point marker at center of sound file
 		tg_end_time = Get end time
-		Insert point tier: 3, "vowel marker"
-		Insert point: 3, tg_end_time/2, "target"
+		tg_num_tiers = Get number of tiers
+		if tg_num_tiers < 3
+			Insert point tier: 3, "vowel marker"
+			Insert point: 3, tg_end_time/2, "target"
+		endif
 
 		#########################################################
 		# Now bring up the editor to work on fixing the boundaries

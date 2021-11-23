@@ -9,6 +9,8 @@ import sys
 import webbrowser
 import subprocess
 
+from glob import glob
+
 try:
     import Tkinter as tk  # Python2
 except ImportError:
@@ -62,17 +64,34 @@ def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
             end_time.insert(0, timestamp)
 
         cleaned_subtitles_base = path.join('corpus','cleaned_subtitles')
+
         if args.group:
             cleaned_subtitles_base = path.join(cleaned_subtitles_base, args.group)
 
+        lang_code = None
+
         if args.lang_code:
             lang_code = args.lang_code
-        elif path.isdir(path.join(cleaned_subtitles_base, "manual")):
-            lang_code_list = listdir(path.join(cleaned_subtitles_base, "manual"))
-            lang_code = lang_code_list[0]
-        elif path.isdir(path.join(cleaned_subtitles_base, "auto")):
-            lang_code_list = listdir(path.join(cleaned_subtitles_base, "auto"))
-            lang_code = lang_code_list[0]
+
+        else:
+            dirs = ["manual", "auto"]
+
+            for dir in dirs:
+                captions_path = path.join(cleaned_subtitles_base, dir, "*", "*", "*{0}*".format(channel_id.split('_')[1]))
+                files = glob(captions_path, recursive=True)
+                if files:
+                    if len(files) > 1:
+                        print("ERROR: More than one language detected. Please specify a language code.")
+                        exit(1)
+                    else:
+                        lang_code = splitall(files[0])[-3]
+                        print(lang_code)
+
+        if not lang_code:
+            print("ERROR: Please run 3-clean-captions before running this script.")
+            exit(1)
+
+        print("Getting captions files for language code: {0}".format(lang_code))
 
         manual_dir = path.join(cleaned_subtitles_base, "manual", lang_code, "cleans", channel_id)
         auto_dir = path.join(cleaned_subtitles_base, "auto", lang_code, "cleans", channel_id)
@@ -115,6 +134,21 @@ def open_video_and_subtitles (args, log_fp, log, display, end_time, complete):
             webbrowser.open_new(url)
         except:
             print('Could not open URL in browser.')
+
+def splitall(fp):
+    allparts = []
+    while 1:
+        parts = path.split(fp)
+        if parts[0] == fp:  # sentinel for absolute paths
+            allparts.insert(0, parts[0])
+            break
+        elif parts[1] == fp: # sentinel for relative paths
+            allparts.insert(0, parts[1])
+            break
+        else:
+            fp = parts[0]
+            allparts.insert(0, parts[1])
+    return allparts
 
 def save_progress (log_fp, log, end_time, complete):
     global i
@@ -218,13 +252,13 @@ def main (args):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Open captions text file and YouTube video in browser to aid in correcting captions, based on a log file in corpus/logs. If group is specified, uses corpus/logs/$group_log.csv. If no group is specified, asks user to navigate to and select a log file.')
+    parser = argparse.ArgumentParser(description='Open captions text file and YouTube video in browser to aid in correcting captions, based on a log file in corpus/logs. If group is specified, uses corpus/logs/$group_log.csv.')
 
     parser.set_defaults(func=None)
-    parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: cleaned_subtitles/$group)')
-    parser.add_argument('--lang_code', '-l', default=None, type=str, help='open captions with a specific a language code (e.g., "en"); if unspecified, uses first available language code in subtitle directory')
-    parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
-    parser.add_argument('--editor', '-e', default=None, type=str, help='opens text file in a specified text editor: TextEdit, Atom, Notepad; if unspecified, uses the default program for .txt files')
+    parser.add_argument('-g','--group',  default="ungrouped", type=str, help='name to group files under (create and /or assume files are located in a subfolder: e.g., cleaned_subtitles/$group)')
+    parser.add_argument('-ch', '--channel', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
+    parser.add_argument('-l','--lang_code',  default=None, type=str, help='open captions with a specific a language code (e.g., "en"); if unspecified, uses first available language code in subtitle directory')
+    parser.add_argument('-e', '--editor', default=None, type=str, help='text editor to use for text file ("TextEdit", "Atom", "Notepad"; if unspecified, uses the default program for TXT files')
 
     args = parser.parse_args()
 

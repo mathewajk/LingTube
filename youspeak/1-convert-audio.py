@@ -12,7 +12,7 @@ import librosa
 from panns_inference import AudioTagging, SoundEventDetection, labels
 
 
-def detect_speech(source):
+def detect_speech(audio_path, orig_path):
 
         # Get index to label dictionary
         print('------ Compiling dictionary ------')
@@ -20,16 +20,15 @@ def detect_speech(source):
 
         # Run SED for audio file
         print('------ Accessing audio ------')
-        audio_path = source
-        fn = os.path.splitext(os.path.split(source)[1])[0]
+        fn = path.splitext(path.split(audio_path)[1])[0]
         device = 'cpu' # 'cuda' | 'cpu'
 
         # Prep files
-        if not os.path.exists(os.path.join("sed", "fig")):
-            os.makedirs(os.path.join("sed", "fig"))
+        if not path.exists(path.join(orig_path, "sed", "fig")):
+            makedirs(path.join(orig_path, "sed", "fig"))
 
-        out_fn_path = os.path.join('sed', fn+'_sed_results.csv')
-        out_fig_path = os.path.join('sed', 'fig', fn+'_sed_results.png')
+        out_fn_path = path.join(orig_path, "sed", fn+'_sed_results.csv')
+        out_fig_path = path.join(orig_path, "sed", 'fig', fn+'_sed_results.png')
 
         # TODO: get audio length in seconds
 
@@ -88,6 +87,8 @@ def detect_speech(source):
         plt.ylim(0, 1.)
         plt.savefig(out_fig_path)
         print('Save fig to {}'.format(out_fig_path))
+
+        plt.clf()
 
 
 def convert_to_wav (fn, orig_path, wav_path, mono=False):
@@ -152,7 +153,7 @@ def convert_and_move_dir (dir_name, orig_path, wav_path, mp4_path, mono, sed):
             convert_to_wav(fn, orig_dir_path, wav_dir_path, mono)
 
         if sed:
-            detect_speech(path.join(wav_dir_path, fn))
+            detect_speech(path.join(wav_dir_path, name+".wav"), orig_path)
 
     if not path.exists(mp4_path):
         makedirs(mp4_path)
@@ -177,7 +178,7 @@ def main(args):
         if path.splitext(dir_element)[1] == '.mp4':
             convert_and_move_file(dir_element, orig_path, wav_path, mp4_path, mono)
 
-        elif dir_element not in ['mp4', 'wav', '.DS_Store']:
+        elif dir_element not in ['mp4', 'wav', 'sed', '.DS_Store']:
             convert_and_move_dir(dir_element, orig_path, wav_path, mp4_path, mono, args.sed)
 
     out_message = path.join(wav_path, "README.md")

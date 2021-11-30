@@ -91,7 +91,6 @@ def detect_speech(audio_path, sed_dir_path):
 
         plt.clf()
 
-
 def convert_to_wav (fn, orig_path, wav_path, mono=False):
     """ Takes an mp4 file and converts it to WAV format.
 
@@ -112,25 +111,6 @@ def convert_to_wav (fn, orig_path, wav_path, mono=False):
         makedirs(wav_path)
     out_file_path = path.join(wav_path, name + ".wav")
     sound.export(out_file_path, format="wav")
-
-
-def convert_and_move_file (fn, orig_path, wav_path, mp4_path, mono=False):
-    """ Wrapper to convert mp4 file and move to separate directory.
-
-    :param fn: An mp4 filename (w/ ext)
-    :param orig_path: The original path of the mp4 file
-    :param wav_path: The output path of the wav file
-    :param mp4_path: The output path of the mp4 file
-    :param mono: Boolean for converting sound to mono
-    """
-    name, ext = path.splitext(fn)
-    if ext == ".mp4":
-        convert_to_wav (fn, orig_path, wav_path, mono)
-
-    if not path.exists(mp4_path):
-        makedirs(mp4_path)
-    move(path.join(orig_path, fn), path.join(mp4_path, fn))
-
 
 def convert_and_move_dir (dir_name, orig_path, wav_path, mp4_path, mono, sed):
     """ Wrapper to convert each mp4 file in a channel folder and
@@ -177,9 +157,6 @@ def main(args):
         mono = True # Convert files to mono
 
     for dir_element in listdir(orig_path):
-
-        if path.splitext(dir_element)[1] == '.mp4':
-            convert_and_move_file(dir_element, orig_path, wav_path, mp4_path, mono)
 
         if dir_element not in ['mp4', 'wav', 'sed', '.DS_Store']:
             convert_and_move_dir(dir_element, orig_path, wav_path, mp4_path, mono, args.sed)

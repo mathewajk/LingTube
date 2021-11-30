@@ -31,12 +31,12 @@ def detect_speech(audio_path, sed_dir_path, save_fig):
         out_fig_path = path.join(sed_dir_path, 'fig', fn+'_sed_results.png')
     else:
         makedirs(sed_dir_path)
-        
+
     out_fn_path = path.join(sed_dir_path, fn+'_sed_results.csv')
 
     # TODO: get audio length in seconds
 
-    (audio, _) = librosa.core.load('corpus/raw_audio/mix/Mikealla_UCdQQg32M0O4ZQMogV1Wfcig/Mikealla_UCdQQg32M0O4ZQMogV1Wfcig_aAIYRzD9Ho.mp4', sr=32000, mono=True)
+    (audio, _) = librosa.core.load(audio_path, sr=32000, mono=True)
     # duration = librosa.get_duration(y=audio, sr=32000)
     audio = audio[None, :]  # (batch_size, segment_samples)
 
@@ -104,8 +104,8 @@ def detect_speech(audio_path, sed_dir_path, save_fig):
         print('Save fig to {}'.format(out_fig_path))
         plt.savefig(out_fig_path, dpi=300)
 
-        #plt.show()
         plt.clf()
+
 
 def convert_to_wav (fn, orig_path, wav_path, mono=False):
     """ Takes an mp4 file and converts it to WAV format.

@@ -86,7 +86,7 @@ def detect_speech(audio_path, sed_dir_path):
         plt.xlabel('Seconds')
         plt.ylabel('Probability')
         plt.ylim(0, 1.)
-        plt.savefig(out_fig_path)
+        plt.savefig(out_fig_path, bbox_inches='tight')
         print('Save fig to {}'.format(out_fig_path))
 
         plt.clf()

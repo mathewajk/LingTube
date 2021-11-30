@@ -177,7 +177,7 @@ def save_chunks(chunk_sound, out_path, video_id):
 #         return textgrid
 
 
-def process_soundfile(fn, audio_path, chunk_path, alpha=0.1, overwrite=False, save_sounds=False, music_detection=False):
+def process_soundfile(fn, audio_path, chunk_path, alpha=0.1, overwrite=False, save_sounds=False, sed=False):
 
     video_id, ext = path.splitext(fn)
 
@@ -240,7 +240,7 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.1, overwrite=False, sa
             output_df.to_csv(log_file, mode='a', index=False, header=False)
             return 3
 
-        # if music_detection:
+        # if sed:
         #     print('Music detection in progress...')
         #     base_textgrid = detect_music(wav_fn, sound, alpha)
         #     #base_textgrid.save(path.join(tg_path, video_id+'_music.TextGrid'))
@@ -261,19 +261,82 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.1, overwrite=False, sa
         #         extracted_sounds_1 = extracted_speech
         #
         # else:
-        print('First pass chunking in progress...')
-        # Use a more conservative 0.5 sec silence to get larger chunks
 
-        sil_duration = 0.25
-        quantile = 0.05
-        (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile)
+        if sed:
+            print('Accessing SED data in progress...')
 
-        while n_ints <= 1:
-            quantile += 0.025
+            raw_path_parts = path.normpath(audio_path).split(path.sep)
+            raw_path_parts[3] = "sed"
+            sed_path = path.join(*raw_path_parts)
+            file_path = path.join(sed_path, video_id+'_sed_results.csv')
+            sed_df = pd.read_csv(file_path)
+
+            base_textgrid = call(sound, "To TextGrid", "speech sounds", "")
+            alpha = 0.6
+            for idx, sec in enumerate(sed_df["seconds"]):
+                y = sed_df["speech_ratio_50"][idx]
+                # print(idx, sec, y)
+
+                if sec == 0:
+                    if y >= alpha:
+                        y_status = current_status = 'speech'
+                    else:
+                        y_status = current_status = 'other'
+                    call(base_textgrid, 'Set interval text', 1, 1, current_status)
+                elif current_status == 'speech':
+                    if y < alpha:
+                        y_status = 'other'
+                    else:
+                        y_status = current_status
+                elif current_status == 'other':
+                    if y >= alpha:
+                        y_status = 'speech'
+                    else:
+                        y_status = current_status
+
+                try:
+                    call(base_textgrid, 'Insert boundary', 2, sec)
+                except:
+                    pass
+                interval_num = call(base_textgrid, 'Get interval at time', 2, sec)
+                call(base_textgrid, 'Set interval text', 2, interval_num, '{0} ({1})'.format('speech' if y >= alpha else 'other', round(y,3)))
+
+                if not y_status == current_status:
+                    count_list.append((sec, y))
+                else:
+                    count_list = []
+                # print(y_status, current_status, count_list)
+                # input()
+
+                if len(count_list) == 4:
+                    current_status = y_status
+                    # print('Insert boundary at time: {0}'.format(count_list[0][0]))
+                    try:
+                        call(base_textgrid, 'Insert boundary', 1, count_list[0][0])
+                    except:
+                        pass
+                    interval_num = call(base_textgrid, 'Get interval at time', 1, count_list[0][0])
+                    call(base_textgrid, 'Set interval text', 1, interval_num, current_status)
+                    count_list = []
+
+
+            base_textgrid.save(tg_fn)
+            return 4
+
+        else:
+            print('First pass chunking in progress...')
+            # Use a more conservative 0.5 sec silence to get larger chunks
+
+            sil_duration = 0.25
+            quantile = 0.05
             (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile)
 
-        call(base_textgrid, 'Duplicate tier', 1, 1, 'speech')
-        call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'silence', '', 'Regular Expressions')
+            while n_ints <= 1:
+                quantile += 0.025
+                (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile)
+
+            call(base_textgrid, 'Duplicate tier', 1, 1, 'speech')
+            call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'silence', '', 'Regular Expressions')
 
         print('Iterative chunking in progress...')
         counter = -1
@@ -356,7 +419,7 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.1, overwrite=False, sa
         # Save second-pass TextGrid
         base_textgrid.save(tg_fn)
 
-def process_videos(group, channel, video, save_sounds, overwrite, music_detection, alpha):
+def process_videos(group, channel, video, save_sounds, overwrite, sed, alpha):
 
     chunk_path = path.join('corpus','chunked_audio')
     audio_path = path.join('corpus','raw_audio', "wav")
@@ -368,7 +431,7 @@ def process_videos(group, channel, video, save_sounds, overwrite, music_detectio
         fn = video+'.wav'
         channel_id = video.rsplit('_',1)[0]
         channel_audio_path = path.join(audio_path, channel_id)
-        process_soundfile(fn, channel_audio_path, chunk_path, alpha, overwrite, save_sounds, music_detection)
+        process_soundfile(fn, channel_audio_path, chunk_path, alpha, overwrite, save_sounds, sed)
 
     elif channel and not video:
         channel_list = [channel]
@@ -379,7 +442,7 @@ def process_videos(group, channel, video, save_sounds, overwrite, music_detectio
         for channel_id in channel_list:
             channel_audio_path = path.join(audio_path, channel_id)
             for fn in listdir(channel_audio_path):
-                process_soundfile(fn, channel_audio_path, chunk_path, alpha, overwrite, save_sounds, music_detection)
+                process_soundfile(fn, channel_audio_path, chunk_path, alpha, overwrite, save_sounds, sed)
 
     out_message = path.join(chunk_path, "audio", "chunking", "README.md")
     if path.exists(path.join(chunk_path, "audio", "chunking")) and not path.exists(out_message):
@@ -388,15 +451,15 @@ def process_videos(group, channel, video, save_sounds, overwrite, music_detectio
 
 def chunk_voice(args):
     """Wrapper for chunking with voice activity detection"""
-    music_detection = False
+    # sed = False
     alpha = None
-    process_videos(args.group, args.channel, args.video, args.save_sounds, args.overwrite, music_detection, alpha)
+    process_videos(args.group, args.channel, args.video, args.save_sounds, args.overwrite, args.sed, alpha)
 
 # def chunk_music(args):
 #     """Wrapper for chunking with music detection"""
-#     music_detection = True
+#     sed = True
 #     alpha = args.alpha
-#     process_videos(args.group, args.channel, args.video, args.save_sounds, args.overwrite, music_detection, alpha)
+#     process_videos(args.group, args.channel, args.video, args.save_sounds, args.overwrite, sed, alpha)
 
 if __name__ == '__main__':
 
@@ -407,6 +470,7 @@ if __name__ == '__main__':
     parser.add_argument('-ch', '--channel', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
     parser.add_argument('-v', '--video', default=None, type=str, help='run on files for a video id; if unspecified, goes through all videos in order')
     parser.add_argument('-s', '--save_sounds', action='store_true', default=False, help='save chunked sound files (necessary for using 3-validate-chunks.py); else, only saves full textgrid')
+    parser.add_argument('-sed', '--sed', action='store_true', default=False, help='use detected sound events for chunking')
     parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite files rather than appending')
 
     # subparsers = parser.add_subparsers(help='use voice activity detection or music detection (beta ver.) for first-pass audio chunking')

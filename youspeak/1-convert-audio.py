@@ -4,6 +4,7 @@ import argparse
 from shutil import move
 from os import listdir, makedirs, path
 from pydub import AudioSegment
+from glob import glob
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,7 +13,7 @@ import librosa
 from panns_inference import AudioTagging, SoundEventDetection, labels
 
 
-def detect_speech(audio_path, orig_path):
+def detect_speech(audio_path, sed_dir_path):
 
         # Get index to label dictionary
         print('------ Compiling dictionary ------')
@@ -24,11 +25,11 @@ def detect_speech(audio_path, orig_path):
         device = 'cpu' # 'cuda' | 'cpu'
 
         # Prep files
-        if not path.exists(path.join(orig_path, "sed", "fig")):
-            makedirs(path.join(orig_path, "sed", "fig"))
+        if not path.exists(path.join(sed_dir_path, "fig")):
+            makedirs(path.join(sed_dir_path, "fig"))
 
-        out_fn_path = path.join(orig_path, "sed", fn+'_sed_results.csv')
-        out_fig_path = path.join(orig_path, "sed", 'fig', fn+'_sed_results.png')
+        out_fn_path = path.join(sed_dir_path, fn+'_sed_results.csv')
+        out_fig_path = path.join(sed_dir_path, 'fig', fn+'_sed_results.png')
 
         # TODO: get audio length in seconds
 
@@ -145,6 +146,7 @@ def convert_and_move_dir (dir_name, orig_path, wav_path, mp4_path, mono, sed):
 
     orig_dir_path = path.join(orig_path, dir_name)
     wav_dir_path = path.join(wav_path, dir_name)
+    sed_dir_path = path.join(sed_path, dir_name)
 
     for fn in listdir(orig_dir_path):
         name, ext = path.splitext(fn)
@@ -153,7 +155,7 @@ def convert_and_move_dir (dir_name, orig_path, wav_path, mp4_path, mono, sed):
             convert_to_wav(fn, orig_dir_path, wav_dir_path, mono)
 
         if sed:
-            detect_speech(path.join(wav_dir_path, name+".wav"), orig_path)
+            detect_speech(path.join(wav_dir_path, name+".wav"), sed_dir_path)
 
     if not path.exists(mp4_path):
         makedirs(mp4_path)
@@ -167,6 +169,7 @@ def main(args):
         orig_path = path.join(orig_path, args.group)
     mp4_path = path.join(orig_path, "mp4")
     wav_path = path.join(orig_path, "wav")
+    sed_path = path.join(orig_path, "sed")
 
     if args.stereo:
         mono = False
@@ -178,12 +181,21 @@ def main(args):
         if path.splitext(dir_element)[1] == '.mp4':
             convert_and_move_file(dir_element, orig_path, wav_path, mp4_path, mono)
 
-        elif dir_element not in ['mp4', 'wav', 'sed', '.DS_Store']:
+        if dir_element not in ['mp4', 'wav', 'sed', '.DS_Store']:
             convert_and_move_dir(dir_element, orig_path, wav_path, mp4_path, mono, args.sed)
 
     out_message = path.join(wav_path, "README.md")
     with open(out_message, 'w') as file:
         file.write('Channel folders for full audio files (converted to WAV) go here.')
+
+    if args.sed:
+        for dir_element in listdir(wav_path):
+            if dir_element not in ['README.md', '.DS_Store']:
+                for fn in listdir(path.join(wav_path, dir_element)):
+                    video_id = path.splitext(fn)[0]
+                    sed_files = glob(path.join(sed_path, "*", "*{0}*".format(video_id)), recursive=True)
+                    if not sed_files:
+                        detect_speech(path.join(wav_path, dir_element, fn), path.join(sed_path, dir_element))
 
 
 if __name__ == '__main__':

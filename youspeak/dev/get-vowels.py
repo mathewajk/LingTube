@@ -91,6 +91,11 @@ def main(args):
                 tg_path = path.join(adjusted_path, video_id, "textgrids")
                 audio_path = path.join(adjusted_path, video_id, "audio")
                 out_data_path = path.join(acoustic_data_base, "adjusted", channel_id)
+
+                out_error_list = path.join(out_data_path, '{0}_{1}.txt'.format(video_id, "errors"))
+
+                if not len(listdir(tg_path)):
+                    continue #skip this unadjusted file
             else:
             #if not path.isdir(tg_path) or not [tg for tg in listdir(tg_path) if path.splitext(tg)[1] == '.TextGrid']:
                 print('  Using automatic (unadjusted) forced alignment')
@@ -122,16 +127,17 @@ def main(args):
                     print('- Skipping existing file: {0}'.format(out_fn))
                     continue
 
+            if args.adjusted:
+                if path.exists(out_error_list) and args.overwrite:
+                    remove(out_error_list)
+
             # Create output data frame (overwriting existing)
             out_df = pd.DataFrame(columns=['filename', 'label', 'start_time', 'end_time', 'duration', 'pre_phone', 'post_phone', 'word', 'vowel', 'stress', 'diph'])
 
             # TODO: Read in the 'vowel_coding_log.csv'
             if args.adjusted:
-                log_path = path.join(adjusted_path, video_id, "vowel_coding_log.csv")
+                log_path = path.join(adjusted_path, channel_id+"_all", "vowel_coding_log.csv")
                 log_df = pd.read_csv(log_path)
-            # TODO: Read columns, split file column name to remove wav, add order, vowel label, boundaries, creak, and issues column
-            # log_df['file']
-            # log_df.iloc[idx]
 
             files_list = [fn for fn in listdir(tg_path) if not fn.startswith('.') and not fn.endswith('.txt')]
             files_list.sort(key=str.lower)
@@ -139,11 +145,16 @@ def main(args):
             for f_i, fn in enumerate(files_list):
                 sound, textgrid = open_files_in_praat(fn, tg_path, audio_path)
                 sound_fn = path.splitext(fn)[0] + ".wav"
+                fn_target_label = path.splitext(fn)[0].rsplit('_', 1)[1]
 
-                if args.point_marker:
+                if args.adjusted:
                     target_int = call(textgrid, "Get interval at time", 2, call(textgrid, "Get time of point", 3, 1))
                     target_label = call(textgrid, "Get label of interval", 2, target_int)
                     # TODO: add check in case marked label is wrong/doesn't match expected vowel; write filename to textfile for manual checking
+                    if target_label != fn_target_label:
+                        with open(out_error_list, 'a+') as file:
+                            file.write(fn+'\n')
+
                     target_start = call(textgrid, "Get start time of interval", 2, target_int)
                     target_end = call(textgrid, "Get end time of interval", 2, target_int)
                     vowel_subsounds = [call(sound, "Extract part", target_start, target_end, "rectangular", 1, True)]
@@ -205,6 +216,16 @@ def main(args):
                     # Add info to data output row
                     data_row = {'filename': sound_fn, 'label': vowel_label, 'start_time': int_start, 'end_time': int_end, 'duration': int_dur, 'pre_phone': int_pre, 'post_phone': int_post, 'word': int_word, 'vowel': int_vowel, 'stress': int_stress, 'diph': int_diph}
 
+                    if args.adjusted:
+                    # TODO: Read columns, split file column name to remove wav, add order, vowel label, boundaries, creak, and issues column
+                        # print(sound_fn)
+                        try:
+                            v_idx = log_df.file[log_df.file==sound_fn].index[0]
+                        except IndexError:
+                            continue
+                        data_row.update({'order': log_df.order.iloc[v_idx], 'boundaries': log_df.boundaries.iloc[v_idx], 'creak': log_df.creak.iloc[v_idx], 'issues': log_df.issues.iloc[v_idx], 'flag': log_df.flag.iloc[v_idx]})
+
+
                     # Get nucleus formants
                     if args.nucleus:
                         if int_diph == 1:
@@ -246,8 +267,7 @@ if __name__ == '__main__':
     parser.set_defaults(func=None)
     parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_audio/$group)')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
-    parser.add_argument('--adjusted', '-a', action='store_true', default=False, help='use hand-corrected, adjusted textgrids (under adjusted_corpus)')
-    parser.add_argument('--point_marker', '-p', action='store_true', default=False, help='use point marker to identify target vowels')
+    parser.add_argument('--adjusted', '-a', action='store_true', default=False, help='use hand-corrected, adjusted textgrids (under adjusted_corpus), identifying target vowel via point markers')
     parser.add_argument('--vowels', '-vo', help='list of vowels to target, comma-separated', type=str)
     parser.add_argument('--stress', '-st', help='list of stress values to target, comma-separated', type=str)
     parser.add_argument('--nucleus', '-n', action='store_true', default=False, help='extract nucleus midpoint formants (50 for mono; 30 for diph)')

@@ -81,12 +81,29 @@ def detect_speech(audio_path, sed_dir_path, save_fig):
                 type_lines.append(line)
 
         # Calculate ratio of speech to other sounds
-        label = 'speech_ratio_{0}'.format(slice)
-        out_df[label] = temp_df['Speech'] / temp_df.sum(axis=1)
+        label_speech = 'speech_ratio_{0}'.format(slice)
+        label_music  = 'music_ratio_{0}'.format(slice)
+
+        out_df[label_speech] = temp_df['Speech'] / temp_df.sum(axis=1)
+
+        music_ratio = None
+        try:
+            music_ratio  = temp_df['Music'] / temp_df.sum(axis=1)
+        except KeyError:
+            pass
+
+        if music_ratio is not None:
+            out_df[label_music] = music_ratio
 
         if(save_fig):
-            line, = axis[1].plot(seconds, out_df[label], label=label.format(slice), linewidth=0.25)
-            ratio_lines.append(line)
+            print("Saving {0}".format(label_speech))
+            lines, = axis[1].plot(seconds, out_df[label_speech], label=label_speech.format(slice), linewidth=0.25)
+            ratio_lines.append(lines)
+
+            if music_ratio is not None:
+                print("Saving {0}".format(label_music))
+                linem, = axis[1].plot(seconds, out_df[label_music], label=label_music.format(slice), linewidth=0.25)
+                ratio_lines.append(linem)
 
     # Save full dataframe
     print('------ Save results ------')
@@ -96,6 +113,7 @@ def detect_speech(audio_path, sed_dir_path, save_fig):
     if(save_fig):
         axis[0].legend(handles=type_lines, loc="upper right")
         axis[1].legend(handles=ratio_lines, loc="lower right")
+        print(ratio_lines)
         plt.xlabel('Seconds')
         plt.ylabel('Probability')
         plt.ylim(0, 1.)
@@ -187,7 +205,7 @@ def main(args):
                 for fn in listdir(path.join(wav_path, dir_element)):
                     video_id = path.splitext(fn)[0]
                     sed_files = glob(path.join(sed_path, "*", "*{0}*".format(video_id)), recursive=True)
-                    if not sed_files:
+                    if not sed_files or args.overwrite:
                         detect_speech(path.join(wav_path, dir_element, fn), path.join(sed_path, dir_element), args.fig)
 
 
@@ -200,6 +218,8 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--stereo', action='store_true', default=False, help='keep stereo (separate audio channels); else, converts to mono')
     parser.add_argument('-sed', '--sed',  action='store_true', default=False, help='use machine learning model to detect sound events')
     parser.add_argument('-f', '--fig',    action='store_true', default=False, help='output screening figure')
+    parser.add_argument('-o', '--overwrite', action='store_true', help='overwrite SED results')
+
 
     args = parser.parse_args()
 

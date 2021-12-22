@@ -86,24 +86,19 @@ def detect_speech(audio_path, sed_dir_path, save_fig):
 
         out_df[label_speech] = temp_df['Speech'] / temp_df.sum(axis=1)
 
-        music_ratio = None
         try:
-            music_ratio  = temp_df['Music'] / temp_df.sum(axis=1)
+            music_ratio = temp_df['Music'] / temp_df.sum(axis=1)
         except KeyError:
-            pass
+            music_ratio = [0] * len(temp_df)
 
-        if music_ratio is not None:
-            out_df[label_music] = music_ratio
+        out_df[label_music] = music_ratio
 
         if(save_fig):
-            print("Saving {0}".format(label_speech))
             lines, = axis[1].plot(seconds, out_df[label_speech], label=label_speech.format(slice), linewidth=0.25)
             ratio_lines.append(lines)
 
-            if music_ratio is not None:
-                print("Saving {0}".format(label_music))
-                linem, = axis[1].plot(seconds, out_df[label_music], label=label_music.format(slice), linewidth=0.25)
-                ratio_lines.append(linem)
+            linem, = axis[1].plot(seconds, out_df[label_music], label=label_music.format(slice), linewidth=0.25)
+            ratio_lines.append(linem)
 
     # Save full dataframe
     print('------ Save results ------')
@@ -113,7 +108,6 @@ def detect_speech(audio_path, sed_dir_path, save_fig):
     if(save_fig):
         axis[0].legend(handles=type_lines, loc="upper right")
         axis[1].legend(handles=ratio_lines, loc="lower right")
-        print(ratio_lines)
         plt.xlabel('Seconds')
         plt.ylabel('Probability')
         plt.ylim(0, 1.)
@@ -122,7 +116,7 @@ def detect_speech(audio_path, sed_dir_path, save_fig):
         print('Save fig to {}'.format(out_fig_path))
         plt.savefig(out_fig_path, dpi=300)
 
-        plt.clf()
+    plt.clf()
 
 
 def convert_to_wav (fn, orig_path, wav_path, mono=False):

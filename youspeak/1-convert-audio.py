@@ -54,51 +54,50 @@ def detect_speech(audio_path, sed_dir_path, save_fig):
     frames = [frame_ix for frame_ix in range(len(frame_arrays))]
     seconds = [f/100 for f in frames[::32]]
 
-    slices = [100, 50, 10]
     type_lines = []
     ratio_lines = []
 
-    out_df = pd.DataFrame(seconds, columns=['seconds'])
+    out_df  = pd.DataFrame(seconds, columns=['seconds'])
+    temp_df = pd.DataFrame()
+
     figure, axis = plt.subplots(2, sharex=True, sharey=True, figsize=(10,5))
 
-    for slice in slices:
-        temp_df = pd.DataFrame()
-        idex_slice = idxes[:slice]
+    # Top 10 category data
+    idex_slice = idxes[:10]
+    for class_ix in idex_slice:
+        class_lb = ix_to_lb[class_ix]
+        class_probs = [frame_arrays[frame_ix][class_ix] for frame_ix in frames[::32]]
 
-        for class_ix in idex_slice:
-            class_lb = ix_to_lb[class_ix]
-            class_probs = [frame_arrays[frame_ix][class_ix] for frame_ix in frames[::32]]
+        # Only save top 10 in CSV
+        out_df[class_lb] = class_probs
 
-            # Add list as a column to dataframe
-            temp_df[class_lb] = class_probs
-            if slice != 10:
-                continue
+        if save_fig: # Plot top 10 categories
+            line, = axis[0].plot(seconds, class_probs, label=class_lb, linewidth=0.25)
+            type_lines.append(line)
 
-            # Save top 10 categories
-            out_df[class_lb] = class_probs
-            if save_fig: # Plot top 10 categories
-                line, = axis[0].plot(seconds, class_probs, label=class_lb, linewidth=0.25)
-                type_lines.append(line)
+    # Convert all categories
+    for class_ix in idxes:
+        class_lb = ix_to_lb[class_ix]
+        class_probs = [frame_arrays[frame_ix][class_ix] for frame_ix in frames[::32]]
+        temp_df[class_lb] = class_probs
 
-        # Calculate ratio of speech to other sounds
-        label_speech = 'speech_ratio_{0}'.format(slice)
-        label_music  = 'music_ratio_{0}'.format(slice)
+    # Speech/music/noise ratios
+    classes_speech = [ix_to_lb[i] for i in range(0,6)]
+    classes_music  = [ix_to_lb[i] for i in range(137,283)]
+    classes_noise  = [ix_to_lb[i] for i in range(506,515)]
 
-        out_df[label_speech] = temp_df['Speech'] / temp_df.sum(axis=1)
+    out_df['speech_ratio'] = temp_df[classes_speech].sum(axis=1) / temp_df.sum(axis=1)
+    out_df['music_ratio']  = temp_df[classes_music].sum(axis=1)  / temp_df.sum(axis=1)
+    out_df['noise_ratio']  = temp_df[classes_noise].sum(axis=1)  / temp_df.sum(axis=1)
 
-        try:
-            music_ratio = temp_df['Music'] / temp_df.sum(axis=1)
-        except KeyError:
-            music_ratio = [0] * len(temp_df)
+    if(save_fig):
+        lines, = axis[1].plot(seconds, out_df['speech_ratio'], label='speech_ratio', linewidth=0.25)
+        linem, = axis[1].plot(seconds, out_df['music_ratio'], label='music_ratio', linewidth=0.25)
+        linen, = axis[1].plot(seconds, out_df['noise_ratio'], label='noise_ratio', linewidth=0.25)
 
-        out_df[label_music] = music_ratio
-
-        if(save_fig):
-            lines, = axis[1].plot(seconds, out_df[label_speech], label=label_speech.format(slice), linewidth=0.25)
-            ratio_lines.append(lines)
-
-            linem, = axis[1].plot(seconds, out_df[label_music], label=label_music.format(slice), linewidth=0.25)
-            ratio_lines.append(linem)
+        ratio_lines.append(lines)
+        ratio_lines.append(linem)
+        ratio_lines.append(linen)
 
     # Save full dataframe
     print('------ Save results ------')

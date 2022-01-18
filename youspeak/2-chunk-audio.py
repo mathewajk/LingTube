@@ -274,11 +274,11 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
             base_textgrid = call(sound, "To TextGrid", "speech sounds music", "")
             # alpha_list = [0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6]
             # for alpha in alpha_list:
-            alpha = 0.3
-            music_alpha = 0.01
+            alpha = 0.2
+            music_alpha = 0.2
             for idx, sec in enumerate(sed_df["seconds"]):
-                y = sed_df["speech_ratio_50"][idx]
-                z = sed_df["music_ratio_50"][idx]
+                y = sed_df["speech_ratio"][idx]
+                z = sed_df["music_ratio"][idx]
                 # print(idx, sec, y)
 
                 if sec == 0:

@@ -92,9 +92,17 @@ def main(args):
                 audio_path = path.join(adjusted_path, video_id, "audio")
                 out_data_path = path.join(acoustic_data_base, "adjusted", channel_id)
 
+                if args.fasttrack:
+                    fasttrack_path = path.join(out_data_path, "fasttrack")
+                    fasttrack_sounds_path = path.join(out_data_path, "fasttrack", "sounds")
+                    # fasttrack_tgs_path = path.join(adjusted_path, video_id, "fasttrack", "textgrids")
+
                 out_error_list = path.join(out_data_path, '{0}_{1}.txt'.format(video_id, "errors"))
 
-                if not len(listdir(tg_path)):
+                try:
+                    if not len(listdir(tg_path)):
+                        continue #skip this unadjusted file
+                except FileNotFoundError:
                     continue #skip this unadjusted file
             else:
             #if not path.isdir(tg_path) or not [tg for tg in listdir(tg_path) if path.splitext(tg)[1] == '.TextGrid']:
@@ -103,9 +111,19 @@ def main(args):
                 audio_path = path.join(pre_align_path, video_id)
                 out_data_path = path.join(acoustic_data_base, "automatic", channel_id)
 
+                if args.fasttrack:
+                    fasttrack_path = path.join(out_data_path, "fasttrack")
+                    fasttrack_sounds_path = path.join(out_data_path, "fasttrack", "sounds")
+                    # fasttrack_tgs_path = path.join(pre_align_path, video_id, "fasttrack", "textgrids")
+
             # Make folders
-            if not path.exists(out_data_path):
-                makedirs(out_data_path)
+            if args.fasttrack:
+                for dir in [out_data_path, fasttrack_sounds_path]: #fasttrack_tgs_path
+                    if not path.exists(dir):
+                        makedirs(dir)
+            else:
+                if not path.exists(out_data_path):
+                    makedirs(out_data_path)
 
             if args.nucleus:
                 out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","nucleus")
@@ -114,15 +132,17 @@ def main(args):
             if args.steps:
                 out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","steps")
             if args.nucleus or args.onoff or args.steps:
-                '{0}_{1}_{2}.csv'.format(video_id, "vowel","formants")
+                out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","formants")
             else:
                 out_fn = '{0}_{1}_{2}.csv'.format(video_id, "vowel","duration")
 
             if path.exists(path.join(out_data_path, out_fn)):
-                if args.overwrite:
+                if args.overwrite and not args.fasttrack:
                     print('- Overwriting file: {0}'.format(out_fn))
 
                     remove(path.join(out_data_path, out_fn))
+                elif args.fasttrack:
+                    pass
                 else:
                     print('- Skipping existing file: {0}'.format(out_fn))
                     continue
@@ -134,6 +154,17 @@ def main(args):
             # Create output data frame (overwriting existing)
             out_df = pd.DataFrame(columns=['filename', 'label', 'start_time', 'end_time', 'duration', 'pre_phone', 'post_phone', 'word', 'vowel', 'stress', 'diph'])
 
+            if args.fasttrack:
+                ft_segment_df = pd.DataFrame(columns=['inputfile', 'outputfile', 'vowel', 'interval', 'duration', 'start', 'end', 'previous_sound', 'next_sound', 'omit', 'stress', 'word', 'word_interval', 'word_start', 'word_end', 'previous_word', 'next_word', 'diphthong', 'number', 'boundaries', 'creak', 'issues', 'flag'])
+
+                ft_file_df = pd.DataFrame(columns=['file', 'label', 'group', 'color', 'number'])
+
+                sil1 = call('Create Sound from formula', "silence", 1, 0, 0.025, 44100, "0")
+                sil2 = call('Create Sound from formula', "silence", 1, 0, 0.025, 44100, "0")
+
+                # Read in for reference OR just build in list/dictionary:
+                vowelstoextract_df = pd.read_csv('/Users/laurettacheng/Documents/UM/UM_Research/LingTube/youspeak/dev/praat/vowelstoextract_default.csv')
+
             # TODO: Read in the 'vowel_coding_log.csv'
             if args.adjusted:
                 log_path = path.join(adjusted_path, channel_id+"_all", "vowel_coding_log.csv")
@@ -144,12 +175,16 @@ def main(args):
 
             for f_i, fn in enumerate(files_list):
                 sound, textgrid = open_files_in_praat(fn, tg_path, audio_path)
-                sound_fn = path.splitext(fn)[0] + ".wav"
+                sound_name = path.splitext(fn)[0]
+                sound_fn = sound_name + ".wav"
                 fn_target_label = path.splitext(fn)[0].rsplit('_', 1)[1]
 
                 if args.adjusted:
-                    target_int = call(textgrid, "Get interval at time", 2, call(textgrid, "Get time of point", 3, 1))
+                    target_point_marker = call(textgrid, "Get time of point", 3, 1)
+                    target_int = call(textgrid, "Get interval at time", 2, target_point_marker)
                     target_label = call(textgrid, "Get label of interval", 2, target_int)
+                    if not target_label in target_list:
+                        continue
                     # TODO: add check in case marked label is wrong/doesn't match expected vowel; write filename to textfile for manual checking
                     if target_label != fn_target_label:
                         with open(out_error_list, 'a+') as file:
@@ -159,6 +194,7 @@ def main(args):
                     target_end = call(textgrid, "Get end time of interval", 2, target_int)
                     vowel_subsounds = [call(sound, "Extract part", target_start, target_end, "rectangular", 1, True)]
                     extracted_vowels = [(vs, target_start, target_end, target_label) for vs in vowel_subsounds]
+
                 else:
                     none_vowels = []
                     extracted_vowels = []
@@ -181,6 +217,8 @@ def main(args):
 
                 if not args.adjusted:
                     print('  Number of vowels: {0}'.format(len(extracted_vowels)))
+
+                # Extract segmentation info
                 for j, target_vowel in enumerate(extracted_vowels):
                     vowel_sound, int_start, int_end, vowel_label = target_vowel
 
@@ -195,11 +233,20 @@ def main(args):
                     int_dur =  (int_end - int_start)
 
                     # Get label word/sound info
-                    int_word = call(textgrid, 'Get label of interval', 1,
-                                call(textgrid, 'Get interval at time', 1, int_start))
-                    int_i = call(textgrid, 'Get interval at time', 2, int_start)
+                    if args.adjusted:
+                        int_i = call(textgrid, "Get interval at time", 2, target_point_marker)
+                        int_word_i = call(textgrid, "Get interval at time", 1, target_point_marker)
+                        int_word = call(textgrid, 'Get label of interval', 1,
+                                int_word_i)
+                    else:
+                        int_i = call(textgrid, 'Get interval at time', 2, int_start)
+                        int_word_i = call(textgrid, 'Get interval at time', 1, int_start)
+                        int_word = call(textgrid, 'Get label of interval', 1,
+                                int_word_i)
+
 
                     # Get pre- and post-context
+                    # for Sound
                     try:
                         int_pre = call(textgrid, 'Get label of interval', 2, int_i-1)
                         if int_pre == 'sp':
@@ -213,6 +260,17 @@ def main(args):
                     except:
                         int_post = None
 
+                    # for Word
+                    try:
+                        int_word_pre = call(textgrid, 'Get label of interval', 1, int_word_i-1)
+                    except:
+                        int_word_pre = None
+                    try:
+                        int_word_post = call(textgrid, 'Get label of interval', 1, int_word_i+1)
+                    except:
+                        int_word_post = None
+
+
                     # Add info to data output row
                     data_row = {'filename': sound_fn, 'label': vowel_label, 'start_time': int_start, 'end_time': int_end, 'duration': int_dur, 'pre_phone': int_pre, 'post_phone': int_post, 'word': int_word, 'vowel': int_vowel, 'stress': int_stress, 'diph': int_diph}
 
@@ -223,7 +281,33 @@ def main(args):
                             v_idx = log_df.file[log_df.file==sound_fn].index[0]
                         except IndexError:
                             continue
-                        data_row.update({'order': log_df.order.iloc[v_idx], 'boundaries': log_df.boundaries.iloc[v_idx], 'creak': log_df.creak.iloc[v_idx], 'issues': log_df.issues.iloc[v_idx], 'flag': log_df.flag.iloc[v_idx]})
+                        data_row.update({'number': log_df.order.iloc[v_idx], 'boundaries': log_df.boundaries.iloc[v_idx], 'creak': log_df.creak.iloc[v_idx], 'issues': log_df.issues.iloc[v_idx], 'flag': log_df.flag.iloc[v_idx]})
+
+                    if args.fasttrack:
+
+                        # USE already extracted sound (no need for textgrid)
+                        segment_sound = call([sil1, vowel_sound, sil2], 'Concatenate')
+
+                        # extract sound + extra window
+                        # tg_window = call(textgrid, 'Extract part', window_start, window_end, False)
+
+                        # save extracted vowels
+                        segment_name = '{0}_{1}'.format(sound_name, "target")
+                        segment_sound.save(path.join(fasttrack_sounds_path, segment_name+".wav"), "WAV")
+                        # tg_window.save(path.join(fasttrack_tgs_path, window_name+'.TextGrid'))
+
+                        # Add all info to segmentation_info.csv
+                        ft_data_row = {'inputfile': sound_name, 'outputfile': segment_name, 'vowel': int_vowel, 'interval': int_i, 'duration': int_dur, 'start': int_start, 'end': int_end, 'previous_sound': int_pre, 'next_sound': int_post, 'omit': 0, 'stress': int_stress, 'word': int_word, 'word_interval': int_word_i, 'word_start': "NA", 'word_end': "NA", 'previous_word': int_word_pre, 'next_word': int_word_post, 'diphthong': int_diph, 'number': log_df.order[v_idx], 'boundaries': log_df.boundaries[v_idx], 'creak': log_df.creak[v_idx], 'issues': log_df.issues[v_idx], 'flag': log_df.flag[v_idx]}
+
+                        # write to DataFrame
+                        ft_segment_df = ft_segment_df.append(ft_data_row, ignore_index=True, sort=False)
+
+                        # Create file_information.csv
+                        vte_idx = vowelstoextract_df.label[vowelstoextract_df.label==int_vowel].index[0]
+
+                        ft_file_row = {'file': segment_name+".wav", 'label': int_vowel, 'group': vowelstoextract_df.group[vte_idx], 'color': vowelstoextract_df.color[vte_idx], 'number': log_df.order[v_idx]}
+
+                        ft_file_df = ft_file_df.append(ft_file_row, ignore_index=True, sort=False)
 
 
                     # Get nucleus formants
@@ -258,7 +342,15 @@ def main(args):
                     # write to DataFrame
                     out_df = out_df.append(data_row, ignore_index=True, sort=False)
 
-                    out_df.to_csv(path.join(out_data_path, out_fn), index=False)
+            # Write to file
+            if args.fasttrack:
+                ft_segment_df.to_csv(path.join(fasttrack_path, "segmentation_information.csv"), index=False)
+                # if not (args.stress == 1):
+                #     ft_segment_df_stressed = ft_segment_df[ft_segment_df['stress']=='1']
+                #     ft_segment_df_stressed.to_csv(path.join(fasttrack_path, "segmentation_information.csv"), index=False)
+                ft_file_df.to_csv(path.join(fasttrack_path, "file_information.csv"), index=False)
+            else:
+                out_df.to_csv(path.join(out_data_path, out_fn), index=False)
 
 if __name__ == '__main__':
 
@@ -268,6 +360,7 @@ if __name__ == '__main__':
     parser.add_argument('--group', '-g', default=None, type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_audio/$group)')
     parser.add_argument('--channel', '-ch', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
     parser.add_argument('--adjusted', '-a', action='store_true', default=False, help='use hand-corrected, adjusted textgrids (under adjusted_corpus), identifying target vowel via point markers')
+    parser.add_argument('--fasttrack', '-f', action='store_true', default=False, help='(adjusted only) extract adjusted vowels (w/ 25ms buffer) to fasttrack folder')
     parser.add_argument('--vowels', '-vo', help='list of vowels to target, comma-separated', type=str)
     parser.add_argument('--stress', '-st', help='list of stress values to target, comma-separated', type=str)
     parser.add_argument('--nucleus', '-n', action='store_true', default=False, help='extract nucleus midpoint formants (50 for mono; 30 for diph)')

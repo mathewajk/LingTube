@@ -327,6 +327,30 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                     call(base_textgrid, 'Set interval text', 1, interval_num, current_status)
                     count_list = []
 
+            # Make addl tier based on speech, music  - four short alternations = speech and music?
+
+            # TODO:
+            #
+            # base_tier = textgrid.get_tier(1)
+            # new_tier = textgrid.create_tier()
+            # interval_window = []
+            # pos = 0
+            #
+            # for intervial in base_tier:
+            #   pos += 1
+            #   duration = interval.duration
+            #
+            #   if duration <= 4000: # if interval is too short
+            #       if not interval_window: # window is empty; add first short interval
+            #           interval_window.append((pos, interval))
+            #       else if interval_window[-1] = pos - 1:  # is next short interval sequential? if yes, add
+            #           interval_window += [(pos, interval)]
+            #       else:   # if not sequential, this is our new first interval (not sure if this code is ever reached)
+            #           interval_window = [(pos, interval)]
+            #    else if duration > 4000: # if we are in a long interval
+            #       if len(interval_window >= 4): # if we've saved > 4 switches, then make an interval to label
+            #             new_tier.create_interval("SPEECH AND MUSIC", interval_window[0].start, interval_window[-1].start + segment_window[-1].duration))
+            #       interval_window = [] # else, just reset
 
             base_textgrid.save(tg_fn)
             return 4

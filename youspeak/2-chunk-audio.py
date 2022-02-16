@@ -341,7 +341,7 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                 int_start = call(base_textgrid, "Get start time of interval", 2, int_i)
                 int_end = call(base_textgrid, "Get end time of interval", 2, int_i)
                 int_duration = int_end-int_start
-                if int_duration <= 10:
+                if int_duration <= 15:
                     if not interval_window:
                         interval_window.append((int_i, int_start, int_end))
                     elif interval_window[-1][0] == int_i - 1:
@@ -349,17 +349,14 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                     else:   # if not sequential, this is our new first interval (not sure if this code is ever reached)
                         interval_window = [(int_i, int_start, int_end)]
                     print("under 10", interval_window)
-                    input()
-                elif int_duration > 10: # if we are in a long interval
-                      if len(interval_window) >= 4:
+                elif int_duration > 15: # if we are in a long interval
+                      if len(interval_window) >= 6:
                           call(base_textgrid, "Insert boundary", 1, interval_window[0][1])
                           call(base_textgrid, "Insert boundary", 1, interval_window[-1][2])
                           call(base_textgrid, 'Set interval text', 1, call(base_textgrid, 'Get interval at time', 1, interval_window[0][1]), "speech_and_music")
-                      else:
-                          interval_window = [] # else, just reset
+                      interval_window = [] # else, just reset
                       print("over ten", interval_window)
-                      input()
-            #
+
             # base_tier = textgrid.get_tier(1)
             # new_tier = textgrid.create_tier()
             # pos = 0

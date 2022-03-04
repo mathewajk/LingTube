@@ -190,7 +190,7 @@ def main(args):
 
     for dir_element in listdir(orig_path):
 
-        if dir_element not in ['mp4', 'wav', 'sed', '.DS_Store']:
+        if dir_element not in ['mp4', 'wav', 'sed', '.DS_Store', 'archive']:
             convert_and_move_dir(dir_element, orig_path, wav_path, mp4_path, sed_path, mono, args.sed, args.fig)
 
     out_message = path.join(wav_path, "README.md")

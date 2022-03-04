@@ -375,7 +375,7 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                       print("over ten", interval_window)
 
 
-            # ADD USEABLE UNUSABLE TIER
+            # ADD USABLE UNUSABLE TIER
             call(base_textgrid, "Insert interval tier", 1, "useable_unusable")
             n_ints = call(base_textgrid, "Get number of intervals", 3)
             new_intervals = []
@@ -386,37 +386,39 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                 int_start = call(base_textgrid, "Get start time of interval", 3, int_i)
                 int_end   = call(base_textgrid, "Get end time of interval", 3, int_i)
 
-                is_speech_other = call(base_textgrid, "Get label of interval", 3, call(base_textgrid, 'Get interval at time', 2, int_start))
+                is_speech_other = call(base_textgrid, "Get label of interval", 2, call(base_textgrid, 'Get interval at time', 2, int_start))
 
+                if (speech_only and int_label == "speech" and not is_speech_other):
+                    new_intervals.append(("useable", int_start - 1, int_end + 1))
 
-                # if (speech_only and is_speech_other) or (int_label == "other" and not is_speech_other):
-                #     new_intervals.append(("unuseable", int_start-1, int_end+1))
-                if int_label == "speech" or (not speech_only and is_speech_other):
-                    new_start = int_start + 1
-                    new_end = int_end - 1
-                    if new_start < new_end:
-                        new_intervals.append(("useable", new_start, new_end))
+                elif not speech_only and is_speech_other:
+                    start =  call(base_textgrid, "Get start time of interval", 2, call(base_textgrid, 'Get interval at time', 2, int_start)) - 1
+                    end   =  call(base_textgrid, "Get end time of interval", 2, call(base_textgrid, 'Get interval at time', 2, int_start)) + 1
+                    new_intervals.append(("useable", start, end))
 
             # COMBINE SAME TYPES
-            # combined_intervals = []
-            #
-            # current_type = new_intervals[0][0]
-            # prev_type = new_intervals[0][0]
-            #
-            # start = new_intervals[0][1]
-            # end = new_intervals[0][2]
-            #
-            # for interval in new_intervals[1:]:
-            #     current_type = interval[0]
-            #
-            #     if current_type == prev_type:
-            #         end = interval[2]
-            #     else:
-            #         combined_intervals.append((current_type, start, end))
-            #         start = interval[1]
-            #         end = interval[2]
 
-            for interval in new_intervals:
+            combined_intervals = []
+
+            current_type = new_intervals[0][0]
+            prev_type    = new_intervals[0][0]
+
+            start = new_intervals[0][1]
+            end   = new_intervals[0][2]
+
+            for interval in new_intervals[1:]:
+
+                current_type = interval[0]
+
+                if current_type == prev_type:
+                    end = interval[2]
+                else:
+                    combined_intervals.append((current_type, start, end))
+                    start = interval[1]
+                    end   = interval[2]
+                    prev_type = current_type
+
+            for interval in combined_intervals:
                 try:
                     call(base_textgrid, "Insert boundary", 1, interval[1])
                 except:

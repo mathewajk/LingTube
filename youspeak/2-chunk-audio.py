@@ -316,7 +316,7 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                 call(base_textgrid, 'Set interval text', 3, interval_num, '{0} ({1})'.format('music' if z >= music_alpha else 'nonmusic', round(z,3)))
 
                 interval_num = call(base_textgrid, 'Get interval at time', 4, sec)
-                call(base_textgrid, 'Set interval text', 4, interval_num, '{0} ({1})'.format('noise' if z >= music_alpha else 'nonnoise', round(z,3)))
+                call(base_textgrid, 'Set interval text', 4, interval_num, '{0} ({1})'.format('noise' if x >= noise_alpha else 'nonnoise', round(x,3)))
 
                 if not y_status == current_status:
                     count_list.append((sec, y))
@@ -340,7 +340,7 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
 
             # TODO:
 
-            call(base_textgrid, "Insert interval tier", 1, "speech_and_music")
+            call(base_textgrid, "Insert interval tier", 1, "speech_and_other")
 
             interval_window = []
 
@@ -362,7 +362,7 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                       if len(interval_window) >= 6:
                           call(base_textgrid, "Insert boundary", 1, interval_window[0][1])
                           call(base_textgrid, "Insert boundary", 1, interval_window[-1][2])
-                          call(base_textgrid, 'Set interval text', 1, call(base_textgrid, 'Get interval at time', 1, interval_window[0][1]), "speech_and_music")
+                          call(base_textgrid, 'Set interval text', 1, call(base_textgrid, 'Get interval at time', 1, interval_window[0][1]), "speech_and_other")
                       interval_window = [] # else, just reset
                       print("over ten", interval_window)
 

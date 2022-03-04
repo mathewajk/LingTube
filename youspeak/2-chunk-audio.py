@@ -346,10 +346,11 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
 
             n_ints = call(base_textgrid, "Get number of intervals", 2)
             for int_i in range(1,n_ints+1):
-                print(int_i)
+
                 int_start = call(base_textgrid, "Get start time of interval", 2, int_i)
                 int_end = call(base_textgrid, "Get end time of interval", 2, int_i)
                 int_duration = int_end-int_start
+
                 if int_duration <= 15:
                     if not interval_window:
                         interval_window.append((int_i, int_start, int_end))
@@ -358,32 +359,73 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                     else:   # if not sequential, this is our new first interval (not sure if this code is ever reached)
                         interval_window = [(int_i, int_start, int_end)]
                     print("under 10", interval_window)
+
                 elif int_duration > 15: # if we are in a long interval
                       if len(interval_window) >= 6:
-                          call(base_textgrid, "Insert boundary", 1, interval_window[0][1])
-                          call(base_textgrid, "Insert boundary", 1, interval_window[-1][2])
+                          try:
+                              call(base_textgrid, "Insert boundary", 1, interval_window[0][1])
+                          except:
+                              pass
+                          try:
+                              call(base_textgrid, "Insert boundary", 1, interval_window[-1][2])
+                          except:
+                              pass
                           call(base_textgrid, 'Set interval text', 1, call(base_textgrid, 'Get interval at time', 1, interval_window[0][1]), "speech_and_other")
                       interval_window = [] # else, just reset
                       print("over ten", interval_window)
 
-            # base_tier = textgrid.get_tier(1)
-            # new_tier = textgrid.create_tier()
-            # pos = 0
 
-            # for intervial in base_tier:
-            #   pos += 1
-            #   duration = interval.duration
-            #   if duration <= 4000: # if interval is too short
-            #       if not interval_window: # window is empty; add first short interval
-            #           interval_window.append((pos, interval))
-            #       else if interval_window[-1] = pos - 1:  # is next short interval sequential? if yes, add
-            #           interval_window += [(pos, interval)]
-            #       else:   # if not sequential, this is our new first interval (not sure if this code is ever reached)
-            #           interval_window = [(pos, interval)]
-            #    else if duration > 4000: # if we are in a long interval
-            #       if len(interval_window >= 4): # if we've saved > 4 switches, then make an interval to label
-            #             new_tier.create_interval("SPEECH AND MUSIC", interval_window[0].start, interval_window[-1].start + interval_window[-1].duration))
-            #       interval_window = [] # else, just reset
+            # ADD USEABLE UNUSABLE TIER
+            call(base_textgrid, "Insert interval tier", 1, "useable_unusable")
+            n_ints = call(base_textgrid, "Get number of intervals", 3)
+            new_intervals = []
+
+            for int_i in range(1,n_ints+1):
+
+                int_label = call(base_textgrid, "Get label of interval", 3, int_i)
+                int_start = call(base_textgrid, "Get start time of interval", 3, int_i)
+                int_end   = call(base_textgrid, "Get end time of interval", 3, int_i)
+
+                is_speech_other = call(base_textgrid, "Get label of interval", 3, call(base_textgrid, 'Get interval at time', 2, int_start))
+
+
+                # if (speech_only and is_speech_other) or (int_label == "other" and not is_speech_other):
+                #     new_intervals.append(("unuseable", int_start-1, int_end+1))
+                if int_label == "speech" or (not speech_only and is_speech_other):
+                    new_start = int_start + 1
+                    new_end = int_end - 1
+                    if new_start < new_end:
+                        new_intervals.append(("useable", new_start, new_end))
+
+            # COMBINE SAME TYPES
+            # combined_intervals = []
+            #
+            # current_type = new_intervals[0][0]
+            # prev_type = new_intervals[0][0]
+            #
+            # start = new_intervals[0][1]
+            # end = new_intervals[0][2]
+            #
+            # for interval in new_intervals[1:]:
+            #     current_type = interval[0]
+            #
+            #     if current_type == prev_type:
+            #         end = interval[2]
+            #     else:
+            #         combined_intervals.append((current_type, start, end))
+            #         start = interval[1]
+            #         end = interval[2]
+
+            for interval in new_intervals:
+                try:
+                    call(base_textgrid, "Insert boundary", 1, interval[1])
+                except:
+                    pass
+                try:
+                    call(base_textgrid, "Insert boundary", 1, interval[2])
+                except:
+                    pass
+                call(base_textgrid, 'Set interval text', 1, call(base_textgrid, 'Get interval at time', 1, interval[1]), interval[0])
 
             base_textgrid.save(tg_fn)
             return 4

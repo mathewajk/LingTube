@@ -81,10 +81,15 @@ def detect_speech(audio_path, sed_dir_path, save_fig):
         class_probs = [frame_arrays[frame_ix][class_ix] for frame_ix in frames[::32]]
         temp_df[class_lb] = class_probs
 
+    # 0-3: speech/speaking
+    # 4-5: conversation/monologue
+    # 137-282: music
+    # 506-514: room/outdoor noise
+    
     # Speech/music/noise ratios
     classes_speech = [ix_to_lb[i] for i in range(0,6)]
     classes_music  = [ix_to_lb[i] for i in range(137,283)]
-    classes_noise  = [ix_to_lb[i] for i in range(506,515)]
+    classes_noise  = [ix_to_lb[i] for i in range(66,73)] + [ix_to_lb[i] for i in range(506,527)]
 
     out_df['speech_ratio'] = temp_df[classes_speech].sum(axis=1) / temp_df.sum(axis=1)
     out_df['music_ratio']  = temp_df[classes_music].sum(axis=1)  / temp_df.sum(axis=1)

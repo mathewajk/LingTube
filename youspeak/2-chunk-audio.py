@@ -271,29 +271,34 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
             file_path = path.join(sed_path, video_id+'_sed_results.csv')
             sed_df = pd.read_csv(file_path)
 
-            base_textgrid = call(sound, "To TextGrid", "speech sounds music", "")
+            base_textgrid = call(sound, "To TextGrid", "speech sounds music noise", "")
             # alpha_list = [0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6]
             # for alpha in alpha_list:
             alpha = 0.2
             music_alpha = 0.2
+            noise_alpha = 0.2
+
             for idx, sec in enumerate(sed_df["seconds"]):
+
+                x = sed_df["noise_ratio"][idx]
                 y = sed_df["speech_ratio"][idx]
                 z = sed_df["music_ratio"][idx]
+
                 # print(idx, sec, y)
 
                 if sec == 0:
-                    if y >= alpha and z <= music_alpha:
+                    if y >= alpha and z <= music_alpha and x <= noise_alpha:
                         y_status = current_status = 'speech'
                     else:
                         y_status = current_status = 'other'
                     call(base_textgrid, 'Set interval text', 1, 1, current_status)
                 elif current_status == 'speech':
-                    if y < alpha or z > music_alpha:
+                    if y < alpha or z > music_alpha or x > noise_alpha:
                         y_status = 'other'
                     else:
                         y_status = current_status
                 elif current_status == 'other':
-                    if y >= alpha and z <= music_alpha:
+                    if y >= alpha and z <= music_alpha and x <= noise_alpha:
                         y_status = 'speech'
                     else:
                         y_status = current_status
@@ -301,13 +306,17 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                 try:
                     call(base_textgrid, 'Insert boundary', 2, sec)
                     call(base_textgrid, 'Insert boundary', 3, sec)
+                    call(base_textgrid, 'Insert boundary', 4, sec)
                 except:
                     pass
                 interval_num = call(base_textgrid, 'Get interval at time', 2, sec)
-                call(base_textgrid, 'Set interval text', 2, interval_num, '{0} ({1})'.format('speech' if y >= alpha else 'other', round(y,3)))
+                call(base_textgrid, 'Set interval text', 2, interval_num, '{0} ({1})'.format('speech' if y >= alpha else 'nonspeech', round(y,3)))
 
                 interval_num = call(base_textgrid, 'Get interval at time', 3, sec)
                 call(base_textgrid, 'Set interval text', 3, interval_num, '{0} ({1})'.format('music' if z >= music_alpha else 'nonmusic', round(z,3)))
+
+                interval_num = call(base_textgrid, 'Get interval at time', 4, sec)
+                call(base_textgrid, 'Set interval text', 4, interval_num, '{0} ({1})'.format('noise' if z >= music_alpha else 'nonnoise', round(z,3)))
 
                 if not y_status == current_status:
                     count_list.append((sec, y))

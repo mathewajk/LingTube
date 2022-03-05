@@ -19,6 +19,8 @@ def get_silence_threshold(sound, lower_quantile):
     soundint = sound.to_intensity()
     max_intensity = call(soundint, 'Get quantile', 0.0, 0.0, 1)
     sil_intensity = call(soundint, 'Get quantile', 0.0, 0.0, lower_quantile)
+    if sil_intensity < 0:
+        sil_intensity = 0
     return sil_intensity - max_intensity
 
 def detect_silences(sound, sil_threshold, sil_duration):
@@ -101,7 +103,7 @@ def save_chunks(chunk_sound, out_path, video_id):
 
     return {'filename': chunk_fn, 'video_id': video_id, 'start_time': chunk_start_ms, 'end_time': chunk_end_ms, 'duration': chunk_duration}
 
-def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, save_sounds=False, sed=False):
+def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=False, sed=False, include_all_speech=False):
 
     video_id, ext = path.splitext(fn)
 
@@ -175,8 +177,6 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
             sed_df = pd.read_csv(file_path)
 
             base_textgrid = call(sound, "To TextGrid", "speech sounds music noise", "")
-            # alpha_list = [0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6]
-            # for alpha in alpha_list:
             alpha = 0.2
             music_alpha = 0.2
             noise_alpha = 0.2
@@ -239,10 +239,6 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                     call(base_textgrid, 'Set interval text', 1, interval_num, current_status)
                     count_list = []
 
-            # Make addl tier based on speech, music  - four short alternations = speech and music?
-
-            # TODO:
-
             call(base_textgrid, "Insert interval tier", 1, "speech_and_other")
 
             interval_window = []
@@ -278,8 +274,8 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                       # print("over ten", interval_window)
 
 
-            # ADD USEABLE UNUSABLE TIER
-            call(base_textgrid, "Insert interval tier", 1, "useable_unusable")
+            # ADD usable UNUSABLE TIER
+            call(base_textgrid, "Insert interval tier", 1, "usable_unusable")
             n_ints = call(base_textgrid, "Get number of intervals", 3)
             new_intervals = []
 
@@ -299,9 +295,9 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                     new_end = int_end + 1
                     if new_end > sound.get_total_duration():
                         new_end = sound.get_total_duration()
-                    new_intervals.append(("useable", new_start, new_end))
+                    new_intervals.append(("usable", new_start, new_end))
 
-                elif args.include_all_speech and is_speech_other:
+                elif include_all_speech and is_speech_other:
                     start =  call(base_textgrid, "Get start time of interval", 2, call(base_textgrid, 'Get interval at time', 2, int_start)) - 1
                     end   =  call(base_textgrid, "Get end time of interval", 2, call(base_textgrid, 'Get interval at time', 2, int_start)) + 1
                     new_start = start - 1
@@ -310,7 +306,7 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                     new_end = end + 1
                     if new_end > sound.get_total_duration():
                         new_end = sound.get_total_duration()
-                    new_intervals.append(("useable", new_start, new_end))
+                    new_intervals.append(("usable", new_start, new_end))
 
             # COMBINE SAME TYPES
 
@@ -329,12 +325,12 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                 current_end   = interval[2]
 
                 if current_start > prev_end:
-                    combined_intervals.append(("useable", prev_start, prev_end))
+                    combined_intervals.append(("usable", prev_start, prev_end))
                     prev_start = current_start
                 prev_end = current_end
 
                 if i == len(new_intervals[1:])-1:
-                    combined_intervals.append(("useable", prev_start, prev_end))
+                    combined_intervals.append(("usable", prev_start, prev_end))
 
             # print("CREATING INTERVALS\n================================")
             for interval in combined_intervals:
@@ -349,7 +345,21 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                 call(base_textgrid, 'Set interval text', 1, call(base_textgrid, 'Get interval at time', 1, interval[1]), interval[0])
 
             base_textgrid.save(tg_fn)
-            return 4
+            # TODO: Account for the case of no usable sections in the entire sound
+
+            n_ints = call(base_textgrid, 'Count intervals where',
+                                1, 'is equal to', 'usable')
+
+            extracted_sounds_1 = call([sound, base_textgrid],
+                                    'Extract intervals where',
+                                    1, True, 'is equal to', 'usable')
+            if n_ints <= 1:
+                extracted_sounds_1 = [extracted_sounds_1]
+
+            call(base_textgrid, 'Duplicate tier', 1, 1, 'usable speech')
+            call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'usable', '', 'literals')
+
+            print("Number of usable chunks: {}".format(n_ints))
 
         else:
             print('First pass chunking in progress...')
@@ -363,7 +373,7 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                 quantile += 0.025
                 (base_textgrid, extracted_sounds_1, n_ints) = chunk_sound(sound, sil_duration, quantile)
 
-            call(base_textgrid, 'Duplicate tier', 1, 1, 'speech')
+            call(base_textgrid, 'Duplicate tier', 1, 1, 'usable speech')
             call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'silence', '', 'Regular Expressions')
 
         print('Iterative chunking in progress...')
@@ -376,10 +386,7 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
         while len(extracted_sounds_1) > 0:
             counter += 1
 
-            # TESTER
-            # call(base_textgrid, 'Duplicate tier', 1, 1, 'silences-{0}'.format(counter))
-            # call(base_textgrid, 'Replace interval texts', 1, 1, 0, '.*', '', 'Regular Expressions')
-            # base_textgrid.save(tg_fn)
+            # print("Counter: {}".format(counter))
 
             if counter % 5 == 0:
                 stage +=1
@@ -389,28 +396,39 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                 else:
                     sil_duration -= 0.025
 
+            # print(sil_duration)
+
             current_cutoff = duration_cutoff[stage]
 
-            # TESTER
-            # print('Counter: {0}'.format(counter))
-            # print('Duration: {0}'.format(sil_duration))
+            # print(len(extracted_sounds_1))
+            # input()
 
-            for subsound in extracted_sounds_1:
+            new_subsound_list = []
+            for i, subsound in enumerate(extracted_sounds_1):
                 duration = subsound.get_total_duration()
 
+                # print("Current interval: {0} {1} {2}".format(i, subsound.get_start_time(), subsound.get_total_duration()))
+
                 if duration <= current_cutoff or stage == 6:
+                    # print("Duration under")
+
                     if save_sounds:
                         log_entry = save_chunks(subsound, sound_path, video_id)
                         output_df = output_df.append(log_entry, ignore_index=True)
 
-                    extracted_sounds_1.remove(subsound)
+                    # extracted_sounds_1.remove(subsound)
 
-                else:
+                elif duration > current_cutoff:
+                    # print("Duration over")
+
                     (subtextgrid, extracted_subsounds, n_ints) = chunk_sound(subsound, sil_duration, quantile)
 
+                    # print(n_ints)
+
                     if n_ints > 1:
-                        extracted_sounds_1.remove(subsound)
-                        extracted_sounds_1 = extracted_sounds_1 + extracted_subsounds
+                        # extracted_sounds_1.remove(subsound)
+                        # extracted_sounds_1 = extracted_sounds_1 + extracted_subsounds
+                        new_subsound_list = new_subsound_list + extracted_subsounds
 
                         for subsound in extracted_subsounds:
                             subsound_start = subsound.get_start_time()
@@ -437,8 +455,11 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
                     elif n_ints == 0:
                         print('No sounds extracted.')
                     elif n_ints == 1:
-                        extracted_sounds_1.remove(subsound)
-                        extracted_sounds_1.append(extracted_subsounds)
+                        # extracted_sounds_1.remove(subsound)
+                        # extracted_sounds_1.append(extracted_subsounds)
+                        new_subsound_list.append(extracted_subsounds)
+
+            extracted_sounds_1 = new_subsound_list
 
         if save_sounds:
             output_df = output_df.sort_values(by=["start_time"])
@@ -447,7 +468,7 @@ def process_soundfile(fn, audio_path, chunk_path, alpha=0.3, overwrite=False, sa
         # Save second-pass TextGrid
         base_textgrid.save(tg_fn)
 
-def process_videos(group, channel, video, save_sounds, overwrite, sed, alpha):
+def process_videos(group, channel, video, save_sounds, overwrite, sed, include_all_speech):
 
     chunk_path = path.join('corpus','chunked_audio')
     audio_path = path.join('corpus','raw_audio', "wav")
@@ -459,7 +480,7 @@ def process_videos(group, channel, video, save_sounds, overwrite, sed, alpha):
         fn = video+'.wav'
         channel_id = video.rsplit('_',1)[0]
         channel_audio_path = path.join(audio_path, channel_id)
-        process_soundfile(fn, channel_audio_path, chunk_path, alpha, overwrite, save_sounds, sed)
+        process_soundfile(fn, channel_audio_path, chunk_path, overwrite, save_sounds, sed, include_all_speech)
 
     elif channel and not video:
         channel_list = [channel]
@@ -470,7 +491,7 @@ def process_videos(group, channel, video, save_sounds, overwrite, sed, alpha):
         for channel_id in channel_list:
             channel_audio_path = path.join(audio_path, channel_id)
             for fn in listdir(channel_audio_path):
-                process_soundfile(fn, channel_audio_path, chunk_path, alpha, overwrite, save_sounds, sed)
+                process_soundfile(fn, channel_audio_path, chunk_path, overwrite, save_sounds, sed, include_all_speech)
 
     out_message = path.join(chunk_path, "audio", "chunking", "README.md")
     if path.exists(path.join(chunk_path, "audio", "chunking")) and not path.exists(out_message):
@@ -479,9 +500,7 @@ def process_videos(group, channel, video, save_sounds, overwrite, sed, alpha):
 
 def chunk_voice(args):
     """Wrapper for chunking with voice activity detection"""
-    # sed = False
-    alpha = None
-    process_videos(args.group, args.channel, args.video, args.save_sounds, args.overwrite, args.sed, alpha)
+    process_videos(args.group, args.channel, args.video, args.save_sounds, args.overwrite, args.sed, args.include_all_speech)
 
 
 if __name__ == '__main__':

@@ -13,16 +13,11 @@ import librosa
 from panns_inference import AudioTagging, SoundEventDetection, labels
 
 
-def detect_speech(audio_path, sed_dir_path, save_fig):
-
-    # Get index to label dictionary
-    print('------ Compiling dictionary ------')
-    ix_to_lb = {i : label for i, label in enumerate(labels)}
+def detect_speech(sed, ix_to_lb, audio_path, sed_dir_path, save_fig):
 
     # Run SED for audio file
     print('------ Accessing audio ------')
     fn = path.splitext(path.split(audio_path)[1])[0]
-    device = 'cpu' # 'cuda' | 'cpu'
 
     # Prep files
     if(save_fig):
@@ -40,8 +35,6 @@ def detect_speech(audio_path, sed_dir_path, save_fig):
     # duration = librosa.get_duration(y=audio, sr=32000)
     audio = audio[None, :]  # (batch_size, segment_samples)
 
-    print('------ Sound event detection ------')
-    sed = SoundEventDetection(checkpoint_path=None, device=device)
     framewise_output = sed.inference(audio)
     frame_arrays = framewise_output[0]
 
@@ -144,7 +137,7 @@ def convert_to_wav (fn, orig_path, wav_path, mono=False):
     out_file_path = path.join(wav_path, name + ".wav")
     sound.export(out_file_path, format="wav")
 
-def convert_and_move_dir (dir_name, orig_path, wav_path, mp4_path, sed_path, mono, sed, save_fig):
+def convert_and_move_dir (dir_name, orig_path, wav_path, mp4_path, sed_path, mono, sed, ix_to_lb, save_fig):
     """ Wrapper to convert each mp4 file in a channel folder and
     move the entire folder to a separate directory.
 
@@ -167,7 +160,7 @@ def convert_and_move_dir (dir_name, orig_path, wav_path, mp4_path, sed_path, mon
             convert_to_wav(fn, orig_dir_path, wav_dir_path, mono)
 
         if sed:
-            detect_speech(path.join(wav_dir_path, name+".wav"), sed_dir_path, save_fig)
+            detect_speech(sed, ix_to_lb, path.join(wav_dir_path, name+".wav"), sed_dir_path, save_fig)
 
     if not path.exists(mp4_path):
         makedirs(mp4_path)
@@ -188,10 +181,22 @@ def main(args):
     else:
         mono = True # Convert files to mono
 
+    if args.sed:
+        device = 'cpu' # 'cuda' | 'cpu'
+
+        print('------ Compiling dictionary ------')
+        ix_to_lb = {i : label for i, label in enumerate(labels)}
+
+        print('------ Load sound event detection ------')
+        sed = SoundEventDetection(checkpoint_path=None, device=device)
+    else:
+        ix_to_lb = None
+        sed = None
+
     for dir_element in listdir(orig_path):
 
         if dir_element not in ['mp4', 'wav', 'sed', '.DS_Store', 'archive']:
-            convert_and_move_dir(dir_element, orig_path, wav_path, mp4_path, sed_path, mono, args.sed, args.fig)
+            convert_and_move_dir(dir_element, orig_path, wav_path, mp4_path, sed_path, mono, sed, ix_to_lb, args.fig)
 
     out_message = path.join(wav_path, "README.md")
     with open(out_message, 'w') as file:
@@ -204,7 +209,7 @@ def main(args):
                     video_id = path.splitext(fn)[0]
                     sed_files = glob(path.join(sed_path, "*", "*{0}*".format(video_id)), recursive=True)
                     if not sed_files or args.overwrite:
-                        detect_speech(path.join(wav_path, dir_element, fn), path.join(sed_path, dir_element), args.fig)
+                        detect_speech(sed, ix_to_lb, path.join(wav_path, dir_element, fn), path.join(sed_path, dir_element), args.fig)
 
 
 if __name__ == '__main__':

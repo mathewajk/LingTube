@@ -99,7 +99,7 @@ def detect_speech(sed, ix_to_lb, audio_path, sed_dir_path, save_fig):
 
     # Save full dataframe
     print('------ Save results ------')
-    out_df.to_csv(out_fn_path, index=False)
+    out_df.loc[:,['seconds', 'speech_ratio', 'music_ratio', 'noise_ratio']].to_csv(out_fn_path, index=False)
 
     # Save plot
     if(save_fig):

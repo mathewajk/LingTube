@@ -13,19 +13,20 @@ import librosa
 from panns_inference import AudioTagging, SoundEventDetection, labels
 
 
-def detect_speech(sed, ix_to_lb, audio_path, sed_dir_path, save_fig):
+def detect_speech(sed, ix_to_lb, audio_path, sed_dir_path, sed_option):
 
     # Run SED for audio file
     print('------ Accessing audio ------')
     fn = path.splitext(path.split(audio_path)[1])[0]
 
     # Prep files
-    if(save_fig):
+    if sed_option == "fig":
         if not path.exists(path.join(sed_dir_path, "fig")):
             makedirs(path.join(sed_dir_path, "fig"))
         out_fig_path = path.join(sed_dir_path, 'fig', fn+'_sed_results.png')
     else:
-        makedirs(sed_dir_path)
+        if not path.exists(sed_dir_path):
+            makedirs(sed_dir_path)
 
     out_fn_path = path.join(sed_dir_path, fn+'_sed_results.csv')
 
@@ -64,7 +65,7 @@ def detect_speech(sed, ix_to_lb, audio_path, sed_dir_path, save_fig):
         # Only save top 10 in CSV
         out_df[class_lb] = class_probs
 
-        if save_fig: # Plot top 10 categories
+        if sed_option == "fig": # Plot top 10 categories
             line, = axis[0].plot(seconds, class_probs, label=class_lb, linewidth=0.25)
             type_lines.append(line)
 
@@ -88,7 +89,7 @@ def detect_speech(sed, ix_to_lb, audio_path, sed_dir_path, save_fig):
     out_df['music_ratio']  = temp_df[classes_music].sum(axis=1)  / temp_df.sum(axis=1)
     out_df['noise_ratio']  = temp_df[classes_noise].sum(axis=1)  / temp_df.sum(axis=1)
 
-    if(save_fig):
+    if sed_option == "fig":
         lines, = axis[1].plot(seconds, out_df['speech_ratio'], label='speech_ratio', linewidth=0.25)
         linem, = axis[1].plot(seconds, out_df['music_ratio'], label='music_ratio', linewidth=0.25)
         linen, = axis[1].plot(seconds, out_df['noise_ratio'], label='noise_ratio', linewidth=0.25)
@@ -98,11 +99,11 @@ def detect_speech(sed, ix_to_lb, audio_path, sed_dir_path, save_fig):
         ratio_lines.append(linen)
 
     # Save full dataframe
-    print('------ Save results ------')
+    print('------ Saving results ------')
     out_df.loc[:,['seconds', 'speech_ratio', 'music_ratio', 'noise_ratio']].to_csv(out_fn_path, index=False)
 
     # Save plot
-    if(save_fig):
+    if sed_option == "fig":
         axis[0].legend(handles=type_lines, loc="upper right")
         axis[1].legend(handles=ratio_lines, loc="lower right")
         plt.xlabel('Seconds')
@@ -137,7 +138,7 @@ def convert_to_wav (fn, orig_path, wav_path, mono=False):
     out_file_path = path.join(wav_path, name + ".wav")
     sound.export(out_file_path, format="wav")
 
-def convert_and_move_dir (dir_name, orig_path, wav_path, mp4_path, sed_path, mono, sed, ix_to_lb, save_fig):
+def convert_and_move_dir (dir_name, orig_path, wav_path, mp4_path, sed_path, mono, sed, ix_to_lb, sed_option):
     """ Wrapper to convert each mp4 file in a channel folder and
     move the entire folder to a separate directory.
 
@@ -160,7 +161,7 @@ def convert_and_move_dir (dir_name, orig_path, wav_path, mp4_path, sed_path, mon
             convert_to_wav(fn, orig_dir_path, wav_dir_path, mono)
 
         if sed:
-            detect_speech(sed, ix_to_lb, path.join(wav_dir_path, name+".wav"), sed_dir_path, save_fig)
+            detect_speech(sed, ix_to_lb, path.join(wav_dir_path, name+".wav"), sed_dir_path, sed_option)
 
     if not path.exists(mp4_path):
         makedirs(mp4_path)
@@ -196,7 +197,7 @@ def main(args):
     for dir_element in listdir(orig_path):
 
         if dir_element not in ['mp4', 'wav', 'sed', '.DS_Store', 'archive']:
-            convert_and_move_dir(dir_element, orig_path, wav_path, mp4_path, sed_path, mono, sed, ix_to_lb, args.fig)
+            convert_and_move_dir(dir_element, orig_path, wav_path, mp4_path, sed_path, mono, sed, ix_to_lb, args.sed)
 
     out_message = path.join(wav_path, "README.md")
     with open(out_message, 'w') as file:
@@ -209,18 +210,19 @@ def main(args):
                     video_id = path.splitext(fn)[0]
                     sed_files = glob(path.join(sed_path, "*", "*{0}*".format(video_id)), recursive=True)
                     if not sed_files or args.overwrite:
-                        detect_speech(sed, ix_to_lb, path.join(wav_path, dir_element, fn), path.join(sed_path, dir_element), args.fig)
+                        print('\nCURRENT VIDEO: {0}'.format(video_id))
+
+                        detect_speech(sed, ix_to_lb, path.join(wav_path, dir_element, fn), path.join(sed_path, dir_element), args.sed)
 
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Convert scraped YouTube audio from mp4 to WAV format.')
+    parser = argparse.ArgumentParser(description='Convert scraped YouTube audio from mp4 to WAV format; optionally perform sound event detection to tag for speech, music and noise.')
 
     parser.set_defaults(func=None)
     parser.add_argument('-g', '--group',  default="ungrouped", type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_audio/$group)')
-    parser.add_argument('-s', '--stereo', action='store_true', default=False, help='keep stereo (separate audio channels); else, converts to mono')
-    parser.add_argument('-sed', '--sed',  action='store_true', default=False, help='use machine learning model to detect sound events')
-    parser.add_argument('-f', '--fig',    action='store_true', default=False, help='output screening figure')
+    parser.add_argument('-s', '--stereo', action='store_true', default=False, help='keep stereo (separate audio channels); else, convert to mono')
+    parser.add_argument('-d', '--sed', default=None, choices = ["csv", "fig"], type=str, help='use machine learning model to detect sound events and output CSV of speech, music and noise data ("csv"), or output CSV with figure of the top sound events and speech, music and noise proportions ("fig")')
     parser.add_argument('-o', '--overwrite', action='store_true', help='overwrite SED results')
 
 

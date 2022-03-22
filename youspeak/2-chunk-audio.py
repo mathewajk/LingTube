@@ -103,7 +103,7 @@ def save_chunks(chunk_sound, out_path, video_id):
 
     return {'filename': chunk_fn, 'video_id': video_id, 'start_time': chunk_start_ms, 'end_time': chunk_end_ms, 'duration': chunk_duration}
 
-def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=False, sed=False, include_all_speech=False):
+def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=False, sed=False):
 
     video_id, ext = path.splitext(fn)
 
@@ -297,7 +297,7 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
                         new_end = sound.get_total_duration()
                     new_intervals.append(("usable", new_start, new_end))
 
-                elif include_all_speech and is_speech_other:
+                elif sed == "any" and is_speech_other:
                     start =  call(base_textgrid, "Get start time of interval", 2, call(base_textgrid, 'Get interval at time', 2, int_start)) - 1
                     end   =  call(base_textgrid, "Get end time of interval", 2, call(base_textgrid, 'Get interval at time', 2, int_start)) + 1
                     new_start = start - 1
@@ -468,7 +468,7 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
         # Save second-pass TextGrid
         base_textgrid.save(tg_fn)
 
-def process_videos(group, channel, video, save_sounds, overwrite, sed, include_all_speech):
+def process_videos(group, channel, video, save_sounds, overwrite, sed):
 
     chunk_path = path.join('corpus','chunked_audio')
     audio_path = path.join('corpus','raw_audio', "wav")
@@ -480,7 +480,7 @@ def process_videos(group, channel, video, save_sounds, overwrite, sed, include_a
         fn = video+'.wav'
         channel_id = video.rsplit('_',1)[0]
         channel_audio_path = path.join(audio_path, channel_id)
-        process_soundfile(fn, channel_audio_path, chunk_path, overwrite, save_sounds, sed, include_all_speech)
+        process_soundfile(fn, channel_audio_path, chunk_path, overwrite, save_sounds, sed)
 
     elif channel and not video:
         channel_list = [channel]
@@ -491,7 +491,7 @@ def process_videos(group, channel, video, save_sounds, overwrite, sed, include_a
         for channel_id in channel_list:
             channel_audio_path = path.join(audio_path, channel_id)
             for fn in listdir(channel_audio_path):
-                process_soundfile(fn, channel_audio_path, chunk_path, overwrite, save_sounds, sed, include_all_speech)
+                process_soundfile(fn, channel_audio_path, chunk_path, overwrite, save_sounds, sed)
 
     out_message = path.join(chunk_path, "audio", "chunking", "README.md")
     if path.exists(path.join(chunk_path, "audio", "chunking")) and not path.exists(out_message):
@@ -500,7 +500,7 @@ def process_videos(group, channel, video, save_sounds, overwrite, sed, include_a
 
 def chunk_voice(args):
     """Wrapper for chunking with voice activity detection"""
-    process_videos(args.group, args.channel, args.video, args.save_sounds, args.overwrite, args.sed, args.include_all_speech)
+    process_videos(args.group, args.channel, args.video, args.save_sounds, args.overwrite, args.sed)
 
 
 if __name__ == '__main__':
@@ -511,9 +511,8 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--group', default="ungrouped", type=str, help='name to group files under (create and /or assume files are located in a subfolder: raw_subtitles/$group)')
     parser.add_argument('-ch', '--channel', default=None, type=str, help='run on files for a specific channel name; if unspecified, goes through all channels in order')
     parser.add_argument('-v', '--video', default=None, type=str, help='run on files for a video id; if unspecified, goes through all videos in order')
+    parser.add_argument('-d', '--sed', default=None, choices = ["only", "any"], type=str, help='use detected sound events (SED) for chunking and classify chunks as usable if it includes (1) only speech alone, without overlapping music/noise, or (2) any speech, even overlapping with music/noise; else, uses voice activity detection (VAD) of speech vs. silence for chunking')
     parser.add_argument('-s', '--save_sounds', action='store_true', default=False, help='save chunked sound files (necessary for using 3-validate-chunks.py); else, only saves full textgrid')
-    parser.add_argument('-sed', '--sed', action='store_true', default=False, help='use detected sound events (SED) for chunking; else, uses voice activity detection (VAD) of speech vs. silence for chunking')
-    parser.add_argument('-i', '--include_all_speech', action='store_true', default=False, help='(if using SED) assess all identified speech as usable, including speech overlapping with music/noise; else, only assess speech alone as usable')
     parser.add_argument('-o', '--overwrite', action='store_true', default=False, help='overwrite files rather than appending')
 
     args = parser.parse_args()

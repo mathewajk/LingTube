@@ -13,30 +13,74 @@ import librosa
 from panns_inference import AudioTagging, SoundEventDetection, labels
 
 
-def detect_speech(sed, ix_to_lb, audio_path, sed_dir_path, sed_option):
+def init_files(audio_path, sed_dir_path, sed_option):
 
-    # Run SED for audio file
-    print('------ Accessing audio ------')
+    # Get name of audio file
     fn = path.splitext(path.split(audio_path)[1])[0]
 
-    # Prep files
+    out_fig_path = None
+
+    # Create output directories
     if sed_option == "fig":
         if not path.exists(path.join(sed_dir_path, "fig")):
             makedirs(path.join(sed_dir_path, "fig"))
-        out_fig_path = path.join(sed_dir_path, 'fig', fn+'_sed_results.png')
+        out_fig_path = path.join(sed_dir_path, 'fig', fn + '_sed_results.png')
     else:
         if not path.exists(sed_dir_path):
             makedirs(sed_dir_path)
 
-    out_fn_path = path.join(sed_dir_path, fn+'_sed_results.csv')
+    # Create results filepath
+    out_fn_path = path.join(sed_dir_path, fn + '_sed_results.csv')
 
-    # TODO: get audio length in seconds
+    return out_fn_path, out_fig_path
 
+
+def run_sed_directories(sed, wav_path, sed_path, ix_to_lb, sed_option):
+    print('in ' + wav_path)
+    for dir_element in listdir(wav_path):
+        if dir_element not in ['README.md', '.DS_Store']:
+            run_sed_videos(sed, dir_element, wav_path, sed_path, ix_to_lb, sed_option)
+
+
+def run_sed_videos(sed, dir_element, wav_path, sed_path, ix_to_lb, sed_option):
+    print('in ' + dir_element)
+    for fn in listdir(path.join(wav_path, dir_element)):
+
+        video_id = path.splitext(fn)[0]
+        sed_files = glob(path.join(sed_path, "*", "*{0}*".format(video_id)), recursive=True)
+
+        if sed_files and not args.overwrite:
+            continue
+
+        run_sed_video(sed, fn, video_id, wav_path, sed_path, dir_element, ix_to_lb, sed_option)
+
+
+def run_sed_video(sed, fn, video_id, wav_path, sed_path, dir_element, ix_to_lb, sed_option):
+    print('\nCURRENT VIDEO: {0}'.format(video_id))
+
+    audio_path   = path.join(wav_path, dir_element, fn)
+    sed_dir_path = path.join(sed_path, dir_element)
+
+    out_fn_path, out_fig_path = init_files(audio_path, sed_dir_path, sed_option)
+    framewise_output = run_sed(sed, audio_path)
+
+    calculate_ratios(framewise_output, ix_to_lb, out_fn_path, out_fig_path, sed_option)
+
+
+def run_sed(sed, audio_path):
+
+    print('------ Accessing audio ------')
     (audio, _) = librosa.core.load(audio_path, sr=32000, mono=True)
-    # duration = librosa.get_duration(y=audio, sr=32000)
+
     audio = audio[None, :]  # (batch_size, segment_samples)
 
     framewise_output = sed.inference(audio)
+
+    return framewise_output
+
+
+def calculate_ratios(framewise_output, ix_to_lb, out_fn_path, out_fig_path, sed_option):
+
     frame_arrays = framewise_output[0]
 
     # Get top classes by max probability
@@ -138,7 +182,8 @@ def convert_to_wav (fn, orig_path, wav_path, mono=False):
     out_file_path = path.join(wav_path, name + ".wav")
     sound.export(out_file_path, format="wav")
 
-def convert_and_move_dir (dir_name, orig_path, wav_path, mp4_path, sed_path, mono, sed, ix_to_lb, sed_option):
+
+def convert_and_move_dir (sed, dir_element, orig_path, wav_path, mp4_path, sed_path, mono, ix_to_lb, sed_option):
     """ Wrapper to convert each mp4 file in a channel folder and
     move the entire folder to a separate directory.
 
@@ -148,31 +193,36 @@ def convert_and_move_dir (dir_name, orig_path, wav_path, mp4_path, sed_path, mon
     :param mp4_path: The output path of the mp4 sub-directory
     :param mono: Boolean for converting sound to mono
     """
-    print('\nCURRENT CHANNEL: {0}'.format(dir_name))
 
-    orig_dir_path = path.join(orig_path, dir_name)
-    wav_dir_path = path.join(wav_path, dir_name)
-    sed_dir_path = path.join(sed_path, dir_name)
+    print('\nCURRENT CHANNEL: {0}'.format(dir_element))
+
+    orig_dir_path = path.join(orig_path, dir_element)
+    wav_dir_path = path.join(wav_path, dir_element)
+    sed_dir_path = path.join(sed_path, dir_element)
 
     for fn in listdir(orig_dir_path):
-        name, ext = path.splitext(fn)
+        video_id, ext = path.splitext(fn)
 
         if ext == ".mp4":
             convert_to_wav(fn, orig_dir_path, wav_dir_path, mono)
 
         if sed:
-            detect_speech(sed, ix_to_lb, path.join(wav_dir_path, name+".wav"), sed_dir_path, sed_option)
+            wav_path = path.join(wav_dir_path, name + ".wav")
+            run_sed_video(fn, video_id, wav_path, dir_element, ix_to_lb, sed_option)
 
     if not path.exists(mp4_path):
         makedirs(mp4_path)
+
     move(orig_dir_path, mp4_path)
 
 
 def main(args):
 
     orig_path = path.join('corpus','raw_audio')
+
     if args.group:
         orig_path = path.join(orig_path, args.group)
+
     mp4_path = path.join(orig_path, "mp4")
     wav_path = path.join(orig_path, "wav")
     sed_path = path.join(orig_path, "sed")
@@ -197,22 +247,14 @@ def main(args):
     for dir_element in listdir(orig_path):
 
         if dir_element not in ['mp4', 'wav', 'sed', '.DS_Store', 'archive']:
-            convert_and_move_dir(dir_element, orig_path, wav_path, mp4_path, sed_path, mono, sed, ix_to_lb, args.sed)
+            convert_and_move_dir(sed, dir_element, orig_path, wav_path, mp4_path, sed_path, mono, ix_to_lb, args.sed)
 
     out_message = path.join(wav_path, "README.md")
     with open(out_message, 'w') as file:
         file.write('Channel folders for full audio files (converted to WAV) go here.')
 
     if args.sed:
-        for dir_element in listdir(wav_path):
-            if dir_element not in ['README.md', '.DS_Store']:
-                for fn in listdir(path.join(wav_path, dir_element)):
-                    video_id = path.splitext(fn)[0]
-                    sed_files = glob(path.join(sed_path, "*", "*{0}*".format(video_id)), recursive=True)
-                    if not sed_files or args.overwrite:
-                        print('\nCURRENT VIDEO: {0}'.format(video_id))
-
-                        detect_speech(sed, ix_to_lb, path.join(wav_path, dir_element, fn), path.join(sed_path, dir_element), args.sed)
+        run_sed_directories(sed, wav_path, sed_path, ix_to_lb, args.sed)
 
 
 if __name__ == '__main__':

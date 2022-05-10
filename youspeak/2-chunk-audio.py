@@ -234,7 +234,7 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
                     call(base_textgrid, 'Set interval text', 1, interval_num, current_status)
                     count_list = []
 
-            call(base_textgrid, "Insert interval tier", 1, "speech_and_other")
+            call(base_textgrid, "Insert interval tier", 1, "identified overlaps")
 
             interval_window = []
 
@@ -268,7 +268,7 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
 
 
             # ADD usable UNUSABLE TIER
-            call(base_textgrid, "Insert interval tier", 1, "usable_unusable")
+            call(base_textgrid, "Insert interval tier", 1, "identified usable")
             n_ints = call(base_textgrid, "Get number of intervals", 3)
             new_intervals = []
 

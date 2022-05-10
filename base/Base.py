@@ -797,11 +797,12 @@ class MultiVideoScraper:
                  pass
 
         # Filter log file
-        with open(self.log_out_path, 'r') as log_in:
-            videos_to_keep = [line for line in log_in if channel_id not in line]
-        with open(self.log_out_path, 'w') as log_out:
-            for video in videos_to_keep:
-                log_out.write(video)
+        if path.isfile(self.log_out_path):
+            with open(self.log_out_path, 'r') as log_in:
+                videos_to_keep = [line for line in log_in if channel_id not in line]
+            with open(self.log_out_path, 'w') as log_out:
+                for video in videos_to_keep:
+                    log_out.write(video)
 
 
     def init_files(self):
@@ -862,6 +863,8 @@ class MultiVideoScraper:
             audio_files = glob(audio_path, recursive=True)
 
             if caption_files + audio_files:
+                print(caption_files)
+                print(audio_files)
                 return 1
 
         # Scrape audio and captions from video at URL
@@ -873,7 +876,7 @@ class MultiVideoScraper:
         self.caption_success_count += caption_status
         self.audio_success_count += audio_status
 
-        # Stop once #of audio and captins reaches LIMIT, if specified
+        # Stop once # of audio and captins reaches LIMIT, if specified
         if self.limit != -1 and self.caption_success_count >= self.limit and self.audio_success_count >= self.limit:
             return 2
 

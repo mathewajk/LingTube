@@ -161,7 +161,7 @@ def calculate_ratios(framewise_output, ix_to_lb, out_fn_path, out_fig_path, sed_
     plt.clf()
 
 
-def convert_to_wav (fn, orig_path, wav_path, mono=False):
+def convert_to_wav (fn, orig_path, wav_path, video_id, mono=False):
     """ Takes an mp4 file and converts it to WAV format.
 
     :param fn: The mp4 filename (w/ ext)
@@ -172,14 +172,14 @@ def convert_to_wav (fn, orig_path, wav_path, mono=False):
     print("Converting {0} to .wav...".format(fn))
 
     name, ext = path.splitext(fn)
-    file_path = path.join(orig_path,  name + ".mp4")
+    file_path = path.join(orig_path,  video_id + ".mp4")
     sound = AudioSegment.from_file(file_path, "mp4")
     if mono == True:
         sound = sound.set_channels(1)
 
     if not path.exists(wav_path):
         makedirs(wav_path)
-    out_file_path = path.join(wav_path, name + ".wav")
+    out_file_path = path.join(wav_path, video_id + ".wav")
     sound.export(out_file_path, format="wav")
 
 
@@ -204,10 +204,10 @@ def convert_and_move_dir (sed, dir_element, orig_path, wav_path, mp4_path, sed_p
         video_id, ext = path.splitext(fn)
 
         if ext == ".mp4":
-            convert_to_wav(fn, orig_dir_path, wav_dir_path, mono)
+            convert_to_wav(fn, orig_dir_path, wav_dir_path, video_id, mono)
 
         if sed:
-            wav_path = path.join(wav_dir_path, name + ".wav")
+            wav_path = path.join(wav_dir_path, video_id + ".wav")
             run_sed_video(fn, video_id, wav_path, dir_element, ix_to_lb, sed_option)
 
     if not path.exists(mp4_path):

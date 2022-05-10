@@ -36,30 +36,36 @@ def init_files(audio_path, sed_dir_path, sed_option):
 
 
 def run_sed_directories(sed, wav_path, sed_path, ix_to_lb, sed_option):
+
     print('in ' + wav_path)
     for dir_element in listdir(wav_path):
+
+        wav_dir_path = path.join(wav_path, dir_element)
+        sed_dir_path = path.join(sed_path, dir_element)
+
         if dir_element not in ['README.md', '.DS_Store']:
-            run_sed_videos(sed, dir_element, wav_path, sed_path, ix_to_lb, sed_option)
+            run_sed_videos(sed, wav_dir_path, sed_dir_path, ix_to_lb, sed_option)
 
 
-def run_sed_videos(sed, dir_element, wav_path, sed_path, ix_to_lb, sed_option):
-    print('in ' + dir_element)
-    for fn in listdir(path.join(wav_path, dir_element)):
+def run_sed_videos(sed, wav_dir_path, sed_dir_path, ix_to_lb, sed_option):
+
+    print('in ' + wav_dir_path)
+    for fn in listdir(wav_dir_path):
 
         video_id = path.splitext(fn)[0]
-        sed_files = glob(path.join(sed_path, "*", "*{0}*".format(video_id)), recursive=True)
+        sed_files = glob(path.join(sed_dir_path, "*", "*{0}*".format(video_id)), recursive=True)
 
         if sed_files and not args.overwrite:
             continue
 
-        run_sed_video(sed, fn, video_id, wav_path, sed_path, dir_element, ix_to_lb, sed_option)
+        run_sed_video(sed, video_id, wav_dir_path, sed_dir_path, ix_to_lb, sed_option)
 
 
-def run_sed_video(sed, fn, video_id, wav_path, sed_path, dir_element, ix_to_lb, sed_option):
+def run_sed_video(sed, video_id, wav_dir_path, sed_dir_path, ix_to_lb, sed_option):
+
     print('\nCURRENT VIDEO: {0}'.format(video_id))
 
-    audio_path   = path.join(wav_path, dir_element, fn)
-    sed_dir_path = path.join(sed_path, dir_element)
+    audio_path   = path.join(wav_dir_path, video_id + ".wav")
 
     out_fn_path, out_fig_path = init_files(audio_path, sed_dir_path, sed_option)
     framewise_output = run_sed(sed, audio_path)
@@ -161,7 +167,7 @@ def calculate_ratios(framewise_output, ix_to_lb, out_fn_path, out_fig_path, sed_
     plt.clf()
 
 
-def convert_to_wav (fn, orig_path, wav_path, video_id, mono=False):
+def convert_to_wav (fn, orig_path, wav_dir_path, video_id, mono=False):
     """ Takes an mp4 file and converts it to WAV format.
 
     :param fn: The mp4 filename (w/ ext)
@@ -177,9 +183,9 @@ def convert_to_wav (fn, orig_path, wav_path, video_id, mono=False):
     if mono == True:
         sound = sound.set_channels(1)
 
-    if not path.exists(wav_path):
-        makedirs(wav_path)
-    out_file_path = path.join(wav_path, name + ".wav")
+    if not path.exists(wav_dir_path):
+        makedirs(wav_dir_path)
+    out_file_path = path.join(wav_dir_path, name + ".wav")
     sound.export(out_file_path, format="wav")
 
 
@@ -207,8 +213,7 @@ def convert_and_move_dir (sed, dir_element, orig_path, wav_path, mp4_path, sed_p
             convert_to_wav(fn, orig_dir_path, wav_dir_path, video_id, mono)
 
         if sed:
-            wav_path = path.join(wav_dir_path, video_id + ".wav")
-            run_sed_video(fn, video_id, wav_path, dir_element, ix_to_lb, sed_option)
+            run_sed_video(sed, video_id, wav_dir_path, sed_dir_path, ix_to_lb, sed_option)
 
     if not path.exists(mp4_path):
         makedirs(mp4_path)

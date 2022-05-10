@@ -172,14 +172,14 @@ def convert_to_wav (fn, orig_path, wav_path, video_id, mono=False):
     print("Converting {0} to .wav...".format(fn))
 
     name, ext = path.splitext(fn)
-    file_path = path.join(orig_path,  video_id + ".mp4")
+    file_path = path.join(orig_path,  name + ".mp4")
     sound = AudioSegment.from_file(file_path, "mp4")
     if mono == True:
         sound = sound.set_channels(1)
 
     if not path.exists(wav_path):
         makedirs(wav_path)
-    out_file_path = path.join(wav_path, video_id + ".wav")
+    out_file_path = path.join(wav_path, name + ".wav")
     sound.export(out_file_path, format="wav")
 
 

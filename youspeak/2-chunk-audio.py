@@ -187,8 +187,6 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
                 y = sed_df["speech_ratio"][idx]
                 z = sed_df["music_ratio"][idx]
 
-                # print(idx, sec, y)
-
                 if sec == 0:
                     if y >= alpha and z <= music_alpha and x <= noise_alpha:
                         y_status = current_status = 'speech'
@@ -225,12 +223,9 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
                     count_list.append((sec, y))
                 else:
                     count_list = []
-                # print(y_status, current_status, count_list)
-                # input()
 
                 if len(count_list) == 3:
                     current_status = y_status
-                    # print('Insert boundary at time: {0}'.format(count_list[0][0]))
                     try:
                         call(base_textgrid, 'Insert boundary', 1, count_list[0][0])
                     except:
@@ -257,7 +252,6 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
                         interval_window.append((int_i, int_start, int_end))
                     else:   # if not sequential, this is our new first interval (not sure if this code is ever reached)
                         interval_window = [(int_i, int_start, int_end)]
-                    # print("under 10", interval_window)
 
                 if int_duration > 15 or int_i == n_ints: # if we are in a long interval
                       if len(interval_window) >= 6:
@@ -271,7 +265,6 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
                               pass
                           call(base_textgrid, 'Set interval text', 1, call(base_textgrid, 'Get interval at time', 1, interval_window[0][1]), "speech_and_other")
                       interval_window = [] # else, just reset
-                      # print("over ten", interval_window)
 
 
             # ADD usable UNUSABLE TIER
@@ -279,7 +272,7 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
             n_ints = call(base_textgrid, "Get number of intervals", 3)
             new_intervals = []
 
-            # print("FINDING INTERVALS\n================================")
+            # FINDING INTERVALS ================================
             for int_i in range(1,n_ints+1):
 
                 int_label = call(base_textgrid, "Get label of interval", 3, int_i)
@@ -318,7 +311,7 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
             if len(new_intervals) == 1:
                 combined_intervals = new_intervals
 
-            # print("COMBINING INTERVALS\n================================")
+            # COMBINING INTERVALS  ================================
             for i, interval in enumerate(new_intervals[1:]):
 
                 current_start = interval[1]
@@ -332,7 +325,7 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
                 if i == len(new_intervals[1:])-1:
                     combined_intervals.append(("usable", prev_start, prev_end))
 
-            # print("CREATING INTERVALS\n================================")
+            # CREATING INTERVALS  ================================
             for interval in combined_intervals:
                 try:
                     call(base_textgrid, "Insert boundary", 1, interval[1])
@@ -345,6 +338,7 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
                 call(base_textgrid, 'Set interval text', 1, call(base_textgrid, 'Get interval at time', 1, interval[1]), interval[0])
 
             base_textgrid.save(tg_fn)
+
             # TODO: Account for the case of no usable sections in the entire sound
 
             n_ints = call(base_textgrid, 'Count intervals where',
@@ -386,8 +380,6 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
         while len(extracted_sounds_1) > 0:
             counter += 1
 
-            # print("Counter: {}".format(counter))
-
             if counter % 5 == 0:
                 stage +=1
                 print('* Stage: {0}'.format(stage))
@@ -396,21 +388,13 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
                 else:
                     sil_duration -= 0.025
 
-            # print(sil_duration)
-
             current_cutoff = duration_cutoff[stage]
-
-            # print(len(extracted_sounds_1))
-            # input()
 
             new_subsound_list = []
             for i, subsound in enumerate(extracted_sounds_1):
                 duration = subsound.get_total_duration()
 
-                # print("Current interval: {0} {1} {2}".format(i, subsound.get_start_time(), subsound.get_total_duration()))
-
                 if duration <= current_cutoff or stage == 6:
-                    # print("Duration under")
 
                     if save_sounds:
                         log_entry = save_chunks(subsound, sound_path, video_id)
@@ -419,11 +403,8 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
                     # extracted_sounds_1.remove(subsound)
 
                 elif duration > current_cutoff:
-                    # print("Duration over")
 
                     (subtextgrid, extracted_subsounds, n_ints) = chunk_sound(subsound, sil_duration, quantile)
-
-                    # print(n_ints)
 
                     if n_ints > 1:
                         # extracted_sounds_1.remove(subsound)
@@ -435,22 +416,15 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
                             subsound_end = subsound.get_end_time()
                             try:
                                 call(base_textgrid, 'Insert boundary', 1, subsound_start)
-                                # print(subsound_start)
                             except:
                                 pass
-                                # print('\nNo boundary inserted at time {0}.'.format(subsound_start))
                             try:
                                 call(base_textgrid, 'Insert boundary', 1, subsound_end)
-                                # print(subsound_end)
                             except:
                                 pass
-                                # print('\nNo boundary inserted at time {0}.'.format(subsound_end))
 
                             interval_num = call(base_textgrid, 'Get interval at time', 1, subsound_start)
                             call(base_textgrid, 'Set interval text', 1, interval_num, 'speech')
-
-                            # TESTER
-                            # base_textgrid.save(tg_fn)
 
                     elif n_ints == 0:
                         print('No sounds extracted.')

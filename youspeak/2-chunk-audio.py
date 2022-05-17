@@ -530,7 +530,7 @@ def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
         print(end - start + 1)
         print( end_index - start_index)
 
-        ratio = (end_index - start_index) / ((end - start) + 1)
+        ratio = (end_index - start_index) / ((end - start) + 1) / sound.get_total_duration() * 100
 
         print("FLIP RATIO: {0:.3f}".format(ratio))
 
@@ -553,7 +553,7 @@ def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
             print(prev_end - prev_start + 1)
             print(end_index - start_index)
 
-            ratio = (end_index - start_index) / ((prev_end - prev_start) + 1)
+            ratio = (end_index - start_index) / ((prev_end - prev_start) + 1) / sound.get_total_duration() * 100
 
             print("FLIP RATIO: {0:.3f}".format(ratio))
 
@@ -570,7 +570,7 @@ def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
             print(prev_start, prev_end)
             print(start_index, end_index)
 
-            ratio = (end_index - start_index) / ((prev_end - prev_start) + 1)
+            ratio = (end_index - start_index) / ((prev_end - prev_start) + 1) / sound.get_total_duration() * 100
 
             print("FLIP RATIO: {0:.3f}".format(ratio))
 

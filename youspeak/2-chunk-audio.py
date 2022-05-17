@@ -154,6 +154,7 @@ def check_and_overwrite_audio(sound_path, video_id, overwrite):
             return 1
 
     elif path.isdir(sound_path) and overwrite:
+        print("Overwriting audio...")
         rmtree(sound_path)
 
     return 0
@@ -166,6 +167,7 @@ def check_and_overwrite_textgrids(save_sounds, tg_path, tg_fn, overwrite):
         if path.exists(tg_fn) and not overwrite:
             return 2
         elif path.exists(tg_fn) and overwrite:
+            print("Overwriting textgrid...")
             remove(tg_fn)
 
     # Make textgrid path
@@ -203,6 +205,7 @@ def make_output_paths(chunk_path, channel_id, video_id):
 def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=False, sed=False):
 
     video_id, ext = path.splitext(fn)
+    print('\nCURRENT FILE: {0}'.format(video_id))
 
     # Ignore non-WAV files
     if ext != '.wav': return
@@ -228,19 +231,19 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
     if save_sounds:
         log_fn, output_df = make_logs(video_id, log_path, sound_path)
         if path.exists(tg_fn):
-            status = chunk_existing(tg_fn, log_fn, sound, textgrid, sound_path)
+            status = chunk_existing(tg_fn, log_fn, output_df, sound, sound_path, video_id)
             return status
 
     status = process_audio(sound, video_id, fn, tg_path, tg_fn, log_fn, output_df, audio_path, sound_path, save_sounds, sed)
     return status
 
 
-def chunk_existing(tg_fn, log_fn, outputdf, sound, textgrid, sound_path):
+def chunk_existing(tg_fn, log_fn, output_df, sound, sound_path, video_id):
 
     print('Chunking speech from existing TextGrid...')
 
     textgrid = parselmouth.read(tg_fn)
-    extracted_intervals = extract_intervals_where(sound, textgrid, tier, True, 'is equal to', 'speech')
+    extracted_intervals = extract_intervals_where(sound, textgrid, 1, 'is equal to', 'speech')
 
     for interval in extracted_intervals:
         log_entry = save_chunks(interval, sound_path, video_id)
@@ -255,7 +258,6 @@ def chunk_existing(tg_fn, log_fn, outputdf, sound, textgrid, sound_path):
 def process_audio(sound, video_id, fn, tg_path, tg_fn, log_fn, output_df, audio_path, sound_path, save_sounds, sed):
 
     # Start audio processing
-    print('\nCURRENT FILE: {0}'.format(fn))
 
     if sed:
         base_textgrid, extracted_sounds_1 = chunk_sed(sed, sound, video_id, audio_path, tg_fn)
@@ -364,7 +366,7 @@ def make_base_tier(base_textgrid, sed_df):
     music_alpha = 0.2
     noise_alpha = 0.2
 
-    print("CREATING BASE TIER")
+    # print("CREATING BASE TIER")
 
     for idx, sec in enumerate(sed_df["seconds"]):
 
@@ -484,8 +486,7 @@ def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
               interval_window = [] # else, just reset
 
 
-    print("CREATE USABLE TIER")
-    # ADD USABLE/UNUSABLE TIER
+    # print("CREATE USABLE TIER")
     call(base_textgrid, "Insert interval tier", 1, "identified usable")
     n_ints = call(base_textgrid, "Get number of intervals", 3)
     new_intervals = []
@@ -541,7 +542,6 @@ def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
 
         combined_intervals = [("usable ({0:.3f})".format(ratio), start, end)]
 
-    print("COMBINING INTERVALS")
     # COMBINING INTERVALS  ================================
     num_ints = 1
     for i, interval in enumerate(new_intervals[1:]):

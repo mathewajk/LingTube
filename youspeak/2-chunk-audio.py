@@ -388,12 +388,12 @@ def make_base_tier(base_textgrid, sed_df):
         ratios = [(speech_ratio, speech_alpha), (music_ratio, music_alpha), (noise_ratio, noise_alpha), ]
         for i in range (0, 3):
             # Get/create interval info
-            interval_num = call(base_textgrid, 'Get interval at time', i + 2, sec)
+            interval = call(base_textgrid, 'Get interval at time', i + 2, sec)
             interval_type = 'speech' if ratios[i][0] >= ratios[i][1] else 'nonspeech'
             interval_label = '{0} ({1})'.format(interval_type, round(ratios[i][0], 3))
 
             # Update interval text
-            set_interval_text(base_textgrid, i + 2, interval_num, interval_label)
+            set_interval_text(base_textgrid, i + 2, interval, interval_label)
 
         # If there was a flip, record it
         if not current_status == previous_status:
@@ -415,7 +415,7 @@ def make_base_tier(base_textgrid, sed_df):
 
             # Label the interview based on current status
             interval = call(base_textgrid, 'Get interval at time', 1, status_queue[0][0])
-            call(base_textgrid, 'Set interval text', 1, interval_num, current_status)
+            call(base_textgrid, 'Set interval text', 1, interval, current_status)
 
             # Reset queue
             status_queue = []
@@ -470,7 +470,7 @@ def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
                       call(base_textgrid, "Insert boundary", 1, interval_window[-1][2])
                   except:
                       pass
-                  call(base_textgrid, 'Set interval text', 1, call(base_textgrid, 'Get interval at time', 1, interval_window[0][1]), "identified overlaps")
+                  call(base_textgrid, 'Set interval text', 1, call(base_textgrid, 'Get interval at time', 1, interval_window[0][1]), "overlap")
               interval_window = [] # else, just reset
 
 
@@ -524,8 +524,8 @@ def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
         start = new_intervals[0][1]
         end   = new_intervals[0][2]
 
-        start_index = call(base_textgrid, 'Get interval at time', 2, start)
-        end_index = call(base_textgrid, 'Get interval at time', 2, end)
+        start_index = call(base_textgrid, 'Get interval at time', 3, start)
+        end_index = call(base_textgrid, 'Get interval at time', 3, end)
 
         print(end - start + 1)
         print( end_index - start_index)
@@ -547,8 +547,8 @@ def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
         num_ints += 1
         if current_start > prev_end:
 
-            start_index = call(base_textgrid, 'Get interval at time', 2, prev_start)
-            end_index = call(base_textgrid, 'Get interval at time', 2, prev_end)
+            start_index = call(base_textgrid, 'Get interval at time', 3, prev_start)
+            end_index = call(base_textgrid, 'Get interval at time', 3, prev_end)
 
             print(prev_end - prev_start + 1)
             print(end_index - start_index)
@@ -564,8 +564,8 @@ def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
         prev_end = current_end
 
         if i == len(new_intervals[1:])-1:
-            start_index = call(base_textgrid, 'Get interval at time', 2, prev_start)
-            end_index = call(base_textgrid, 'Get interval at time', 2, prev_end)
+            start_index = call(base_textgrid, 'Get interval at time', 3, prev_start)
+            end_index = call(base_textgrid, 'Get interval at time', 3, prev_end)
 
             print(prev_start, prev_end)
             print(start_index, end_index)
@@ -638,6 +638,7 @@ def process_videos(group, channel, video, save_sounds, overwrite, sed):
     if path.exists(path.join(chunk_path, "audio", "chunking")) and not path.exists(out_message):
         with open(out_message, 'w') as file:
             file.write('Channel folders for chunked audio files (with sub-folders for each original video source) go here.')
+
 
 def chunk_voice(args):
     """Wrapper for chunking with voice activity detection"""

@@ -344,6 +344,11 @@ def process_audio(sound, video_id, fn, tg_fn, log_fn, output_df, audio_path, sou
         output_df = output_df.sort_values(by=["start_time"])
         output_df.to_csv(log_fn, mode='a', index=False, header=False)
 
+    call(base_textgrid, "Insert interval tier", 1, "flip ratio")
+    n_ints  = call(base_textgrid, 'Get number of intervals', 4)
+    print("FLIP: {0:.3f}".format(n_ints / sound.get_total_duration()))
+    call(base_textgrid, "Set interval text", 1, 1, "{0:.3f}".format(n_ints / sound.get_total_duration()))
+
     # Save second-pass TextGrid
     base_textgrid.save(tg_fn)
 
@@ -605,12 +610,6 @@ def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
     call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'usable', '', 'literals')
 
     print("Number of usable chunks: {}".format(n_ints))
-
-    call(base_textgrid, "Insert interval tier", 1, "flip ratio")
-    interval = call(base_textgrid, "Get interval at time", 1, 0.001)
-    n_ints  = call(base_textgrid, 'Get number of intervals', 4)
-    print("FLIP: {0:.3f}".format(n_ints / sound.get_total_duration()))
-    call(base_textgrid, "Set interval text", 1, interval, "{0:.3f}".format(n_ints / sound.get_total_duration()))
 
     return base_textgrid, extracted_sounds_1
 

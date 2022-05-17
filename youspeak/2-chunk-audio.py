@@ -252,19 +252,9 @@ def chunk_existing(tg_fn, log_fn, outputdf, sound, textgrid, sound_path):
 
 
 def process_audio(sound, video_id, fn, tg_fn, log_fn, output_df, audio_path, sound_path, save_sounds, sed):
-    if path.exists(tg_fn):
-        print('Chunking speech from existing TextGrid...')
-        textgrid = parselmouth.read(tg_fn)
-        extracted_sounds = call([sound, textgrid],
-                                'Extract intervals where',
-                                1, True, 'is equal to', 'speech')
-        for subsound in extracted_sounds:
-            log_entry = save_chunks(subsound, sound_path, video_id)
-            output_df = output_df.append(log_entry, ignore_index=True)
-        output_df = output_df.sort_values(by=["start_time"])
-        output_df.to_csv(log_file, mode='a', index=False, header=False)
-        return 3
 
+    # Start audio processing
+    print('\nCURRENT FILE: {0}'.format(fn))
 
     if sed:
         print('Accessing SED data in progress...')

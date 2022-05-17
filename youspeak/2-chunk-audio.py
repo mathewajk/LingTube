@@ -606,6 +606,12 @@ def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
 
     print("Number of usable chunks: {}".format(n_ints))
 
+    call(base_textgrid, "Insert interval tier", 1, "flip ratio")
+    interval = call(base_textgrid, "Get interval at time", 1, 0.001)
+    n_ints  = call(base_textgrid, 'Get number of intervals', 4)
+    print("FLIP: {0:.3f}".format(n_ints / sound.get_total_duration()))
+    call(base_textgrid, "Set interval text", 1, interval, "{0:.3f}".format(n_ints / sound.get_total_duration()))
+
     return base_textgrid, extracted_sounds_1
 
 

@@ -154,7 +154,7 @@ def check_and_overwrite_audio(sound_path, video_id, overwrite):
             return 1
 
     elif path.isdir(sound_path) and overwrite:
-        shutil.rmtree(sound_path)
+        rmtree(sound_path)
 
     return 0
 

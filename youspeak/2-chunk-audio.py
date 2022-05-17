@@ -112,17 +112,17 @@ def extract_intervals(sound, textgrid, adjustment):
 
 
 def chunk_sound (sound, sil_duration, threshold_quantile):
+
+    # Detect silences based on threshold
     sil_threshold = get_silence_threshold(sound, threshold_quantile)
-    textgrid = detect_silences(sound, sil_threshold, sil_duration)
+    textgrid      = detect_silences(sound, sil_threshold, sil_duration)
 
-    n_ints = call(textgrid, 'Count intervals where',
-                        1, 'is equal to', 'speech')
+    # Count and extract speech intervals
+    num_intervals    = count_intervals_where(textgrid, 1, 'is equal to', 'speech')
+    extracted_sounds = extract_intervals_where(sound, textgrid, 1, 'is equal to', 'speech')
 
-    extracted_sounds = call([sound, textgrid],
-                            'Extract intervals where',
-                            1, True, 'is equal to', 'speech')
-
-    return textgrid, extracted_sounds, n_ints
+    return textgrid, extracted_sounds, num_intervals
+    
 
 def save_chunks(chunk_sound, out_path, video_id):
     """ Saves chunked speech intervals as WAV file.

@@ -351,7 +351,7 @@ def process_audio(sound, video_id, fn, tg_path, tg_fn, log_fn, output_df, audio_
 
     if(ratio > 0.05):
         with open(path.join(tg_path, video_id + "_warnings.txt"), 'w') as log_out:
-            log_out.write("WARNING: Flip ratio above threshold: {0:.3f}\n".format(ratio))
+            log_out.write("WARNING: Flip ratio above threshold: {0:.3f}\nSpeech may be overlapped with non-speech throughout\n".format(ratio))
 
 
     # Save second-pass TextGrid

@@ -38,6 +38,22 @@ def detect_silences(sound, sil_threshold, sil_duration):
     return textgrid
 
 
+def get_num_intervals(textgrid, tier):
+    return call(textgrid, 'Get number of intervals', tier)
+
+
+def get_interval_label(textgrid, tier, interval):
+    return call(textgrid,'Get label of interval', tier, interval)
+
+
+def get_interval_start(textgrid, tier, interval):
+    return call(textgrid, 'Get start time of interval', tier, interval)
+
+
+def get_interval_end(textgrid, tier, interval):
+    return call(textgrid, 'Get end time of interval', tier, interval)
+
+
 def extract_intervals(sound, textgrid, adjustment):
     sound_start = sound.get_start_time()
     sound_end = sound.get_end_time()

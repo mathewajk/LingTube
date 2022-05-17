@@ -23,6 +23,7 @@ def get_silence_threshold(sound, lower_quantile):
         sil_intensity = 0
     return sil_intensity - max_intensity
 
+
 def detect_silences(sound, sil_threshold, sil_duration):
     """ Wrapper to run Praat 'To Textgrid (silences)' function.
 
@@ -35,6 +36,7 @@ def detect_silences(sound, sil_threshold, sil_duration):
     textgrid = call(sound, 'To TextGrid (silences)', 100, 0.0, sil_threshold, sil_duration, 0.1, 'silence', 'speech')
 
     return textgrid
+
 
 def extract_intervals(sound, textgrid, adjustment):
     sound_start = sound.get_start_time()

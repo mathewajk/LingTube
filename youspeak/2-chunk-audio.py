@@ -346,10 +346,12 @@ def process_audio(sound, video_id, fn, tg_path, tg_fn, log_fn, output_df, audio_
 
     call(base_textgrid, "Insert interval tier", 2, "flip ratio")
     n_ints  = call(base_textgrid, 'Get number of intervals', 5)
-    call(base_textgrid, "Set interval text", 2, 1, "{0:.3f}".format(n_ints / sound.get_total_duration()))
+    ratio = n_ints / sound.get_total_duration()
+    call(base_textgrid, "Set interval text", 2, 1, "{0:.3f}".format(ratio))
 
-    with open(path.join(tg_path, video_id + "_chunking_log.txt"), 'w') as log_out:
-        log_out.write("FLIP RATIO: {0:.3f}\n".format(n_ints / sound.get_total_duration()))
+    if(ratio > 0.05):
+        with open(path.join(tg_path, video_id + "_warnings.txt"), 'w') as log_out:
+            log_out.write("WARNING: Flip ratio above threshold: {0:.3f}\n".format(ratio))
 
 
     # Save second-pass TextGrid

@@ -54,39 +54,50 @@ def get_interval_end(textgrid, tier, interval):
     return call(textgrid, 'Get end time of interval', tier, interval)
 
 
+def extract_clip(sound, start, end):
+    return call(sound, 'Extract part', start, end, 'rectangular', 1.0, True)
+
+
 def extract_intervals(sound, textgrid, adjustment):
+
     sound_start = sound.get_start_time()
-    sound_end = sound.get_end_time()
+    sound_end   = sound.get_end_time()
 
+    # Get total number of intervals in textgrid
+    num_intervals = get_num_intervals(textgrid, 1)
 
-    total_ints = call(textgrid, 'Get number of intervals', 1)
-    first_label = call(textgrid,'Get label of interval', 1, 1)
+    # Get label of first interval
+    first_interval_label = get_interval_label(textgrid, 1, 1)
 
+    # Create list of speech intervals
+    speech_intervals = range(1, num_intervals, 2) if first_interval_label == 'speech' else range(2, num_intervals, 2)
 
-    if first_label == 'speech':
-        speech_ints = range(1, total_ints, 2)
-    else:
-        speech_ints = range(2, total_ints, 2)
+    extracted_clips = []
 
-    extracted_sounds = []
-    for int_num in speech_ints:
-        int_start = call(textgrid,'Get start time of interval', 1, int_num)
-        int_end = call(textgrid,'Get end time of interval', 1, int_num)
+    for interval in speech_intervals:
 
-        # Adjust extraction segment
+        # Get start time and end time of interval
+        int_start = get_interval_start(textgrid, 1, interval)
+        int_end   = get_interval_end(textgrid, 1, int_num)
+
+        # Widen start and end times by adjustment
         int_start = int_start - adjustment
-        if int_start < sound_start: int_start = sound_start
         int_end = int_end + adjustment
-        if int_end > sound_end: int_end = sound_end
 
-        ext_sound = call(sound, 'Extract part', int_start, int_end,
-                        'rectangular', 1.0, True)
-        extracted_sounds.append(ext_sound)
+        # Correct for over-adjustment
+        if int_start < sound_start:
+            int_start = sound_start
+        if int_end > sound_end:
+            int_end = sound_end
 
-        chunk_start_ms = call(ext_sound, 'Get start time')
-        chunk_end_ms = call(ext_sound, 'Get end time')
+        extracted_clip = extract_clip(sound, int_start, int_end, 'rectangular', 1.0, True)
+        extracted_clip.append(extracted_clip)
 
-    return extracted_sounds
+        # chunk_start_ms = call(extracted_clip, 'Get start time')
+        # chunk_end_ms   = call(extracted_clip, 'Get end time')
+
+    return extracted_clips
+
 
 def chunk_sound (sound, sil_duration, threshold_quantile):
     sil_threshold = get_silence_threshold(sound, threshold_quantile)

@@ -8,6 +8,7 @@ from shutil import rmtree
 import parselmouth
 from parselmouth.praat import call, run_file
 
+
 def get_silence_threshold(sound, lower_quantile):
     """ Calculates silence threshold per sound interval for chunking.
 
@@ -58,18 +59,6 @@ def extract_clip(sound, start, end):
     return call(sound, 'Extract part', start, end, 'rectangular', 1.0, True)
 
 
-def extract_intervals_where(sound, textgrid, tier, operator, condition):
-    return call([sound, textgrid], 'Extract intervals where', tier, True, operator, condition)
-
-
-def count_intervals_where(textgrid, tier, operator, condition):
-    return call(textgrid, 'Count intervals where', tier, operator, condition)
-
-
-def set_interval_text(textgrid, tier, interval, label):
-    call(textgrid, 'Set interval text', 2, interval, label)
-
-
 def extract_intervals(sound, textgrid, adjustment):
 
     sound_start = sound.get_start_time()
@@ -109,6 +98,18 @@ def extract_intervals(sound, textgrid, adjustment):
         # chunk_end_ms   = call(extracted_clip, 'Get end time')
 
     return extracted_clips
+
+
+def extract_intervals_where(sound, textgrid, tier, operator, condition):
+    return call([sound, textgrid], 'Extract intervals where', tier, True, operator, condition)
+
+
+def count_intervals_where(textgrid, tier, operator, condition):
+    return call(textgrid, 'Count intervals where', tier, operator, condition)
+
+
+def set_interval_text(textgrid, tier, interval, label):
+    call(textgrid, 'Set interval text', 2, interval, label)
 
 
 def chunk_sound (sound, sil_duration, threshold_quantile):
@@ -385,14 +386,14 @@ def make_base_tier(base_textgrid, sed_df):
 
         # Set the interval text on each grid
         ratios = [(speech_ratio, speech_alpha), (music_ratio, music_alpha), (noise_ratio, noise_alpha), ]
-        for i in range (1, 4):
+        for i in range (0, 3):
             # Get/create interval info
-            interval_num = call(base_textgrid, 'Get interval at time', i+1, sec)
+            interval_num = call(base_textgrid, 'Get interval at time', i + 2, sec)
             interval_type = 'speech' if ratios[i][0] >= ratios[i][1] else 'nonspeech'
             interval_label = '{0} ({1})'.format(interval_type, round(ratios[i][0], 3))
 
             # Update interval text
-            set_interval_text(base_textgrid, i+1, interval_num, interval_label)
+            set_interval_text(base_textgrid, i + 2, interval_num, interval_label)
 
         # If there was a flip, record it
         if not current_status == previous_status:
@@ -607,7 +608,7 @@ def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
 
     return base_textgrid, extracted_sounds_1
 
-    
+
 def process_videos(group, channel, video, save_sounds, overwrite, sed):
 
     chunk_path = path.join('corpus','chunked_audio')

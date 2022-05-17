@@ -231,7 +231,7 @@ def process_soundfile(fn, audio_path, chunk_path, overwrite=False, save_sounds=F
             status = chunk_existing(tg_fn, log_fn, sound, textgrid, sound_path)
             return status
 
-    status = process_audio(sound, video_id, fn, tg_fn, log_fn, output_df, audio_path, sound_path, save_sounds, sed)
+    status = process_audio(sound, video_id, fn, tg_path, tg_fn, log_fn, output_df, audio_path, sound_path, save_sounds, sed)
     return status
 
 
@@ -252,7 +252,7 @@ def chunk_existing(tg_fn, log_fn, outputdf, sound, textgrid, sound_path):
     return 3
 
 
-def process_audio(sound, video_id, fn, tg_fn, log_fn, output_df, audio_path, sound_path, save_sounds, sed):
+def process_audio(sound, video_id, fn, tg_path, tg_fn, log_fn, output_df, audio_path, sound_path, save_sounds, sed):
 
     # Start audio processing
     print('\nCURRENT FILE: {0}'.format(fn))
@@ -346,8 +346,11 @@ def process_audio(sound, video_id, fn, tg_fn, log_fn, output_df, audio_path, sou
 
     call(base_textgrid, "Insert interval tier", 2, "flip ratio")
     n_ints  = call(base_textgrid, 'Get number of intervals', 5)
-    print("FLIP: {0:.3f}".format(n_ints / sound.get_total_duration()))
     call(base_textgrid, "Set interval text", 2, 1, "{0:.3f}".format(n_ints / sound.get_total_duration()))
+
+    with open(path.join(tg_path, video_id + "_chunking_log.txt"), 'w') as log_out:
+        log_out.write("FLIP RATIO: {0:.3f}\n".format(n_ints / sound.get_total_duration()))
+
 
     # Save second-pass TextGrid
     base_textgrid.save(tg_fn)

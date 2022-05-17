@@ -345,7 +345,7 @@ def process_audio(sound, video_id, fn, tg_fn, log_fn, output_df, audio_path, sou
         output_df.to_csv(log_fn, mode='a', index=False, header=False)
 
     call(base_textgrid, "Insert interval tier", 2, "flip ratio")
-    n_ints  = call(base_textgrid, 'Get number of intervals', 4)
+    n_ints  = call(base_textgrid, 'Get number of intervals', 5)
     print("FLIP: {0:.3f}".format(n_ints / sound.get_total_duration()))
     call(base_textgrid, "Set interval text", 2, 1, "{0:.3f}".format(n_ints / sound.get_total_duration()))
 

@@ -535,19 +535,13 @@ def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
         start_index = call(base_textgrid, 'Get interval at time', 3, start)
         end_index = call(base_textgrid, 'Get interval at time', 3, end)
 
-        print(end - start + 1)
-        print( end_index - start_index)
-
         ratio = (end_index - start_index) / ((end - start) + 1) / sound.get_total_duration() * 100
-
-        print("FLIP RATIO: {0:.3f}".format(ratio))
 
         combined_intervals = [("usable ({0:.3f})".format(ratio), start, end)]
 
     print("COMBINING INTERVALS")
     # COMBINING INTERVALS  ================================
     num_ints = 1
-    print(len(new_intervals))
     for i, interval in enumerate(new_intervals[1:]):
 
         current_start = interval[1]
@@ -558,12 +552,7 @@ def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
             start_index = call(base_textgrid, 'Get interval at time', 3, prev_start)
             end_index = call(base_textgrid, 'Get interval at time', 3, prev_end)
 
-            print(prev_end - prev_start + 1)
-            print(end_index - start_index)
-
             ratio = (end_index - start_index) / ((prev_end - prev_start) + 1) / sound.get_total_duration() * 100
-
-            print("FLIP RATIO: {0:.3f}".format(ratio))
 
             combined_intervals.append(("usable ({0:.3f})".format(ratio), prev_start, prev_end))
 
@@ -575,12 +564,7 @@ def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
             start_index = call(base_textgrid, 'Get interval at time', 3, prev_start)
             end_index = call(base_textgrid, 'Get interval at time', 3, prev_end)
 
-            print(prev_start, prev_end)
-            print(start_index, end_index)
-
             ratio = (end_index - start_index) / ((prev_end - prev_start) + 1) / sound.get_total_duration() * 100
-
-            print("FLIP RATIO: {0:.3f}".format(ratio))
 
             combined_intervals.append(("usable ({0:.3f})".format(ratio), prev_start, prev_end))
 

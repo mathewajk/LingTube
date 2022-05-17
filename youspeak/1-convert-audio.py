@@ -154,15 +154,15 @@ def calculate_ratios(framewise_output, ix_to_lb, out_fn_path, out_fig_path, sed_
 
     # Save plot
     if sed_option == "fig":
-        axis[0].legend(handles=type_lines, loc="upper right")
-        axis[1].legend(handles=ratio_lines, loc="lower right")
+        axis[0].legend(handles=type_lines, loc="center left", bbox_to_anchor=(1, 0.5))
+        axis[1].legend(handles=ratio_lines, loc="center left", bbox_to_anchor=(1, 0.5))
         plt.xlabel('Seconds')
         plt.ylabel('Probability')
         plt.ylim(0, 1.)
         plt.tight_layout()
 
         print('Save fig to {}'.format(out_fig_path))
-        plt.savefig(out_fig_path, dpi=300)
+        plt.savefig(out_fig_path, bbox_inches="tight", dpi=300)
 
     plt.clf()
 

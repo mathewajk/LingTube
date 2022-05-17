@@ -398,7 +398,21 @@ def process_audio(sound, video_id, fn, tg_fn, log_fn, output_df, audio_path, sou
         prev_end = new_intervals[0][2]
 
         if len(new_intervals) == 1:
-            combined_intervals = new_intervals
+
+            start = new_intervals[0][1]
+            end   = new_intervals[0][2]
+
+            start_index = call(base_textgrid, 'Get interval at time', 2, start)
+            end_index = call(base_textgrid, 'Get interval at time', 2, end)
+
+            print(end - start + 1)
+            print( end_index - start_index)
+
+            ratio = (end_index - start_index) / ((end - start) + 1)
+
+            print("FLIP RATIO: {0:.3f}".format(ratio))
+
+            combined_intervals = [("usable ({0:.3f})".format(ratio), start, end)]
 
         # COMBINING INTERVALS  ================================
         for i, interval in enumerate(new_intervals[1:]):
@@ -407,12 +421,35 @@ def process_audio(sound, video_id, fn, tg_fn, log_fn, output_df, audio_path, sou
             current_end   = interval[2]
 
             if current_start > prev_end:
-                combined_intervals.append(("usable", prev_start, prev_end))
+
+                start_index = call(base_textgrid, 'Get interval at time', 2, prev_start)
+                end_index = call(base_textgrid, 'Get interval at time', 2, prev_end)
+
+                print(prev_end - prev_start + 1)
+                print(end_index - start_index)
+
+                ratio = (end_index - start_index) / ((prev_end - prev_start) + 1)
+
+                print("FLIP RATIO: {0:.3f}".format(ratio))
+
+                combined_intervals.append(("usable ({0:.3f})".format(ratio), prev_start, prev_end))
+
                 prev_start = current_start
+
             prev_end = current_end
 
             if i == len(new_intervals[1:])-1:
-                combined_intervals.append(("usable", prev_start, prev_end))
+                start_index = call(base_textgrid, 'Get interval at time', 2, prev_start)
+                end_index = call(base_textgrid, 'Get interval at time', 2, prev_end)
+
+                print(prev_start, prev_end)
+                print(start_index, end_index)
+
+                ratio = (end_index - start_index) / ((prev_end - prev_start) + 1)
+
+                print("FLIP RATIO: {0:.3f}".format(ratio))
+
+                combined_intervals.append(("usable ({0:.3f})".format(ratio), prev_start, prev_end))
 
         # CREATING INTERVALS  ================================
         for interval in combined_intervals:
@@ -431,11 +468,11 @@ def process_audio(sound, video_id, fn, tg_fn, log_fn, output_df, audio_path, sou
         # TODO: Account for the case of no usable sections in the entire sound
 
         n_ints = call(base_textgrid, 'Count intervals where',
-                            1, 'is equal to', 'usable')
+                            1, 'contains', 'usable')
 
         extracted_sounds_1 = call([sound, base_textgrid],
                                 'Extract intervals where',
-                                1, True, 'is equal to', 'usable')
+                                1, True, 'contains', 'usable')
         if n_ints <= 1:
             extracted_sounds_1 = [extracted_sounds_1]
 

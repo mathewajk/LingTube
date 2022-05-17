@@ -58,6 +58,18 @@ def extract_clip(sound, start, end):
     return call(sound, 'Extract part', start, end, 'rectangular', 1.0, True)
 
 
+def extract_intervals_where(sound, textgrid, tier, operator, condition):
+    return call([sound, textgrid], 'Extract intervals where', tier, True, operator, condition)
+
+
+def count_intervals_where(textgrid, tier, operator, condition):
+    return call(textgrid, 'Count intervals where', tier, operator, condition)
+
+
+def set_interval_text(textgrid, tier, interval, label):
+    call(textgrid, 'Set interval text', 2, interval, label)
+
+
 def extract_intervals(sound, textgrid, adjustment):
 
     sound_start = sound.get_start_time()

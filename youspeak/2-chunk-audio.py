@@ -257,229 +257,7 @@ def process_audio(sound, video_id, fn, tg_fn, log_fn, output_df, audio_path, sou
     print('\nCURRENT FILE: {0}'.format(fn))
 
     if sed:
-        print('Accessing SED data in progress...')
-
-        raw_path_parts = path.normpath(audio_path).split(path.sep)
-        raw_path_parts[3] = "sed"
-        sed_path = path.join(*raw_path_parts)
-        file_path = path.join(sed_path, video_id+'_sed_results.csv')
-        sed_df = pd.read_csv(file_path)
-
-        base_textgrid = call(sound, "To TextGrid", "speech sounds music noise", "")
-        alpha = 0.2
-        music_alpha = 0.2
-        noise_alpha = 0.2
-
-        for idx, sec in enumerate(sed_df["seconds"]):
-
-            x = sed_df["noise_ratio"][idx]
-            y = sed_df["speech_ratio"][idx]
-            z = sed_df["music_ratio"][idx]
-
-            if sec == 0:
-                if y >= alpha and z <= music_alpha and x <= noise_alpha:
-                    y_status = current_status = 'speech'
-                else:
-                    y_status = current_status = 'other'
-                call(base_textgrid, 'Set interval text', 1, 1, current_status)
-            elif current_status == 'speech':
-                if y < alpha or z > music_alpha or x > noise_alpha:
-                    y_status = 'other'
-                else:
-                    y_status = current_status
-            elif current_status == 'other':
-                if y >= alpha and z <= music_alpha and x <= noise_alpha:
-                    y_status = 'speech'
-                else:
-                    y_status = current_status
-
-            try:
-                call(base_textgrid, 'Insert boundary', 2, sec)
-                call(base_textgrid, 'Insert boundary', 3, sec)
-                call(base_textgrid, 'Insert boundary', 4, sec)
-            except:
-                pass
-            interval_num = call(base_textgrid, 'Get interval at time', 2, sec)
-            call(base_textgrid, 'Set interval text', 2, interval_num, '{0} ({1})'.format('speech' if y >= alpha else 'nonspeech', round(y,3)))
-
-            interval_num = call(base_textgrid, 'Get interval at time', 3, sec)
-            call(base_textgrid, 'Set interval text', 3, interval_num, '{0} ({1})'.format('music' if z >= music_alpha else 'nonmusic', round(z,3)))
-
-            interval_num = call(base_textgrid, 'Get interval at time', 4, sec)
-            call(base_textgrid, 'Set interval text', 4, interval_num, '{0} ({1})'.format('noise' if x >= noise_alpha else 'nonnoise', round(x,3)))
-
-            if not y_status == current_status:
-                count_list.append((sec, y))
-            else:
-                count_list = []
-
-            if len(count_list) == 3:
-                current_status = y_status
-                try:
-                    call(base_textgrid, 'Insert boundary', 1, count_list[0][0])
-                except:
-                    pass
-                interval_num = call(base_textgrid, 'Get interval at time', 1, count_list[0][0])
-                call(base_textgrid, 'Set interval text', 1, interval_num, current_status)
-                count_list = []
-
-        call(base_textgrid, "Insert interval tier", 1, "identified overlaps")
-
-        interval_window = []
-
-        n_ints = call(base_textgrid, "Get number of intervals", 2)
-        for int_i in range(1,n_ints+1):
-
-            int_start = call(base_textgrid, "Get start time of interval", 2, int_i)
-            int_end = call(base_textgrid, "Get end time of interval", 2, int_i)
-            int_duration = int_end-int_start
-
-            if int_duration <= 15:
-                if not interval_window:
-                    interval_window.append((int_i, int_start, int_end))
-                elif interval_window[-1][0] == int_i - 1:
-                    interval_window.append((int_i, int_start, int_end))
-                else:   # if not sequential, this is our new first interval (not sure if this code is ever reached)
-                    interval_window = [(int_i, int_start, int_end)]
-
-            if int_duration > 15 or int_i == n_ints: # if we are in a long interval
-                  if len(interval_window) >= 6:
-                      try:
-                          call(base_textgrid, "Insert boundary", 1, interval_window[0][1])
-                      except:
-                          pass
-                      try:
-                          call(base_textgrid, "Insert boundary", 1, interval_window[-1][2])
-                      except:
-                          pass
-                      call(base_textgrid, 'Set interval text', 1, call(base_textgrid, 'Get interval at time', 1, interval_window[0][1]), "speech_and_other")
-                  interval_window = [] # else, just reset
-
-
-        # ADD usable UNUSABLE TIER
-        call(base_textgrid, "Insert interval tier", 1, "identified usable")
-        n_ints = call(base_textgrid, "Get number of intervals", 3)
-        new_intervals = []
-
-        # FINDING INTERVALS ================================
-        for int_i in range(1,n_ints+1):
-
-            int_label = call(base_textgrid, "Get label of interval", 3, int_i)
-            int_start = call(base_textgrid, "Get start time of interval", 3, int_i)
-            int_end   = call(base_textgrid, "Get end time of interval", 3, int_i)
-
-            is_speech_other = call(base_textgrid, "Get label of interval", 2, call(base_textgrid, 'Get interval at time', 2, int_start))
-
-            if int_label == "speech" and not is_speech_other:
-                new_start = int_start - 1
-                if new_start < 0:
-                    new_start = 0
-                new_end = int_end + 1
-                if new_end > sound.get_total_duration():
-                    new_end = sound.get_total_duration()
-                new_intervals.append(("usable", new_start, new_end))
-
-            elif sed == "any" and is_speech_other:
-                start =  call(base_textgrid, "Get start time of interval", 2, call(base_textgrid, 'Get interval at time', 2, int_start)) - 1
-                end   =  call(base_textgrid, "Get end time of interval", 2, call(base_textgrid, 'Get interval at time', 2, int_start)) + 1
-                new_start = start - 1
-                if new_start < 0:
-                    new_start = 0
-                new_end = end + 1
-                if new_end > sound.get_total_duration():
-                    new_end = sound.get_total_duration()
-                new_intervals.append(("usable", new_start, new_end))
-
-        # COMBINE SAME TYPES
-
-        combined_intervals = []
-
-        prev_start = new_intervals[0][1]
-        prev_end = new_intervals[0][2]
-
-        if len(new_intervals) == 1:
-
-            start = new_intervals[0][1]
-            end   = new_intervals[0][2]
-
-            start_index = call(base_textgrid, 'Get interval at time', 2, start)
-            end_index = call(base_textgrid, 'Get interval at time', 2, end)
-
-            print(end - start + 1)
-            print( end_index - start_index)
-
-            ratio = (end_index - start_index) / ((end - start) + 1)
-
-            print("FLIP RATIO: {0:.3f}".format(ratio))
-
-            combined_intervals = [("usable ({0:.3f})".format(ratio), start, end)]
-
-        # COMBINING INTERVALS  ================================
-        for i, interval in enumerate(new_intervals[1:]):
-
-            current_start = interval[1]
-            current_end   = interval[2]
-
-            if current_start > prev_end:
-
-                start_index = call(base_textgrid, 'Get interval at time', 2, prev_start)
-                end_index = call(base_textgrid, 'Get interval at time', 2, prev_end)
-
-                print(prev_end - prev_start + 1)
-                print(end_index - start_index)
-
-                ratio = (end_index - start_index) / ((prev_end - prev_start) + 1)
-
-                print("FLIP RATIO: {0:.3f}".format(ratio))
-
-                combined_intervals.append(("usable ({0:.3f})".format(ratio), prev_start, prev_end))
-
-                prev_start = current_start
-
-            prev_end = current_end
-
-            if i == len(new_intervals[1:])-1:
-                start_index = call(base_textgrid, 'Get interval at time', 2, prev_start)
-                end_index = call(base_textgrid, 'Get interval at time', 2, prev_end)
-
-                print(prev_start, prev_end)
-                print(start_index, end_index)
-
-                ratio = (end_index - start_index) / ((prev_end - prev_start) + 1)
-
-                print("FLIP RATIO: {0:.3f}".format(ratio))
-
-                combined_intervals.append(("usable ({0:.3f})".format(ratio), prev_start, prev_end))
-
-        # CREATING INTERVALS  ================================
-        for interval in combined_intervals:
-            try:
-                call(base_textgrid, "Insert boundary", 1, interval[1])
-            except:
-                pass
-            try:
-                call(base_textgrid, "Insert boundary", 1, interval[2])
-            except:
-                pass
-            call(base_textgrid, 'Set interval text', 1, call(base_textgrid, 'Get interval at time', 1, interval[1]), interval[0])
-
-        base_textgrid.save(tg_fn)
-
-        # TODO: Account for the case of no usable sections in the entire sound
-
-        n_ints = call(base_textgrid, 'Count intervals where',
-                            1, 'contains', 'usable')
-
-        extracted_sounds_1 = call([sound, base_textgrid],
-                                'Extract intervals where',
-                                1, True, 'contains', 'usable')
-        if n_ints <= 1:
-            extracted_sounds_1 = [extracted_sounds_1]
-
-        call(base_textgrid, 'Duplicate tier', 1, 1, 'usable speech')
-        call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'usable', '', 'literals')
-
-        print("Number of usable chunks: {}".format(n_ints))
+        base_textgrid, extracted_sounds_1 = chunk_sed(sed, sound, video_id, audio_path, tg_fn)
 
     else:
         print('First pass chunking in progress...')
@@ -563,11 +341,273 @@ def process_audio(sound, video_id, fn, tg_fn, log_fn, output_df, audio_path, sou
 
     if save_sounds:
         output_df = output_df.sort_values(by=["start_time"])
-        output_df.to_csv(log_file, mode='a', index=False, header=False)
+        output_df.to_csv(log_fn, mode='a', index=False, header=False)
 
     # Save second-pass TextGrid
     base_textgrid.save(tg_fn)
 
+
+def make_base_tier(base_textgrid, sed_df):
+
+    speech_alpha = 0.2
+    music_alpha = 0.2
+    noise_alpha = 0.2
+
+    print("CREATING BASE TIER")
+
+    for idx, sec in enumerate(sed_df["seconds"]):
+
+        # Get ratios by second for each sound type
+        speech_ratio = sed_df["speech_ratio"][idx]
+        noise_ratio  = sed_df["noise_ratio"][idx]
+        music_ratio  = sed_df["music_ratio"][idx]
+
+        # If speech_ratio is above alpha, and the other ratios are below alpha, then we are in a speech segment
+        # Otherwise, we are in a music/noise segment
+        if speech_ratio >= speech_alpha and music_ratio < music_alpha and noise_ratio < noise_alpha:
+            current_status = "speech"
+        elif speech_ratio < speech_alpha or music_ratio >= music_alpha or noise_ratio >= noise_alpha:
+            current_status = "other"
+
+        # Set the interval text to the current status
+        call(base_textgrid, 'Set interval text', 1, 1, current_status)
+
+        # If we are at the start of the soundfile, initialize previous_status
+        if sec == 0:
+            previous_status = current_status
+
+        # Insert boundaries on our speech, music, and noise grids
+        try:
+            for i in range (2, 5):
+                call(base_textgrid, 'Insert boundary', i, sec)
+        except:
+            pass
+
+        # Set the interval text on each grid
+        ratios = [(speech_ratio, speech_alpha), (music_ratio, music_alpha), (noise_ratio, noise_alpha), ]
+        for i in range (1, 4):
+            # Get/create interval info
+            interval_num = call(base_textgrid, 'Get interval at time', i+1, sec)
+            interval_type = 'speech' if ratios[i][0] >= ratios[i][1] else 'nonspeech'
+            interval_label = '{0} ({1})'.format(interval_type, round(ratios[i][0], 3))
+
+            # Update interval text
+            set_interval_text(base_textgrid, i+1, interval_num, interval_label)
+
+        # If there was a flip, record it
+        if not current_status == previous_status:
+            status_queue.append((sec, speech_ratio))
+        # If there was not a flip (or we flipped back), reset the queue
+        else:
+            status_queue = []
+
+        # If we have been in a given state for 3 frames, update the status and make a boundary
+        if len(status_queue) == 3:
+
+            previous_status = current_status
+
+            # Insert boundary at start of queue
+            try:
+                call(base_textgrid, 'Insert boundary', 1, status_queue[0][0])
+            except:
+                pass
+
+            # Label the interview based on current status
+            interval = call(base_textgrid, 'Get interval at time', 1, status_queue[0][0])
+            call(base_textgrid, 'Set interval text', 1, interval_num, current_status)
+
+            # Reset queue
+            status_queue = []
+
+
+def chunk_sed(sed, sound, video_id, audio_path, tg_fn):
+
+    print('Accessing SED data...')
+
+    raw_path_parts = path.normpath(audio_path).split(path.sep)
+    raw_path_parts[3] = "sed"
+
+    sed_path = path.join(*raw_path_parts)
+    file_path = path.join(sed_path, video_id + '_sed_results.csv')
+
+    sed_df = pd.read_csv(file_path)
+
+    # Initialize textgrid
+    base_textgrid = call(sound, "To TextGrid", "speech sounds music noise", "")
+
+    make_base_tier(base_textgrid, sed_df)
+
+    interval_window = []
+
+    print("Identifying overlapping speech and other...")
+
+    # Insert tier
+    call(base_textgrid, "Insert interval tier", 1, "identified overlaps")
+
+    n_ints = call(base_textgrid, "Get number of intervals", 2)
+    for int_i in range(1,n_ints+1):
+
+        int_start = call(base_textgrid, "Get start time of interval", 2, int_i)
+        int_end = call(base_textgrid, "Get end time of interval", 2, int_i)
+        int_duration = int_end-int_start
+
+        if int_duration <= 15:
+            if not interval_window:
+                interval_window.append((int_i, int_start, int_end))
+            elif interval_window[-1][0] == int_i - 1:
+                interval_window.append((int_i, int_start, int_end))
+            else:   # if not sequential, this is our new first interval (not sure if this code is ever reached)
+                interval_window = [(int_i, int_start, int_end)]
+
+        if int_duration > 15 or int_i == n_ints: # if we are in a long interval
+              if len(interval_window) >= 6:
+                  try:
+                      call(base_textgrid, "Insert boundary", 1, interval_window[0][1])
+                  except:
+                      pass
+                  try:
+                      call(base_textgrid, "Insert boundary", 1, interval_window[-1][2])
+                  except:
+                      pass
+                  call(base_textgrid, 'Set interval text', 1, call(base_textgrid, 'Get interval at time', 1, interval_window[0][1]), "identified overlaps")
+              interval_window = [] # else, just reset
+
+
+    print("CREATE USABLE TIER")
+    # ADD USABLE/UNUSABLE TIER
+    call(base_textgrid, "Insert interval tier", 1, "identified usable")
+    n_ints = call(base_textgrid, "Get number of intervals", 3)
+    new_intervals = []
+
+    # FINDING INTERVALS ================================
+    for int_i in range(1, n_ints + 1):
+
+        int_label = call(base_textgrid, "Get label of interval", 3, int_i)
+        int_start = call(base_textgrid, "Get start time of interval", 3, int_i)
+        int_end   = call(base_textgrid, "Get end time of interval", 3, int_i)
+
+        # Returns "" if the segment is unlabeled, i.e. not flagged as "speech and other"
+        # This is usable speech in the strict sense
+        is_speech_other = call(base_textgrid, "Get label of interval", 2, call(base_textgrid, 'Get interval at time', 2, int_start))
+
+        if int_label == "speech" and not is_speech_other:
+            new_start = int_start - 1
+            if new_start < 0:
+                new_start = 0
+            new_end = int_end + 1
+            if new_end > sound.get_total_duration():
+                new_end = sound.get_total_duration()
+
+            new_intervals.append(("usable", new_start, new_end))
+
+        elif sed == "any" and is_speech_other:
+            start =  call(base_textgrid, "Get start time of interval", 2, call(base_textgrid, 'Get interval at time', 2, int_start)) - 1
+            end   =  call(base_textgrid, "Get end time of interval", 2, call(base_textgrid, 'Get interval at time', 2, int_start)) + 1
+            new_start = start - 1
+            if new_start < 0:
+                new_start = 0
+            new_end = end + 1
+            if new_end > sound.get_total_duration():
+                new_end = sound.get_total_duration()
+            new_intervals.append(("usable", new_start, new_end))
+
+    # COMBINE SAME TYPES
+
+    combined_intervals = []
+
+    prev_start = new_intervals[0][1]
+    prev_end = new_intervals[0][2]
+
+    if len(new_intervals) == 1:
+
+        start = new_intervals[0][1]
+        end   = new_intervals[0][2]
+
+        start_index = call(base_textgrid, 'Get interval at time', 2, start)
+        end_index = call(base_textgrid, 'Get interval at time', 2, end)
+
+        print(end - start + 1)
+        print( end_index - start_index)
+
+        ratio = (end_index - start_index) / ((end - start) + 1)
+
+        print("FLIP RATIO: {0:.3f}".format(ratio))
+
+        combined_intervals = [("usable ({0:.3f})".format(ratio), start, end)]
+
+    print("COMBINING INTERVALS")
+    # COMBINING INTERVALS  ================================
+    num_ints = 1
+    print(len(new_intervals))
+    for i, interval in enumerate(new_intervals[1:]):
+
+        current_start = interval[1]
+        current_end   = interval[2]
+        num_ints += 1
+        if current_start > prev_end:
+
+            start_index = call(base_textgrid, 'Get interval at time', 2, prev_start)
+            end_index = call(base_textgrid, 'Get interval at time', 2, prev_end)
+
+            print(prev_end - prev_start + 1)
+            print(end_index - start_index)
+
+            ratio = (end_index - start_index) / ((prev_end - prev_start) + 1)
+
+            print("FLIP RATIO: {0:.3f}".format(ratio))
+
+            combined_intervals.append(("usable ({0:.3f})".format(ratio), prev_start, prev_end))
+
+            prev_start = current_start
+
+        prev_end = current_end
+
+        if i == len(new_intervals[1:])-1:
+            start_index = call(base_textgrid, 'Get interval at time', 2, prev_start)
+            end_index = call(base_textgrid, 'Get interval at time', 2, prev_end)
+
+            print(prev_start, prev_end)
+            print(start_index, end_index)
+
+            ratio = (end_index - start_index) / ((prev_end - prev_start) + 1)
+
+            print("FLIP RATIO: {0:.3f}".format(ratio))
+
+            combined_intervals.append(("usable ({0:.3f})".format(ratio), prev_start, prev_end))
+
+    # CREATING INTERVALS  ================================
+    for interval in combined_intervals:
+        try:
+            call(base_textgrid, "Insert boundary", 1, interval[1])
+        except:
+            pass
+        try:
+            call(base_textgrid, "Insert boundary", 1, interval[2])
+        except:
+            pass
+        call(base_textgrid, 'Set interval text', 1, call(base_textgrid, 'Get interval at time', 1, interval[1]), interval[0])
+
+    base_textgrid.save(tg_fn)
+
+    # TODO: Account for the case of no usable sections in the entire sound
+
+    n_ints = call(base_textgrid, 'Count intervals where',
+                        1, 'contains', 'usable')
+
+    extracted_sounds_1 = call([sound, base_textgrid],
+                            'Extract intervals where',
+                            1, True, 'contains', 'usable')
+    if n_ints <= 1:
+        extracted_sounds_1 = [extracted_sounds_1]
+
+    call(base_textgrid, 'Duplicate tier', 1, 1, 'usable speech')
+    call(base_textgrid, 'Replace interval texts', 1, 1, 0, 'usable', '', 'literals')
+
+    print("Number of usable chunks: {}".format(n_ints))
+
+    return base_textgrid, extracted_sounds_1
+
+    
 def process_videos(group, channel, video, save_sounds, overwrite, sed):
 
     chunk_path = path.join('corpus','chunked_audio')

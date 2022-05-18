@@ -4,6 +4,7 @@ LingTube is a suite of tools for scraping and processing YouTube data for lingui
 **Disclaimer / Important Note: Scripts have been developed and thoroughly tested only on MacOS. In addition, while scraping will work for captions in any language, processing of captions and audio have only been developed for and tested on English speech at the moment. English captions are currently processed to be compatible with the Montreal Forced Aligner.**
 
 ## Changelog
+* 05/17/22: Overhaul of YouSpeak scripts to include sound event detection function for audio processing and chunking
 * 10/05/21: All "base" functions moved to Base module
 * 08/12/21: Scripts reorganized and renamed (with order); structure and documentation update underway
 * 04/06/21: Currently under active development
@@ -385,9 +386,9 @@ After this stage, you can run forced alignment (using the Montreal Forced Aligne
 
 ### 1-convert-audio.py
 
-This script allows the user to convert scraped YouTube audio from MP4 to WAV format, as well as converting from stereo to mono. The default includes mono conversion but the user can specify if they prefer to keep audio as stereo. The script then moves the raw MP4 and converted WAV files to separate folders.
+This script allows the user to convert scraped YouTube audio from MP4 to WAV format, and from stereo to mono. The default includes mono conversion but the user can specify if they prefer to keep audio as stereo. The script then moves the raw MP4 and converted WAV files to separate folders.
 
-**Note: We are in the process of overhauling this script to include neural-net based sound event detection for better identification of useable audio.**
+In addition, the script includes an option to employ neural-net based sound event detection (SED) for better identification of usable audio by identifying speech (as opposed to music or noise). The output data can then be used for more informed audio chunking in the next stage, and the output figure can be used for screening purposes.
 
 #### Usage
 
@@ -409,6 +410,24 @@ To convert all scraped audio files in a group to stereo WAV (in a corpus with gr
 python3 youspeak/1-convert-audio.py --group $group_name --stereo
 ```
 
+To run sound event detection, producing output data in a CSV file of the detected speech, music and noise proportions across time (this command will convert any MP4 audio files from MP4 to WAV and stereo to mono prior to running SED):
+
+```
+python3 youspeak/1-convert-audio.py --sed csv
+```
+
+To run sound event detection, producing both output data in a CSV file and a figure visualizing (a) the top 10 sound events, and (b) the detected speech, music and noise proportions across timed (this command will convert any MP4 audio files from MP4 to WAV and stereo to mono prior to running SED):
+
+```
+python3 youspeak/1-convert-audio.py --sed fig
+```
+
+To overwrite existing SED results and rerun sound event detection, producing both output data and figures:
+
+```
+python3 youspeak/1-convert-audio.py --sed fig --overwrite
+```
+
 #### Examples
 
 `python3 youspeak/1-convert-audio.py -g kor`
@@ -423,7 +442,9 @@ This call:
 
 This script identifies short utterances of speech based on breath breaks in the audio and outputs corresponding Praat TextGrid files. The user can specify whether to process all the audio files in a group, channel, or particular video. Users can also optionally save chunked audio files, either specified during the initial chunking (will be saved while processing the output TextGrid) or when running the script a second time (sound files will be saved based on an input TextGrid).
 
-**Note: We are in the process of overhauling this script to include chunking based on sound event detection results for better identification of useable audio.**
+In addition, the script includes an alternative option to chunk audio based on sound event detection (SED) run during `convert-audio.py`; this allows for identification of "usable" sections that attempts to automatically exclude sections of music or noise throughout the audio. The user can choose to define "usable" as section identified as (a) speech only (without overlapping music/noise), or (b) any speech, even when overlapping with music/noise.
+
+**Note: SED-based identification is not perfect, particularly at speech boundaries. It is often unable to correctly identify speech with background music as such when the music is quiet; warnings are provided when such as case is detected.**
 
 #### Usage
 
@@ -452,6 +473,18 @@ To chunk a particular video audio file and output an annotated TextGrid (in a co
 python3 youspeak/2-chunk-audio.py --group $group_name --channel $channel_name --video $video_id
 ```
 
+To chunk all audio files in a group using sound event detection to first identify "usable" sections, defining usable as sections containing only speech:
+
+```
+python3 youspeak/2-chunk-audio.py --group $group_name --sed only
+```
+
+To chunk all audio files in a group using sound event detection to first identify "usable" sections, defining usable as sections containing any speech (even speech with overlapping music or noise):
+
+```
+python3 youspeak/2-chunk-audio.py --group $group_name --sed any
+```
+
 To chunk all audio files in a group and output (a) an annotated TextGrid for each and (b) separate WAV sound files corresponding to each identified chunk:
 
 ```
@@ -459,6 +492,8 @@ python3 youspeak/2-chunk-audio.py --group $group_name --save_sounds
 ```
 
 Alternatively, this same command can be used to save separate WAV sound files based on already existing TextGrids from running `python3 youspeak/2-chunk-audio.py --group $group_name` previously. This may be beneficial if the user prefers to check and/or modify the TextGrids prior to extracting utterance-level sound files.
+
+
 
 #### Examples
 

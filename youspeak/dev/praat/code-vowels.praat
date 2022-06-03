@@ -28,6 +28,8 @@ form Modify textgrids
 	integer max_target 65
 	sentence reference_vowels IY1 AE1 AA1 AO1
 	integer max_reference 30
+	comment Filename filter string
+	sentence filename_filter 
 endform
 
 #########################################################
@@ -97,7 +99,7 @@ endif
 #########################################################
 # Get list of all files
 clearinfo
-Create Strings as file list... list 'audio_dir$'*.wav
+Create Strings as file list... list 'audio_dir$'*'filename_filter$'*.wav
 number_of_files = Get number of strings
 
 # Process each file
@@ -138,130 +140,140 @@ for i_file to number_of_files
 		#########################################################
 		# Read and modify files
 		Read from file... 'audio_dir$''name$'.wav
-		Read from file... 'tg_dir$''name$'.TextGrid
+		if not fileReadable: tg_dir$ + name$ + ".TextGrid"
+			appendInfoLine: "Skipping " + name$
+			select Sound 'name$'
+			Write to WAV file... 'skip_dir$''name$'.wav
+			Remove
+			filedelete 'audio_dir$''name$'.wav
+		else
+			##appendInfoLine: "Opening TextGrid..."
+			Read from file... 'tg_dir$''name$'.TextGrid
 
-		# Insert target vowel point marker at center of sound file
-		tg_end_time = Get end time
-		tg_num_tiers = Get number of tiers
-		if tg_num_tiers < 3
-			Insert point tier: 3, "vowel marker"
-			Insert point: 3, tg_end_time/2, "target"
-		endif
-
-		#########################################################
-		# Now bring up the editor to work on fixing the boundaries
-
-		select Sound 'name$'
-		plus TextGrid 'name$'
-		Edit
-			beginPause: "Edit Text Grid"
-				comment: "Please adjust the boundaries on the TextGrid."
-
-	    boundaries = choice ("Boundaries", 1)
-	    	option ("good (e.g. fixed)")
-	    	option ("bad (e.g. can't be fixed)")
-				option ("unsure (e.g. can't identify vowel clearly)")
-				option ("wrong (e.g. no vowel or syllabic C)")
-			creak = choice ("Creak", 1)
-				option ("none")
-				option ("start")
-				option ("end")
-				option ("half/most/all")
-			issues = choice ("Issues", 1)
-				option ("none")
-				option ("vowel quality")
-				option ("breathy/whisper/voiceless")
-				option ("noise/sfx/click/etc.")
-				option ("other")
-			flag = boolean ("Flag", 0)
-
-			clicked = endPause: "Quit", "Skip", "Done", 3, 1
-			if clicked = 1
-						endeditor
-						select all
-						Remove
-						if new_outfile = 1
-							deleteFile: outfile$
-						endif
-						exitScript ()
-			elsif clicked = 2
-						select TextGrid 'name$'
-						Write to text file... 'skip_dir$''name$'.TextGrid
-						Remove
-						filedelete 'tg_dir$''name$'.TextGrid
-						select Sound 'name$'
-						Write to WAV file... 'skip_dir$''name$'.wav
-						Remove
-						filedelete 'audio_dir$''name$'.wav
-			elsif clicked = 3
-						# Now save the result
-						select TextGrid 'name$'
-						Write to text file... 'out_tg_dir$''name$'.TextGrid
-						Remove
-						select Sound 'name$'
-						Write to WAV file... 'out_audio_dir$''name$'.wav
-						Remove
-						# Delete file
-						filedelete 'audio_dir$''name$'.wav
-
-						# Save to a spreadsheet
-						appendFileLine: "'outfile$'",
-							...soundname$, ",",
-							...order$, ",",
-							...vowel$, ",",
-							...boundaries, ",",
-							...creak, ",",
-							...issues, ",",
-							...flag
-
-							if new_outfile = 1
-								new_outfile = 0
-							endif
-
-							clearinfo
-							Read Table from comma-separated file... 'outfile$'
-							Rename: "output"
-							total_rows = Get number of rows
-							appendInfoLine: "Total vowels coded: " + string$(total_rows) + newline$
-
-							Extract rows where... (self$["boundaries"]="1") & (self$["creak"]="1"|self$["creak"]="2"|self$["creak"]="3") & (self$["issues"]="1"|self$["issues"]="2"|self$["issues"]="4"|self$["issues"]="5")
-							Rename: "usable_output"
-							usable_rows = Get number of rows
-							appendInfoLine: "Usable vowels coded: " + string$(usable_rows) + newline$
-
-							appendInfoLine: "Target vowels usable: "
-							for i_vowel from 1 to size(target_vowels$#)
-								current_vowel$ = target_vowels$#[i_vowel]
-								select Table usable_output
-
-								vowel_rows# = List row numbers where... self$["vowel"]=current_vowel$
-								number_of_vowels = size(vowel_rows#)
-								if number_of_vowels > max_target-1
-									finished_vowels$#[i_vowel] = current_vowel$
-								endif
-								appendInfoLine: current_vowel$ + ": " + string$(number_of_vowels)
-							endfor
-
-							appendInfoLine:  newline$ + "Reference vowels usable: "
-							for i_ref_vowel from 1 to size(reference_vowels$#)
-								current_vowel$ = reference_vowels$#[i_ref_vowel]
-								select Table usable_output
-
-								vowel_rows# = List row numbers where... self$["vowel"]=current_vowel$
-								number_of_vowels = size(vowel_rows#)
-								if number_of_vowels > max_reference-1
-									finished_vowels$#[i_ref_vowel + size(target_vowels$#)] = current_vowel$
-								endif
-								appendInfoLine: current_vowel$ + ": " + string$(number_of_vowels)
-							endfor
-
-							select Table output
-							plus Table usable_output
-							Remove
-
+			# Insert target vowel point marker at center of sound file
+			tg_end_time = Get end time
+			tg_num_tiers = Get number of tiers
+			if tg_num_tiers < 3
+				Insert point tier: 3, "vowel marker"
+				Insert point: 3, tg_end_time/2, "target"
 			endif
-		endeditor
 
+			#########################################################
+			# Now bring up the editor to work on fixing the boundaries
+
+			select Sound 'name$'
+			plus TextGrid 'name$'
+			Edit
+				beginPause: "Edit Text Grid"
+					comment: "Please adjust the boundaries on the TextGrid."
+
+		    boundaries = choice ("Boundaries", 1)
+		    	option ("good (e.g. fixed)")
+		    	option ("bad (e.g. can't be fixed)")
+					option ("unsure (e.g. can't identify vowel clearly)")
+					option ("wrong (e.g. no vowel or syllabic C)")
+				creak = choice ("Creak", 1)
+					option ("none")
+					option ("start")
+					option ("end")
+					option ("half/most/all")
+				issues = choice ("Issues", 1)
+					option ("none")
+					option ("vowel quality")
+					option ("breathy/whisper/voiceless")
+					option ("noise/sfx/click/etc.")
+					option ("other")
+				flag = boolean ("Flag", 0)
+
+				clicked = endPause: "Quit", "Skip", "Done", 3, 1
+				if clicked = 1
+							endeditor
+							select all
+							Remove
+							if new_outfile = 1
+								deleteFile: outfile$
+							endif
+							exitScript ()
+				elsif clicked = 2
+							select TextGrid 'name$'
+							Write to text file... 'skip_dir$''name$'.TextGrid
+							Remove
+							filedelete 'tg_dir$''name$'.TextGrid
+							select Sound 'name$'
+							Write to WAV file... 'skip_dir$''name$'.wav
+							Remove
+							filedelete 'audio_dir$''name$'.wav
+				elsif clicked = 3
+							# Now save the result
+							select TextGrid 'name$'
+							Write to text file... 'out_tg_dir$''name$'.TextGrid
+							Remove
+							select Sound 'name$'
+							Write to WAV file... 'out_audio_dir$''name$'.wav
+							Remove
+							# Delete file
+							filedelete 'audio_dir$''name$'.wav
+
+							# Save to a spreadsheet
+							appendFileLine: "'outfile$'",
+								...soundname$, ",",
+								...order$, ",",
+								...vowel$, ",",
+								...boundaries, ",",
+								...creak, ",",
+								...issues, ",",
+								...flag
+
+								if new_outfile = 1
+									new_outfile = 0
+								endif
+
+								clearinfo
+								Read Table from comma-separated file... 'outfile$'
+								Rename: "output"
+								total_rows = Get number of rows
+								appendInfoLine: "Total vowels coded: " + string$(total_rows) + newline$
+
+								Extract rows where... (self$["boundaries"]="1") & (self$["creak"]="1"|self$["creak"]="2"|self$["creak"]="3") & (self$["issues"]="1"|self$["issues"]="2"|self$["issues"]="4"|self$["issues"]="5")
+								Rename: "usable_output"
+								usable_rows = Get number of rows
+								appendInfoLine: "Usable vowels coded: " + string$(usable_rows) + newline$
+
+								appendInfoLine: "Target vowels usable: "
+								for i_vowel from 1 to size(target_vowels$#)
+									current_vowel$ = target_vowels$#[i_vowel]
+									select Table usable_output
+
+									vowel_rows# = List row numbers where... self$["vowel"]=current_vowel$
+									number_of_vowels = size(vowel_rows#)
+									if number_of_vowels > max_target-1
+										finished_vowels$#[i_vowel] = current_vowel$
+									endif
+									appendInfoLine: current_vowel$ + ": " + string$(number_of_vowels)
+								endfor
+
+								appendInfoLine:  newline$ + "Reference vowels usable: "
+								for i_ref_vowel from 1 to size(reference_vowels$#)
+									current_vowel$ = reference_vowels$#[i_ref_vowel]
+									select Table usable_output
+
+									vowel_rows# = List row numbers where... self$["vowel"]=current_vowel$
+									number_of_vowels = size(vowel_rows#)
+									if number_of_vowels > max_reference-1
+										finished_vowels$#[i_ref_vowel + size(target_vowels$#)] = current_vowel$
+									endif
+									appendInfoLine: current_vowel$ + ": " + string$(number_of_vowels)
+								endfor
+
+								select Table output
+								plus Table usable_output
+								Remove
+
+				endif
+			endeditor
+
+
+		endif
 	endif
 
 endfor

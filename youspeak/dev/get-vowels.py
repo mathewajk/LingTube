@@ -4,6 +4,7 @@ import argparse
 from os import listdir, makedirs, path, remove
 import pandas as pd
 from numpy import arange
+import chardet
 
 import parselmouth
 from parselmouth.praat import call
@@ -168,7 +169,9 @@ def main(args):
             # TODO: Read in the 'vowel_coding_log.csv'
             if args.adjusted:
                 log_path = path.join(adjusted_path, channel_id+"_all", "vowel_coding_log.csv")
-                log_df = pd.read_csv(log_path)
+                with open(log_path, 'rb') as f:
+                    enc = chardet.detect(f.read())  # or readline if the file is large
+                log_df = pd.read_csv(log_path, encoding = enc['encoding'])
 
             files_list = [fn for fn in listdir(tg_path) if not fn.startswith('.') and not fn.endswith('.txt')]
             files_list.sort(key=str.lower)

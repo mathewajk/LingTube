@@ -1,6 +1,4 @@
-<h1 align="center">LingTube</h1>
-
-<h2 align="center">Tools for linguistic analysis of YouTube data</h2>
+<h1 align="center">LingTube: Tools for linguistic analysis of YouTube speech</h1>
 
 <p align="center">
   <img alt="Version 2.0.0" src="https://img.shields.io/badge/version-v3.0.0-green?style=flat-square"/>

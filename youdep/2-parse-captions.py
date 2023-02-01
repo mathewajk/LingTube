@@ -1,3 +1,7 @@
+# 2-parse-captions.py
+
+# Parse caption data using Stanza to produce sentence-by-sentence dependency parses.
+
 import stanza, json, argparse, logging
 from sys import argv
 from glob import glob

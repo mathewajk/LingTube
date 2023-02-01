@@ -1,3 +1,8 @@
+# process-captions-auto.py
+
+# Automatically fix common formatting errors and remove non-spoken material from captions.
+# May be used in place of 3-clean-captions.py in ../base.
+ 
 import re, logging
 
 from sys import argv, stdout, exit

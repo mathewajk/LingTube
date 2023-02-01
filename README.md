@@ -1,7 +1,17 @@
-# LingTube
-LingTube is a suite of tools for scraping and processing YouTube data for linguistic analysis. Specifically, it is intended as a resource for language researchers who want to download YouTube video captions and audio for textual or phonetic analysis.
+<h1 align="center">LingTube</h1>
 
-**Disclaimer / Important Note: Scripts have been developed and thoroughly tested only on MacOS. In addition, while scraping will work for captions in any language, processing of captions and audio have only been developed for and tested on English speech at the moment. English captions are currently processed to be compatible with the Montreal Forced Aligner.**
+<h2 align="center">Tools for linguistic analysis of YouTube data</h2>
+
+<p align="center">
+  <img alt="Version 2.0.0" src="https://img.shields.io/badge/version-v3.0.0-green?style=flat-square"/>
+</p>
+
+## About
+LingTube is a suite of tools for scraping and processing YouTube data for linguistic analysis. Specifically, it is intended as a resource for language researchers who want to download YouTube video captions and audio for textual or phonetic analysis. Although intended for research, it may also be useful for language study.
+
+## Disclaimers
+- Scripts have been developed and thoroughly tested only on MacOS.
+- Audio processing has only been developed for and tested on English speech. English captions are currently processed to be compatible with the Montreal Forced Aligner. (Scraping will work for captions in any language, and dependency parsing is possible for any language with a language model released through Stanza.)
 
 ## Changelog
 * 05/17/22: Overhaul of YouSpeak scripts to include sound event detection function for audio processing and chunking
@@ -11,7 +21,7 @@ LingTube is a suite of tools for scraping and processing YouTube data for lingui
 
 ## Dependencies
 
-Dependencies are provided in the `requirements.txt` file. To install all dependencies, run
+Python dependencies are provided in `requirements.txt`. To install all dependencies, run
 
 `pip install -r requirements.txt`
 
@@ -23,9 +33,9 @@ In addition, this software requires the latest version of Python and TK. If you 
 to install the version of Python that is bundled with TK. By default, `brew install python` no longer installs TK.
 
 ### Selenium
-At the moment, LingTube still depends on [Selenium](https://www.selenium.dev/). In order to work with Selenium, you will need to download the appropriate WebDriver, which should be placed in `usr/bin/`:
+LingTube depends on [Selenium](https://www.selenium.dev/). In order to work with Selenium, you will need to download the appropriate WebDriver, which should be placed in `usr/bin/`:
 
-* For Firefox: [GeckoDriver](https://github.com/mozilla/geckodriver/releases)\n",
+* For Firefox: [GeckoDriver](https://github.com/mozilla/geckodriver/releases)",
 * For Chrome: [ChromeDriver](https://github.com/SeleniumHQ/selenium/wiki/ChromeDriver)
 
 For further information, the Selenium documentation can be found [here](https://www.selenium.dev/documentation/en/webdriver/).
